@@ -4,6 +4,7 @@
   "resolvers": {
     "avatar": ["selfid", "lens", "ens", "snapshot"],
     "token": ["trustwallet", "zapper"],
-    "space": ["space"]
+    "space": ["space"],
+    "nft": ["nft"]
   }
 }

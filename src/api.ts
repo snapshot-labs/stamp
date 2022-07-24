@@ -21,14 +21,15 @@ router.get('/clear/:type/:id', async (req, res) => {
   }
 });
 
-router.get('/:type/:id', async (req, res) => {
-  const { type, id } = req.params;
+router.get('/:type/:id/:subId?', async (req, res) => {
+  const { type, id, subId } = req.params;
 
   const { address, network, w, h, fallback } = await parseQuery(id, type, req.query);
   const key1 = getCacheKey({
     type,
     network,
     address,
+    subId,
     w: constants.max,
     h: constants.max,
     fallback
@@ -37,6 +38,7 @@ router.get('/:type/:id', async (req, res) => {
   let currentResolvers = constants.resolvers.avatar;
   if (type === 'token') currentResolvers = constants.resolvers.token;
   if (type === 'space') currentResolvers = constants.resolvers.space;
+  if (type === 'nft') currentResolvers = constants.resolvers.nft;
   currentResolvers = [fallback, ...currentResolvers];
 
   // Check resized cache
@@ -55,7 +57,11 @@ router.get('/:type/:id', async (req, res) => {
     // console.log('Got base cache');
   } else {
     console.log('No cache for', key1, base);
-    const p = currentResolvers.map(r => resolvers[r](address, network));
+
+    const extraArgs: any[] = [];
+    if (type === 'nft') extraArgs.push(subId);
+
+    const p = currentResolvers.map(r => resolvers[r](address, ...extraArgs, network));
     const files = await Promise.all(p);
     files.forEach(file => {
       if (file) file1 = file;

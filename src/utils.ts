@@ -10,9 +10,11 @@ export function sha256(str) {
     .digest('hex');
 }
 
-export async function resize(input, w, h) {
+export async function resize(input, w, h, fit = 'cover') {
   return sharp(input)
-    .resize(w, h)
+    .resize(w, h, {
+      fit
+    })
     .webp({ lossless: true })
     .toBuffer();
 }
@@ -82,6 +84,7 @@ export function getCacheKey({
   type,
   network,
   address,
+  subId,
   w,
   h,
   fallback
@@ -89,12 +92,16 @@ export function getCacheKey({
   type: string;
   network: string;
   address: string;
+  subId?: string;
   w: number;
   h: number;
   fallback: string;
 }) {
   if (fallback === 'blockie') return sha256(JSON.stringify({ type, network, address, w, h }));
-  return sha256(JSON.stringify({ type, network, address, w, h, fallback }));
+  const blob: Record<string, any> = { type, network, address, w, h, fallback };
+  if (type === 'nft') blob.tokenId = subId;
+
+  return sha256(JSON.stringify(blob));
 }
 
 export function setHeader(res) {

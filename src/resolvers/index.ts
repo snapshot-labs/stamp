@@ -7,6 +7,7 @@ import space from './space';
 import selfid from './selfid';
 import lens from './lens';
 import zapper from './zapper';
+import nft from './nft';
 
 export default {
   blockie,
@@ -17,5 +18,6 @@ export default {
   space,
   selfid,
   lens,
-  zapper
+  zapper,
+  nft
 };
