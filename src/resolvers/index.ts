@@ -8,8 +8,10 @@ import { resolveAvatar as sxResolveAvatar, resolveCover as sxResolveCover } from
 import selfid from './selfid';
 import lens from './lens';
 import zapper from './zapper';
+import constants from '../constants.json';
+import { timeImageResolverResponse } from '../helpers/metrics';
 
-export default {
+const RESOLVERS = {
   blockie,
   jazzicon,
   ens,
@@ -21,4 +23,26 @@ export default {
   selfid,
   lens,
   zapper
-};
+} as const;
+
+export function resolve(
+  type: string,
+  address: string,
+  network: string,
+  resolvers?: string[]
+): Promise<any> {
+  const _resolvers: string[] =
+    resolvers ?? (constants.resolvers[type] || constants.resolvers.avatar);
+
+  return Promise.all(
+    _resolvers.map(async r => {
+      const end = timeImageResolverResponse.startTimer({ provider: r });
+      const result = await RESOLVERS[r](address, network);
+
+      end({ status: result === false ? 0 : 1 });
+      return result;
+    })
+  );
+}
+
+export default RESOLVERS;

@@ -2,7 +2,7 @@ import express from 'express';
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import { parseQuery, resize, setHeader, getCacheKey } from './utils';
 import { set, get, streamToBuffer, clear } from './aws';
-import resolvers from './resolvers';
+import { resolve } from './resolvers';
 import constants from './constants.json';
 import { rpcError, rpcSuccess } from './helpers/utils';
 import { lookupAddresses, resolveNames } from './addressResolvers';
@@ -81,21 +81,12 @@ router.get(`/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
   let baseImage;
   if (base) {
     baseImage = await streamToBuffer(base);
-    // console.log('Got base cache');
   } else {
-    // console.log('No cache for', key1, base);
-
-    let currentResolvers: string[] = constants.resolvers.avatar;
-    if (type === 'token') currentResolvers = constants.resolvers.token;
-    if (type === 'space') currentResolvers = constants.resolvers.space;
-    if (type === 'space-sx') currentResolvers = constants.resolvers['space-sx'];
-    if (type === 'space-cover-sx') currentResolvers = constants.resolvers['space-cover-sx'];
-
-    const files = await Promise.all(currentResolvers.map(r => resolvers[r](address, network)));
-    baseImage = [...files].reverse().find(file => !!file);
+    const images = await resolve(type, address, network);
+    baseImage = [...images].reverse().find(file => !!file);
 
     if (!baseImage) {
-      const fallbackImage = await resolvers[fallback](address, network);
+      const fallbackImage = (await resolve(type, address, network, [fallback]))[0];
       const resizedImage = await resize(fallbackImage, w, h);
 
       setHeader(res, 'SHORT_CACHE');

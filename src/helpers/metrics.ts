@@ -26,6 +26,12 @@ export const timeAddressResolverResponse = new client.Histogram({
   labelNames: ['provider', 'method', 'status']
 });
 
+export const timeImageResolverResponse = new client.Histogram({
+  name: 'image_resolver_response_duration_seconds',
+  help: "Duration in seconds of each image resolver's response.",
+  labelNames: ['provider', 'status']
+});
+
 export const addressResolversCacheHitCount = new client.Counter({
   name: 'address_resolvers_cache_hit_count',
   help: 'Number of hit/miss of the address resolvers cache layer',
