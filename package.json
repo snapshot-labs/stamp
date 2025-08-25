@@ -21,6 +21,7 @@
     "@ethersproject/address": "^5.7.0",
     "@ethersproject/bignumber": "^5.7.0",
     "@ethersproject/contracts": "^5.7.0",
+    "@ethersproject/hash": "^5.8.0",
     "@ethersproject/providers": "^5.7.2",
     "@metamask/jazzicon": "^2.0.0",
     "@self.id/core": "^0.3.0",

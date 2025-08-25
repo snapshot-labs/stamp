@@ -4,6 +4,7 @@ import * as unstoppableDomainResolver from './unstoppableDomains';
 import * as starknetResolver from './starknet';
 import * as snapshotResolver from './snapshot';
 import * as shibariumResolver from './shibarium';
+import * as spaceIdResolver from './spaceId';
 import cache, { clear } from './cache';
 import {
   normalizeAddresses,
@@ -21,7 +22,8 @@ const RESOLVERS = [
   unstoppableDomainResolver,
   lensResolver,
   starknetResolver,
-  shibariumResolver
+  shibariumResolver,
+  spaceIdResolver
 ];
 const MAX_LOOKUP_ADDRESSES = 50;
 const MAX_RESOLVE_NAMES = 5;

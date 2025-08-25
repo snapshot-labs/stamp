@@ -8,7 +8,7 @@ import {
   FetchError,
   isEvmAddress
 } from './utils';
-import { Address, Handle } from '../utils';
+import { Address, batchContractCalls, Handle } from '../utils';
 
 export const NAME = 'Unstoppable Domains';
 const NETWORK = '137';
@@ -33,12 +33,14 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
   if (normalizedAddresses.length === 0) return {};
 
   try {
-    const multi = new snapshot.utils.Multicaller(NETWORK, provider, ABI);
-    normalizedAddresses.forEach(address =>
-      multi.call(address, CONTRACT_ADDRESS, 'reverseNameOf', [address])
+    const names: Record<Address, Handle> = await batchContractCalls(
+      NETWORK,
+      provider,
+      ABI,
+      normalizedAddresses,
+      new Array(normalizedAddresses.length).fill(CONTRACT_ADDRESS),
+      'reverseNameOf'
     );
-
-    const names = (await multi.execute()) as Record<Address, Handle>;
 
     return withoutEmptyValues(names);
   } catch (e) {
