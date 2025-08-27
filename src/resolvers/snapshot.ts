@@ -12,7 +12,6 @@ const API_URLS = {
   's-tn': `${process.env.HUB_URL_TN ?? 'https://testnet.hub.snapshot.org'}/graphql`,
   // SX mainnets
   eth: UNIFIED_API_URL,
-  matic: UNIFIED_API_URL,
   arb1: UNIFIED_API_URL,
   oeth: UNIFIED_API_URL,
   base: UNIFIED_API_URL,
