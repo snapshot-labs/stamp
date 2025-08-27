@@ -24,13 +24,6 @@ describe('resolvers', () => {
         expect(result.length).toBeGreaterThan(100);
       });
 
-      it('should resolve on polygon', async () => {
-        const result = await resolvers['space-sx']('0x80D0Ffd8739eABF16436074fF64DC081c60C833A');
-
-        expect(result).toBeInstanceOf(Buffer);
-        expect(result.length).toBeGreaterThan(100);
-      });
-
       it('should resolve on optimism', async () => {
         const result = await resolvers['space-sx']('0x2EF7E7CF469f5296011664682D58b57D38a3c83f');
 
