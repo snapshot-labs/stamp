@@ -10,6 +10,21 @@ function normalizeHandles(handles: Handle[]): Handle[] {
   return handles.filter(h => SUPPORTED_TLDS.some(tld => h.endsWith(`.${tld}`)));
 }
 
+async function fetchDomains(
+  address: string,
+  cursor: string
+): Promise<Record<'data' | 'next', any>> {
+  const response = await fetch(
+    `https://api.unstoppabledomains.com/resolve/owners/${address}/domains?cursor=${cursor}`,
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.UNSTOPPABLE_DOMAINS_API_KEY || ''}`
+      }
+    }
+  );
+
+  return response.json();
+}
 export default async function lookupDomains(address: Address, chainId: string): Promise<Handle[]> {
   if (chainId !== DEFAULT_CHAIN_ID) return [];
 
@@ -17,19 +32,16 @@ export default async function lookupDomains(address: Address, chainId: string): 
     return [];
   }
 
+  const domains: string[] = [];
+  let cursor = '0';
+
   try {
-    const resp = await fetch(
-      `https://api.unstoppabledomains.com/resolve/owners/${address}/domains`,
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.UNSTOPPABLE_DOMAINS_API_KEY || ''}`
-        }
-      }
-    );
-
-    const data = await resp.json();
-
-    return normalizeHandles(data.data.map((domain: any) => domain.meta.domain));
+    while (cursor !== null) {
+      const data = await fetchDomains(address, cursor);
+      cursor = data.next?.split('=').pop() || null;
+      domains.push(...data.data.map((domain: any) => domain.meta.domain));
+    }
+    return normalizeHandles(domains);
   } catch (e) {
     if (!isSilencedError(e)) {
       capture(e, { input: { address } });
