@@ -38,7 +38,7 @@ export default async function lookupDomains(address: Address, chainId: string): 
   try {
     while (cursor !== null) {
       const data = await fetchDomains(address, cursor);
-      cursor = data.next?.split('=').pop() || null;
+      cursor = data.next?.split('cursor=').pop() || null;
       domains.push(...data.data.map((domain: any) => domain.meta.domain));
     }
     return normalizeHandles(domains);
