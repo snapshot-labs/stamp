@@ -180,6 +180,11 @@ export const getBaseAssetIconUrl = (chainId: string) => {
     return 'https://ipfs.snapshot.box/ipfs/bafybeifjxd2q2znrqdsl5y2oplp6yothjfpzaosxs3kcvnxcacox6wfl5u';
   }
 
+  // Celo
+  if (chainId === '42220') {
+    return 'https://ipfs.snapshot.box/ipfs/bafkreidvcofeczigbjr7ddapgdugwso6v2l4iolfxys7qg6kfvu2uduyva';
+  }
+
   return 'https://static.cdnlogo.com/logos/e/81/ethereum-eth.svg';
 };
 
