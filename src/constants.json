@@ -19,11 +19,11 @@
   },
   "d3": {
     "109": {
-      "apiUrl": "https://api-public.d3.app",
+      "apiUrl": "https://api-public.interstellar.xyz",
       "forwarder": "vana"
      },
     "157": {
-      "apiUrl": "https://api-public-stage.d3.app",
+      "apiUrl": "https://api-public-testnet.interstellar.xyz",
       "forwarder": "stage.d3test.vana"
     }
   },
