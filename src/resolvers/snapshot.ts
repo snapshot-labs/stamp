@@ -15,6 +15,7 @@ const API_URLS = {
   arb1: UNIFIED_API_URL,
   oeth: UNIFIED_API_URL,
   base: UNIFIED_API_URL,
+  bnb: UNIFIED_API_URL,
   mnt: UNIFIED_API_URL,
   ape: UNIFIED_API_URL,
   sn: UNIFIED_API_URL,
