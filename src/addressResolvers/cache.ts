@@ -21,7 +21,9 @@ export function setCache(payload: Record<string, string>) {
 
   const transaction = redis.multi();
   Object.entries(payload).map(([key, value]) =>
-    transaction.set(`${KEY_PREFIX}:${key}`, value || '', { EX: constants.ttl })
+    transaction.set(`${KEY_PREFIX}:${key}`, value || '', {
+      EX: value ? constants.ttl : constants.shortTtl
+    })
   );
 
   return transaction.exec();
