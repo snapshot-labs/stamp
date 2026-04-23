@@ -22,6 +22,7 @@ const API_URLS = {
   // SX testnets
   sep: UNIFIED_API_TESTNET_URL,
   curtis: UNIFIED_API_TESTNET_URL,
+  bnbt: UNIFIED_API_TESTNET_URL,
   'sn-sep': UNIFIED_API_TESTNET_URL
 };
 
