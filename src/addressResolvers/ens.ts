@@ -43,6 +43,20 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
     );
     const validNames = normalizeEns(reverseRecords);
 
+    // The batch contract only reads on-chain reverse records. Names served by
+    // off-chain resolvers (CCIP-Read) need provider.lookupAddress, which follows
+    // the OffchainLookup flow via the ENS UniversalResolver.
+    const missing = normalizedAddresses.map((_, i) => i).filter(i => !validNames[i]);
+    const lookups = await Promise.allSettled(
+      missing.map(idx => provider.lookupAddress(normalizedAddresses[idx]))
+    );
+    const fallbackNames = normalizeEns(
+      lookups.map(r => (r.status === 'fulfilled' && r.value) || '')
+    );
+    missing.forEach((idx, j) => {
+      if (fallbackNames[j]) validNames[idx] = fallbackNames[j];
+    });
+
     return Object.fromEntries(
       normalizedAddresses
         .map((address, index) => [address, validNames[index]])
