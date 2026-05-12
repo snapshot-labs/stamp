@@ -10,3 +10,15 @@ testAddressResolver({
   blankAddress: '0x0C67A201b93cf58D4a5e8D4E970093f0FB4bb0D1',
   invalidDomains: ['domain.crypto', 'domain.lens', 'domain.com']
 });
+
+describe('ENS address resolver: CCIP-Read fallback', () => {
+  // avsa.eth's primary name is set via an off-chain resolver that the batch
+  // getNames contract doesn't follow, so the fallback to provider.lookupAddress
+  // is required.
+  it('resolves names that the batch contract misses', async () => {
+    const address = '0x809FA673fe2ab515FaA168259cB14E2BeDeBF68e';
+    await expect(lookupAddresses([address])).resolves.toEqual({
+      [address]: 'avsa.eth'
+    });
+  }, 15e3);
+});
