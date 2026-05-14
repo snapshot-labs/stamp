@@ -33,7 +33,7 @@ describe('resolvers', () => {
 
     describe('with an NFT image', () => {
       it('should resolve with handle', async () => {
-        const result = await resolvers.starknet('fricoben.stark');
+        const result = await resolvers.starknet('pragmarob.stark');
 
         expect(result).toBeInstanceOf(Buffer);
         expect(result.length).toBeGreaterThan(1000);
@@ -41,7 +41,7 @@ describe('resolvers', () => {
 
       it('should resolve with address', async () => {
         const result = await resolvers.starknet(
-          '0x072d4f3fa4661228ed0c9872007fc7e12a581e000fad7b8f3e3e5bf9e6133207'
+          '0x007b275f7524f39b99a51c7134bc44204fedc5dd1e982e920eb2047c6c2a71f0'
         );
 
         expect(result).toBeInstanceOf(Buffer);
