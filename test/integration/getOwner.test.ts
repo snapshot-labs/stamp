@@ -35,7 +35,9 @@ describe('getOwner', () => {
     };
 
     it('should return an address for shibarium', async () => {
-      // Resolves true as soon as any entry matches; false only if all rotted.
+      // Fires all checks concurrently; the assertion resolves true as soon as
+      // one matches (remaining in-flight requests are not cancelled), and
+      // false only once all have completed without a match (all rotted).
       const atLeastOneResolves = await new Promise<boolean>(resolve => {
         const entries = Object.entries(UNCLAIMED_SHIBARIUM);
         let pending = entries.length;
