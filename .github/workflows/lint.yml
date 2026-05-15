@@ -3,4 +3,6 @@ on: [push]
 jobs:
   lint:
     uses: snapshot-labs/actions/.github/workflows/lint.yml@main
+    with:
+      target: '18'
     secrets: inherit

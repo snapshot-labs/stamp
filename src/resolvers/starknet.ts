@@ -1,18 +1,11 @@
 import fetch from 'node-fetch';
-import { Provider, RpcProvider } from 'starknet';
 import { getUrl, resize } from '../utils';
+import { provider as getProvider } from '../addressResolvers/utils';
 import { max } from '../constants.json';
 import { fetchHttpImage } from './utils';
 
 const DEFAULT_IMG_URL = 'https://starknet.id/api/identicons/0';
-
-const provider = new Provider(
-  new RpcProvider({
-    nodeUrl: process.env.INFURA_API_KEY
-      ? `https://starknet-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`
-      : 'https://starknet-mainnet.public.blastapi.io'
-  })
-);
+const provider = getProvider('0x534e5f4d41494e');
 
 function isStarknetDomain(domain: string): boolean {
   return domain.endsWith('.stark');
