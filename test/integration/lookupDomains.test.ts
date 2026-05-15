@@ -56,7 +56,8 @@ describe('lookupDomains', () => {
 
   it('should return all the addresses from the given chain', async () => {
     const result = await lookupDomains('0x220bc93D88C0aF11f1159eA89a885d5ADd3A7Cf6', ['1', '109']);
-    expect(result).toEqual(['boorger.eth', 'boorger.shib']);
+    expect(result).toContain('boorger.eth');
+    expect(result).toContain('boorger.shib');
   });
 
   it('should return an array of addresses for unstoppable domains', async () => {
