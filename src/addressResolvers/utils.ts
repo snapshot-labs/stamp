@@ -57,7 +57,7 @@ export function isSilencedError(error: any, additionalMessages?: string[]): bool
   return (
     messages.some(m => error.message?.includes(m) || error.error?.message?.includes(m)) ||
     ['TIMEOUT', 'ECONNABORTED', 'ETIMEDOUT', 'ECONNRESET', 504].some(c =>
-      (error.error?.code || error.error?.status || error.code)?.includes(c)
+      String(error.error?.code || error.error?.status || error.code || '').includes(String(c))
     )
   );
 }

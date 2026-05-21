@@ -68,5 +68,11 @@ describe('utils', () => {
 
       expect(isSilencedError(wrapped)).toBe(true);
     });
+
+    it('does not throw when nested status is a number with no code', () => {
+      const wrapped = { error: { status: 504 } };
+      expect(() => isSilencedError(wrapped)).not.toThrow();
+      expect(isSilencedError(wrapped)).toBe(true);
+    });
   });
 });
