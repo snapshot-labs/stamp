@@ -47,14 +47,15 @@ export function normalizeHandles(handles: Handle[]): Handle[] {
 }
 
 export function isSilencedError(error: any, additionalMessages?: string[]): boolean {
+  const messages = [
+    'invalid token ID',
+    'is not supported',
+    'execution reverted',
+    'status=504',
+    ...(additionalMessages || [])
+  ];
   return (
-    [
-      'invalid token ID',
-      'is not supported',
-      'execution reverted',
-      'status=504',
-      ...(additionalMessages || [])
-    ].some(m => error.message?.includes(m)) ||
+    messages.some(m => error.message?.includes(m) || error.error?.message?.includes(m)) ||
     ['TIMEOUT', 'ECONNABORTED', 'ETIMEDOUT', 'ECONNRESET', 504].some(c =>
       (error.error?.code || error.error?.status || error.code)?.includes(c)
     )
