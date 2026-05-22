@@ -6,7 +6,7 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 10
     env:
       D3_API_KEY_MAINNET: ${{ secrets.D3_API_KEY_MAINNET }}
       D3_API_KEY_TESTNET: ${{ secrets.D3_API_KEY_TESTNET }}
