@@ -1,4 +1,8 @@
-import { normalizeHandles, withoutEmptyAddress } from '../../../src/addressResolvers/utils';
+import {
+  isSilencedError,
+  normalizeHandles,
+  withoutEmptyAddress
+} from '../../../src/addressResolvers/utils';
 
 describe('utils', () => {
   describe('normalizeHandles', () => {
@@ -43,6 +47,32 @@ describe('utils', () => {
 
     it('should handle empty object', () => {
       expect(withoutEmptyAddress({})).toEqual({});
+    });
+  });
+
+  describe('isSilencedError', () => {
+    it('silences a wrapped ethers 504 (CALL_EXCEPTION around SERVER_ERROR)', () => {
+      // Shape observed from Sentry STAMP-4B: JsonRpcProvider.checkError wraps the
+      // original SERVER_ERROR as error.error and re-throws with code CALL_EXCEPTION.
+      const wrapped = {
+        message:
+          'missing revert data in call exception; Transaction reverted without a reason string',
+        code: 'CALL_EXCEPTION',
+        error: {
+          message:
+            'bad response (status=504, headers={}, body="error code: 504", code=SERVER_ERROR, version=web/5.7.1)',
+          code: 'SERVER_ERROR',
+          status: 504
+        }
+      };
+
+      expect(isSilencedError(wrapped)).toBe(true);
+    });
+
+    it('does not throw when nested status is a number with no code', () => {
+      const wrapped = { error: { status: 504 } };
+      expect(() => isSilencedError(wrapped)).not.toThrow();
+      expect(isSilencedError(wrapped)).toBe(true);
     });
   });
 });
