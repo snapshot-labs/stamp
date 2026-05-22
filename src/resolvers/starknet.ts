@@ -1,8 +1,8 @@
-import fetch from 'node-fetch';
+import axios from 'axios';
 import { getUrl, resize } from '../utils';
 import { provider as getProvider } from '../addressResolvers/utils';
 import { max } from '../constants.json';
-import { fetchHttpImage } from './utils';
+import { axiosDefaultParams, fetchHttpImage } from './utils';
 
 const DEFAULT_IMG_URL = 'https://starknet.id/api/identicons/0';
 const provider = getProvider('0x534e5f4d41494e');
@@ -33,24 +33,36 @@ async function getImage(domainOrAddress: string): Promise<string | null> {
   return (await provider.getStarkProfile(address))?.profilePicture ?? null;
 }
 
+async function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: string }> {
+  const response = await axios({
+    url,
+    responseType: 'arraybuffer',
+    ...axiosDefaultParams
+  });
+  const contentType: string = response.headers['content-type'] || '';
+  const data = Buffer.from(response.data);
+  if (contentType.includes('application/json')) {
+    return JSON.parse(data.toString('utf-8'));
+  }
+  return data;
+}
+
 export default async function resolve(domainOrAddress: string) {
   try {
-    let img_url = await getImage(domainOrAddress);
+    const img_url = await getImage(domainOrAddress);
 
-    if (img_url === DEFAULT_IMG_URL) return false;
+    if (!img_url || img_url === DEFAULT_IMG_URL) return false;
 
-    if (img_url?.startsWith('https://api.starkurabu.com')) {
-      const response = await fetch(img_url);
-      const data = await response.json();
+    const fetched = await fetchImageOrMetadata(getUrl(img_url));
+    const buffer = Buffer.isBuffer(fetched)
+      ? fetched
+      : fetched.image
+      ? await fetchHttpImage(getUrl(fetched.image))
+      : null;
 
-      img_url = data.image;
-    }
+    if (!buffer) return false;
 
-    if (!img_url) return false;
-
-    const input = await fetchHttpImage(getUrl(img_url));
-
-    return await resize(input, max, max);
+    return await resize(buffer, max, max);
   } catch (e) {
     return false;
   }
