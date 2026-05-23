@@ -44,7 +44,7 @@ export default async function lookupDomains(
 ): Promise<Handle[]> {
   if (!constants.ensSubgraph[chainId]) return [];
 
-  let response: any;
+  let response: Awaited<ReturnType<typeof graphQlCall>> | undefined;
   try {
     response = await graphQlCall(
       constants.ensSubgraph[chainId],
