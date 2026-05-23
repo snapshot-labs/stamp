@@ -74,5 +74,29 @@ describe('utils', () => {
       expect(() => isSilencedError(wrapped)).not.toThrow();
       expect(isSilencedError(wrapped)).toBe(true);
     });
+
+    it('silences an axios 504 (status on error.response)', () => {
+      // Shape observed from Sentry STAMP-7: axios throws with the HTTP status
+      // on error.response.status, while error.code is 'ERR_BAD_RESPONSE'.
+      // The previous `||` chain short-circuited on error.code and never
+      // reached error.response.status.
+      const axiosError = {
+        message: 'Request failed with status code 504',
+        code: 'ERR_BAD_RESPONSE',
+        response: { status: 504 }
+      };
+
+      expect(isSilencedError(axiosError)).toBe(true);
+    });
+
+    it('does not silence a non-504 axios error', () => {
+      const axiosError = {
+        message: 'Request failed with status code 500',
+        code: 'ERR_BAD_RESPONSE',
+        response: { status: 500 }
+      };
+
+      expect(isSilencedError(axiosError)).toBe(false);
+    });
   });
 });
