@@ -44,12 +44,9 @@ export default async function lookupDomains(
 ): Promise<Handle[]> {
   if (!constants.ensSubgraph[chainId]) return [];
 
+  let response: any;
   try {
-    const {
-      data: {
-        data: { account }
-      }
-    } = await graphQlCall(
+    response = await graphQlCall(
       constants.ensSubgraph[chainId],
       `query Domain($id: String!) {
         account(id: $id) {
@@ -65,6 +62,12 @@ export default async function lookupDomains(
       }`,
       { id: address.toLowerCase() }
     );
+
+    const {
+      data: {
+        data: { account }
+      }
+    } = response;
 
     const now = (Date.now() / 1000).toFixed(0);
     const domains: Domain[] = [
@@ -84,7 +87,12 @@ export default async function lookupDomains(
   } catch (e) {
     console.log(e);
     if (!isSilencedError(e)) {
-      capture(e, { input: { address } });
+      capture(e, {
+        contexts: {
+          input: { address },
+          response: { status: response?.status, body: response?.data }
+        }
+      });
     }
     throw new FetchError();
   }
