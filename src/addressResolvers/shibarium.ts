@@ -1,6 +1,6 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import { Address, Handle } from '../utils';
-import { FetchError, isSilencedError, withoutEmptyValues } from './utils';
+import { FetchError, isEvmAddress, isSilencedError, withoutEmptyValues } from './utils';
 import { DNSConnect } from '@webinterop/dns-connect';
 import constants from '../constants.json';
 
@@ -9,6 +9,10 @@ const CHAIN_ID = '109';
 const NETWORK = 'BONE';
 const TLD = 'shib';
 
+function normalizeAddresses(addresses: Address[]): Address[] {
+  return addresses.filter(isEvmAddress);
+}
+
 // TODO: Support unicode names, by converting to punycode
 // see https://docs.d3.app/resolve-d3-names#d3-connect-sdk
 function normalizeHandles(handles: Handle[]): Handle[] {
@@ -16,17 +20,21 @@ function normalizeHandles(handles: Handle[]): Handle[] {
 }
 
 export async function lookupAddresses(addresses: Address[]): Promise<Record<Address, Handle>> {
+  const normalizedAddresses = normalizeAddresses(addresses);
+
+  if (normalizedAddresses.length === 0) return {};
+
   try {
     const dnsConnect = new DNSConnect({
       dns: { forwarderDomain: constants.d3[CHAIN_ID].forwarder }
     });
 
     const results = await Promise.all(
-      addresses.map(async address => dnsConnect.reverseResolve(address, NETWORK))
+      normalizedAddresses.map(async address => dnsConnect.reverseResolve(address, NETWORK))
     );
 
     return withoutEmptyValues(
-      Object.fromEntries(addresses.map((address, index) => [address, results[index]]))
+      Object.fromEntries(normalizedAddresses.map((address, index) => [address, results[index]]))
     );
   } catch (e) {
     if (!isSilencedError(e)) {
