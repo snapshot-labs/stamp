@@ -14,8 +14,9 @@
     "dev": "nodemon src/index.ts",
     "start": "node dist/src/index.js",
     "test": "jest",
-    "test:integration": "jest --runInBand --collectCoverage=false --forceExit test/integration",
-    "test:e2e": "jest --runInBand --collectCoverage=false --forceExit test/e2e/"
+    "test:coverage": "jest --coverage",
+    "test:integration": "jest --runInBand --forceExit test/integration",
+    "test:e2e": "jest --runInBand --forceExit test/e2e/"
   },
   "dependencies": {
     "@adraffy/ens-normalize": "^1.10.0",
