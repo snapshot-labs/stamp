@@ -6,7 +6,7 @@
 export default {
   roots: ['<rootDir>/test'],
   clearMocks: true,
-  collectCoverage: true,
+  collectCoverage: false,
   coverageDirectory: 'coverage',
   coverageProvider: 'v8',
   collectCoverageFrom: ['./src/**'],
