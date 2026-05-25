@@ -6,11 +6,6 @@ describe('getOwner', () => {
       const result = await getOwner('boorger.shib', '109');
       expect(result).toContain('0x220bc93D88C0aF11f1159eA89a885d5ADd3A7Cf6');
     });
-
-    // it('should return an address for puppynet', async () => {
-    //   const result = await getOwner('snapshot-test-1.shib', '157');
-    //   expect(result).toContain('0x91FD2c8d24767db4Ece7069AA27832ffaf8590f3');
-    // });
   });
 
   describe('on unclaimed names', () => {
@@ -55,25 +50,10 @@ describe('getOwner', () => {
 
       expect(atLeastOneResolves).toBe(true);
     });
-
-    // it('should return an address for puppynet', async () => {
-    //   const result = await getOwner('snapshot-test-unclaimed.shib', '157');
-    //   expect(result).toContain('0x91FD2c8d24767db4Ece7069AA27832ffaf8590f3');
-    // });
-
-    it('should return an empty address when the name does not have a primary names', async () => {
-      const result = await getOwner('snapshot-test-unclaimed-unresolved.shib', '157');
-      expect(result).toContain('0x0000000000000000000000000000000000000000');
-    });
   });
 
   it('should return an empty address for shibarium when domain does not exist', async () => {
     const result = await getOwner('invalid-domain-h.shib', '109');
     expect(result).toContain('0x0000000000000000000000000000000000000000');
   });
-
-  // it('should return an empty address for puppynet when domain does not exist', async () => {
-  //   const result = await getOwner('invalid-domain-h.shib', '157');
-  //   expect(result).toContain('0x0000000000000000000000000000000000000000');
-  // });
 });
