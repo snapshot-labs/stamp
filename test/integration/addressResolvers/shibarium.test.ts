@@ -19,4 +19,12 @@ describe('Shibarium lookupAddresses() input filtering', () => {
     const starknetAddress = '0x03fe982f868b8fa9077b26e318a46ecfd61685859664f192b7a96aaf3ab75843';
     await expect(lookupAddresses([starknetAddress])).resolves.toEqual({});
   });
+
+  it('returns results for valid EVM addresses even when mixed with non-EVM', async () => {
+    const evmAddress = '0x220bc93D88C0aF11f1159eA89a885d5ADd3A7Cf6';
+    const starknetAddress = '0x03fe982f868b8fa9077b26e318a46ecfd61685859664f192b7a96aaf3ab75843';
+    await expect(lookupAddresses([evmAddress, starknetAddress])).resolves.toEqual({
+      [evmAddress]: 'boorger.shib'
+    });
+  });
 });
