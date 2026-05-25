@@ -54,10 +54,11 @@ export function isSilencedError(error: any, additionalMessages?: string[]): bool
     'status=504',
     ...(additionalMessages || [])
   ];
+  const codes = [error.error?.code, error.error?.status, error.code, error.response?.status];
   return (
     messages.some(m => error.message?.includes(m) || error.error?.message?.includes(m)) ||
     ['TIMEOUT', 'ECONNABORTED', 'ETIMEDOUT', 'ECONNRESET', 504].some(c =>
-      String(error.error?.code || error.error?.status || error.code || '').includes(String(c))
+      codes.some(v => String(v ?? '').includes(String(c)))
     )
   );
 }
