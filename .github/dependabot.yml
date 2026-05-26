@@ -6,3 +6,7 @@ updates:
       interval: 'daily'
     allow:
       - dependency-name: '@snapshot-labs/*'
+    groups:
+      snapshot:
+        patterns:
+          - '@snapshot-labs/*'
