@@ -1,6 +1,6 @@
 import { getAddress } from '@ethersproject/address';
-import { resize, chainIdToName, getBaseAssetIconUrl } from '../utils';
 import { max } from '../constants.json';
+import { chainIdToName, getBaseAssetIconUrl, resize } from '../utils';
 import { fetchHttpImage } from './utils';
 
 const ETH = [
@@ -18,7 +18,7 @@ export default async function resolve(address, chainId) {
 
     const input = await fetchHttpImage(url);
     return await resize(input, max, max);
-  } catch (e) {
+  } catch {
     return false;
   }
 }

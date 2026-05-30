@@ -1,7 +1,7 @@
 import { namehash } from '@ethersproject/hash';
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import { Address, batchContractCalls, EMPTY_ADDRESS, Handle } from '../utils';
-import { provider as getProvider, isEvmAddress, isSilencedError, FetchError } from './utils';
+import { FetchError, provider as getProvider, isEvmAddress, isSilencedError } from './utils';
 
 // NOTE: Space ID supports multiple networks and TLDs, this file only implements BNB with .bnb TLD
 // https://www.space.id/
@@ -61,9 +61,9 @@ async function resolveNameHashes(
       Object.values(resolvers),
       fnName
     );
-  } catch (e) {
-    if (!isSilencedError(e)) {
-      capture(e, { input: { hashes, fnName } });
+  } catch (err) {
+    if (!isSilencedError(err)) {
+      capture(err, { input: { hashes, fnName } });
     }
     throw new FetchError();
   }

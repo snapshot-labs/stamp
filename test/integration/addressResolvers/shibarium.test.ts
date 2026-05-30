@@ -1,5 +1,5 @@
-import { lookupAddresses, resolveNames } from '../../../src/addressResolvers/shibarium';
 import testAddressResolver from './helper';
+import { lookupAddresses, resolveNames } from '../../../src/addressResolvers/shibarium';
 
 testAddressResolver({
   name: 'Shibarium',

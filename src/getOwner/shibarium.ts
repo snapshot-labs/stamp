@@ -1,6 +1,6 @@
 import { DNSConnect } from '@webinterop/dns-connect';
-import { Address, EMPTY_ADDRESS, Handle } from '../utils';
 import constants from '../constants.json';
+import { Address, EMPTY_ADDRESS, Handle } from '../utils';
 
 const MAINNET = '109';
 const TESTNET = '157';

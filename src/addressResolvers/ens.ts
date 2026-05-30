@@ -1,10 +1,10 @@
-import { getAddress } from '@ethersproject/address';
-import snapshot from '@snapshot-labs/snapshot.js';
-import { capture } from '@snapshot-labs/snapshot-sentry';
 import { ens_normalize } from '@adraffy/ens-normalize';
-import { provider as getProvider, isSilencedError, FetchError, isEvmAddress } from './utils';
-import { Address, graphQlCall, Handle } from '../utils';
+import { getAddress } from '@ethersproject/address';
+import { capture } from '@snapshot-labs/snapshot-sentry';
+import snapshot from '@snapshot-labs/snapshot.js';
+import { FetchError, provider as getProvider, isEvmAddress, isSilencedError } from './utils';
 import constants from '../constants.json';
+import { Address, graphQlCall, Handle } from '../utils';
 
 export const NAME = 'Ens';
 const NETWORK = '1';
@@ -14,7 +14,7 @@ function normalizeEns(names: Handle[]): Handle[] {
   return names.map(name => {
     try {
       return ens_normalize(name) === name ? name : '';
-    } catch (e) {
+    } catch {
       return '';
     }
   });
@@ -62,9 +62,9 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
         .map((address, index) => [address, validNames[index]])
         .filter((_, index) => !!validNames[index])
     );
-  } catch (e) {
-    if (!isSilencedError(e)) {
-      capture(e, { input: { addresses: normalizedAddresses } });
+  } catch (err) {
+    if (!isSilencedError(err)) {
+      capture(err, { input: { addresses: normalizedAddresses } });
     }
     throw new FetchError();
   }
@@ -98,9 +98,9 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
     for (const item of items) {
       results[item.name] = item.resolvedAddress ? getAddress(item.resolvedAddress.id) : '';
     }
-  } catch (e) {
-    if (!isSilencedError(e)) {
-      capture(e, { input: { handles: normalizedHandles } });
+  } catch (err) {
+    if (!isSilencedError(err)) {
+      capture(err, { input: { handles: normalizedHandles } });
     }
   }
 
@@ -119,9 +119,9 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
         results[handle] = getAddress(result.value);
       }
     });
-  } catch (e) {
-    if (!isSilencedError(e)) {
-      capture(e, { input: { handles: normalizedHandles } });
+  } catch (err) {
+    if (!isSilencedError(err)) {
+      capture(err, { input: { handles: normalizedHandles } });
     }
   }
 

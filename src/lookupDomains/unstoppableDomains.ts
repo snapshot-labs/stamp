@@ -42,9 +42,9 @@ export default async function lookupDomains(address: Address, chainId: string): 
       domains.push(...data.data.map((domain: any) => domain.meta.domain));
     }
     return normalizeHandles(domains);
-  } catch (e) {
-    if (!isSilencedError(e)) {
-      capture(e, { input: { address } });
+  } catch (err) {
+    if (!isSilencedError(err)) {
+      capture(err, { input: { address } });
     }
     throw new FetchError();
   }

@@ -1,13 +1,13 @@
-import express from 'express';
 import { capture } from '@snapshot-labs/snapshot-sentry';
-import { parseQuery, resize, setHeader, getCacheKey, ResolverType } from './utils';
-import { set, get, streamToBuffer, clear } from './aws';
-import resolvers from './resolvers';
+import express from 'express';
+import { clearCache, lookupAddresses, resolveNames } from './addressResolvers';
+import { clear, get, set, streamToBuffer } from './aws';
 import constants from './constants.json';
-import { rpcError, rpcSuccess } from './helpers/utils';
-import { lookupAddresses, resolveNames, clearCache } from './addressResolvers';
-import lookupDomains from './lookupDomains';
 import getOwner from './getOwner';
+import { rpcError, rpcSuccess } from './helpers/utils';
+import lookupDomains from './lookupDomains';
+import resolvers from './resolvers';
+import { getCacheKey, parseQuery, resize, ResolverType, setHeader } from './utils';
 
 const router = express.Router();
 const TYPE_CONSTRAINTS = [...Object.keys(constants.resolvers), 'address', 'name'].join('|');
@@ -32,12 +32,12 @@ router.post('/', async (req, res) => {
 
     if (result?.error) return rpcError(res, result.code || 500, result.error, id);
     return rpcSuccess(res, result, id);
-  } catch (e) {
-    const err = e as any;
-    if (err.code !== 400) {
-      capture(err.error ? new Error(err.error) : err);
+  } catch (err) {
+    const error = err as any;
+    if (error.code !== 400) {
+      capture(error.error ? new Error(error.error) : error);
     }
-    return rpcError(res, 500, e, id);
+    return rpcError(res, 500, err, id);
   }
 });
 
@@ -60,8 +60,8 @@ router.get(`/clear/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
       result = await clear(key);
     }
     res.status(result ? 200 : 404).json({ status: result ? 'ok' : 'not found' });
-  } catch (e) {
-    capture(e);
+  } catch (err) {
+    capture(err);
     res.status(500).json({ status: 'error', error: 'failed to clear cache' });
   }
 });
@@ -76,7 +76,7 @@ router.get(`/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
       type,
       req.query
     ));
-  } catch (e) {
+  } catch {
     return res.status(500).json({ status: 'error', error: 'failed to load content' });
   }
 
@@ -157,9 +157,9 @@ router.get(`/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
     }
     await set(`${key1}/${key2}`, resizedImage);
     console.log('Stored cache', address);
-  } catch (e) {
-    capture(e);
-    console.log('Store cache failed', address, e);
+  } catch (err) {
+    capture(err);
+    console.log('Store cache failed', address, err);
   }
 });
 

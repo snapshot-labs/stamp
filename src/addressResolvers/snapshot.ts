@@ -28,9 +28,9 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
     return Object.fromEntries(
       users.filter((user: any) => user.name).map((user: any) => [user.id, user.name])
     );
-  } catch (e) {
-    if (!isSilencedError(e)) {
-      capture(e, { input: { addresses } });
+  } catch (err) {
+    if (!isSilencedError(err)) {
+      capture(err, { input: { addresses } });
     }
     throw new FetchError();
   }

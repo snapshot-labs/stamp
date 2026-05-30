@@ -1,5 +1,5 @@
-import { lookupAddresses, resolveNames } from '../../../src/addressResolvers/unstoppableDomains';
 import testAddressResolver from './helper';
+import { lookupAddresses, resolveNames } from '../../../src/addressResolvers/unstoppableDomains';
 
 testAddressResolver({
   name: 'UnstoppableDomains',

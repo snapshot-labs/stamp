@@ -1,7 +1,7 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import { FetchError, isSilencedError } from '../addressResolvers/utils';
-import { Address, graphQlCall, Handle } from '../utils';
 import constants from '../constants.json';
+import { Address, graphQlCall, Handle } from '../utils';
 
 export const DEFAULT_CHAIN_ID = '1';
 
@@ -81,10 +81,10 @@ export default async function lookupDomains(
         domain => domain.name
       ) || []
     );
-  } catch (e) {
-    console.log(e);
-    if (!isSilencedError(e)) {
-      capture(e, { input: { address } });
+  } catch (err) {
+    console.log(err);
+    if (!isSilencedError(err)) {
+      capture(err, { input: { address } });
     }
     throw new FetchError();
   }

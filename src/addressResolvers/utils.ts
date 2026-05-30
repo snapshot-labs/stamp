@@ -1,6 +1,6 @@
-import snapshot from '@snapshot-labs/snapshot.js';
 import { getAddress } from '@ethersproject/address';
-import { Address, Handle, EMPTY_ADDRESS } from '../utils';
+import snapshot from '@snapshot-labs/snapshot.js';
+import { Address, EMPTY_ADDRESS, Handle } from '../utils';
 
 const broviderUrl = process.env.BROVIDER_URL || 'https://rpc.snapshot.org';
 
@@ -37,7 +37,7 @@ export function normalizeAddresses(addresses: Address[]): Address[] {
       }
       try {
         return getAddress(a.toLowerCase());
-      } catch (e) {}
+      } catch {}
     })
     .filter(a => a) as Address[];
 }
