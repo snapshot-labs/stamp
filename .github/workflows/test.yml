@@ -9,14 +9,13 @@ jobs:
     timeout-minutes: 10
     env:
       D3_API_KEY_MAINNET: ${{ secrets.D3_API_KEY_MAINNET }}
-      D3_API_KEY_TESTNET: ${{ secrets.D3_API_KEY_TESTNET }}
       UNSTOPPABLE_DOMAINS_API_KEY: ${{ secrets.UNSTOPPABLE_DOMAINS_API_KEY }}
 
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '22'
           cache: 'yarn'
 
       - name: Setup Redis
