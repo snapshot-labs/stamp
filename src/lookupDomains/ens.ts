@@ -81,10 +81,18 @@ export default async function lookupDomains(
         domain => domain.name
       ) || []
     );
-  } catch (e) {
-    console.log(e);
-    if (!isSilencedError(e)) {
-      capture(e, { input: { address } });
+  } catch (err) {
+    console.log(err);
+    if (!isSilencedError(err)) {
+      capture(err, {
+        contexts: {
+          input: { address },
+          response: {
+            status: (err as any).response?.status,
+            body: (err as any).response?.data
+          }
+        }
+      });
     }
     throw new FetchError();
   }
