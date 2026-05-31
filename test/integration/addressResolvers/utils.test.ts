@@ -98,5 +98,17 @@ describe('utils', () => {
 
       expect(isSilencedError(axiosError)).toBe(false);
     });
+
+    it('silences transient SERVFAIL DNS server status (2)', () => {
+      // @webinterop/dns-connect throws "Received error status from DNS server: N"
+      // for non-zero RCODEs. Status 2 (SERVFAIL) is a transient external-resolver
+      // failure. See STAMP-36.
+      expect(isSilencedError(new Error('Received error status from DNS server: 2.'))).toBe(true);
+    });
+
+    it('does not silence other DNS server statuses (e.g. FORMERR)', () => {
+      // Status 1 (FORMERR) indicates a malformed query on our side — keep it visible.
+      expect(isSilencedError(new Error('Received error status from DNS server: 1.'))).toBe(false);
+    });
   });
 });

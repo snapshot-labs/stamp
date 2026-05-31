@@ -52,6 +52,10 @@ export function isSilencedError(error: any, additionalMessages?: string[]): bool
     'is not supported',
     'execution reverted',
     'status=504',
+    // SERVFAIL (2) is a transient external-resolver failure. Other statuses stay
+    // visible as they may signal a real problem (e.g. FORMERR 1 = malformed query);
+    // NXDOMAIN (3) never reaches here (dns-connect returns it as an empty result).
+    'Received error status from DNS server: 2.',
     ...(additionalMessages || [])
   ];
   const codes = [error.error?.code, error.error?.status, error.code, error.response?.status];
