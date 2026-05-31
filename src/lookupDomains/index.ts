@@ -26,7 +26,7 @@ export default async function lookupDomains(
 
   RESOLVERS.forEach(resolver => {
     chainIds.forEach(chain => {
-      promises.push(resolver(address, chain));
+      promises.push(resolver(address, chain).catch(() => []));
     });
   });
 
