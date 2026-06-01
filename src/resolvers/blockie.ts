@@ -1,7 +1,7 @@
-import { createCanvas } from 'canvas';
 import { renderIcon } from '@download/blockies';
-import { resize } from '../utils';
+import { createCanvas } from 'canvas';
 import { max } from '../constants.json';
+import { resize } from '../utils';
 
 export default async function resolve(address) {
   const canvas = createCanvas(64, 64);

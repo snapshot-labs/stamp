@@ -1,20 +1,20 @@
+import cache, { clear } from './cache';
 import * as ensResolver from './ens';
 import * as lensResolver from './lens';
-import * as unstoppableDomainResolver from './unstoppableDomains';
-import * as starknetResolver from './starknet';
-import * as snapshotResolver from './snapshot';
 import * as shibariumResolver from './shibarium';
+import * as snapshotResolver from './snapshot';
 import * as spaceIdResolver from './spaceId';
-import cache, { clear } from './cache';
+import * as starknetResolver from './starknet';
+import * as unstoppableDomainResolver from './unstoppableDomains';
 import {
+  mapOriginalInput,
   normalizeAddresses,
   normalizeHandles,
-  withoutEmptyValues,
-  mapOriginalInput,
-  withoutEmptyAddress
+  withoutEmptyAddress,
+  withoutEmptyValues
 } from './utils';
-import { Address, Handle } from '../utils';
 import { timeAddressResolverResponse as timeResponse } from '../helpers/metrics';
+import { Address, Handle } from '../utils';
 
 const RESOLVERS = [
   snapshotResolver,
@@ -53,7 +53,7 @@ async function _call(fnName: string, input: string[], maxInputLength: number) {
             try {
               result = await r[fnName](_input);
               status = 1;
-            } catch (e) {}
+            } catch {}
             end({ status });
 
             return result;

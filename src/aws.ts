@@ -1,5 +1,5 @@
-import * as AWS from '@aws-sdk/client-s3';
 import { Readable } from 'stream';
+import * as AWS from '@aws-sdk/client-s3';
 
 let client;
 const bucket = process.env.AWS_BUCKET_NAME;
@@ -29,9 +29,9 @@ export async function set(key, value) {
     });
 
     await client.send(command);
-  } catch (e) {
-    console.log('Store cache failed', e);
-    throw e;
+  } catch (err) {
+    console.log('Store cache failed', err);
+    throw err;
   }
 }
 
@@ -52,9 +52,9 @@ export async function clear(path) {
     if (listedObjects.IsTruncated) await clear(path);
     console.log('Cleared cache', path);
     return path;
-  } catch (e) {
-    console.log('Clear cache failed', e);
-    throw e;
+  } catch (err) {
+    console.log('Clear cache failed', err);
+    throw err;
   }
 }
 
@@ -68,7 +68,7 @@ export async function get(key) {
     const { Body } = await client.send(command);
 
     return Body;
-  } catch (e) {
+  } catch {
     return false;
   }
 }

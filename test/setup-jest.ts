@@ -1,4 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/no-empty-function
 jest.spyOn(console, 'log').mockImplementation(() => {});
 
 jest.retryTimes(3);
@@ -10,7 +9,7 @@ afterAll(async () => {
     try {
       await client.flushDb();
       await client.quit();
-    } catch (error) {
+    } catch {
       // Ignore errors during cleanup
     }
   }

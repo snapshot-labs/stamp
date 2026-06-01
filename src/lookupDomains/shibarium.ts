@@ -1,7 +1,7 @@
-import fetch from 'node-fetch';
 import { capture } from '@snapshot-labs/snapshot-sentry';
-import { Address, Handle } from '../utils';
+import fetch from 'node-fetch';
 import constants from '../constants.json';
+import { Address, Handle } from '../utils';
 
 const MAINNET = '109';
 const TESTNET = '157';
@@ -50,8 +50,8 @@ export default async function lookupDomains(
         let data: { pageItems?: Array<{ sld: string; tld: string }> };
         try {
           data = await response.json();
-        } catch (e) {
-          throw new Error(`Invalid JSON response: ${(e as any).message}`);
+        } catch (err) {
+          throw new Error(`Invalid JSON response: ${(err as any).message}`);
         }
 
         const domains = data.pageItems?.map(item => `${item.sld}.${item.tld}`) || [];
@@ -59,8 +59,8 @@ export default async function lookupDomains(
 
         hasMore = domains.length === PAGE_SIZE;
         skip += PAGE_SIZE;
-      } catch (e) {
-        capture(e, { input: { address, chainId, skip } });
+      } catch (err) {
+        capture(err, { input: { address, chainId, skip } });
         break;
       } finally {
         clearTimeout(timeoutId);
@@ -68,8 +68,8 @@ export default async function lookupDomains(
     }
 
     return allDomains;
-  } catch (e) {
-    capture(e);
+  } catch (err) {
+    capture(err);
     return allDomains;
   }
 }

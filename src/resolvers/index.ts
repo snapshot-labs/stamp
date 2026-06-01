@@ -1,21 +1,21 @@
 import blockie from './blockie';
-import jazzicon from './jazzicon';
-import ens from './ens';
-import trustwallet from './trustwallet';
 import coingecko from './coingecko';
+import ens from './ens';
+import farcaster from './farcaster';
+import jazzicon from './jazzicon';
+import lens from './lens';
+import selfid from './selfid';
 import {
-  resolveUserAvatar as sResolveUserAvatar,
-  resolveUserCover as sResolveUserCover,
   resolveSpaceAvatar as sResolveSpaceAvatar,
   resolveSpaceCover as sResolveSpaceCover,
-  resolveSpaceLogo as sResolveSpaceLogo
+  resolveSpaceLogo as sResolveSpaceLogo,
+  resolveUserAvatar as sResolveUserAvatar,
+  resolveUserCover as sResolveUserCover
 } from './snapshot';
 import { resolveAvatar as sxResolveAvatar, resolveCover as sxResolveCover } from './space-sx';
-import selfid from './selfid';
-import lens from './lens';
-import zapper from './zapper';
 import starknet from './starknet';
-import farcaster from './farcaster';
+import trustwallet from './trustwallet';
+import zapper from './zapper';
 
 export default {
   blockie,

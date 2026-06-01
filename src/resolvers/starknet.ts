@@ -1,7 +1,7 @@
 import axios from 'axios';
-import { getUrl, resize } from '../utils';
 import { provider as getProvider } from '../addressResolvers/utils';
 import { max } from '../constants.json';
+import { getUrl, resize } from '../utils';
 import { axiosDefaultParams, fetchHttpImage } from './utils';
 
 const DEFAULT_IMG_URL = 'https://starknet.id/api/identicons/0';
@@ -57,13 +57,13 @@ export default async function resolve(domainOrAddress: string) {
     const buffer = Buffer.isBuffer(fetched)
       ? fetched
       : fetched.image
-      ? await fetchHttpImage(getUrl(fetched.image))
-      : null;
+        ? await fetchHttpImage(getUrl(fetched.image))
+        : null;
 
     if (!buffer) return false;
 
     return await resize(buffer, max, max);
-  } catch (e) {
+  } catch {
     return false;
   }
 }
