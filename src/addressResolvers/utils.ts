@@ -1,6 +1,6 @@
-import snapshot from '@snapshot-labs/snapshot.js';
 import { getAddress } from '@ethersproject/address';
-import { Address, Handle, EMPTY_ADDRESS } from '../utils';
+import snapshot from '@snapshot-labs/snapshot.js';
+import { Address, EMPTY_ADDRESS, Handle } from '../utils';
 
 const broviderUrl = process.env.BROVIDER_URL || 'https://rpc.snapshot.org';
 
@@ -37,7 +37,7 @@ export function normalizeAddresses(addresses: Address[]): Address[] {
       }
       try {
         return getAddress(a.toLowerCase());
-      } catch (e) {}
+      } catch {}
     })
     .filter(a => a) as Address[];
 }
@@ -52,6 +52,10 @@ export function isSilencedError(error: any, additionalMessages?: string[]): bool
     'is not supported',
     'execution reverted',
     'status=504',
+    // SERVFAIL (2) is a transient external-resolver failure. Other statuses stay
+    // visible as they may signal a real problem (e.g. FORMERR 1 = malformed query);
+    // NXDOMAIN (3) never reaches here (dns-connect returns it as an empty result).
+    'Received error status from DNS server: 2.',
     ...(additionalMessages || [])
   ];
   const codes = [error.error?.code, error.error?.status, error.code, error.response?.status];

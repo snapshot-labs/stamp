@@ -1,6 +1,6 @@
 import { getAddress } from '@ethersproject/address';
+import { defaultOffchainNetwork, max, offchainNetworks } from '../constants.json';
 import { getUrl, graphQlCall, resize } from '../utils';
-import { max, offchainNetworks, defaultOffchainNetwork } from '../constants.json';
 import { fetchHttpImage } from './utils';
 import { isStarknetAddress } from '../addressResolvers/utils';
 
@@ -127,7 +127,7 @@ function createPropertyResolver(entity: Entity, property: Property) {
       if (['cover', 'logo'].includes(property)) return input;
 
       return await resize(input, max, max);
-    } catch (e) {
+    } catch {
       return false;
     }
   };

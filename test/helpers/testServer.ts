@@ -1,5 +1,5 @@
-import express from 'express';
 import cors from 'cors';
+import express from 'express';
 import api from '../../src/api';
 
 export function createTestApp(): express.Application {

@@ -1,6 +1,6 @@
-import redis from '../helpers/redis';
 import constants from '../constants.json';
 import { addressResolversCacheHitCount } from '../helpers/metrics';
+import redis from '../helpers/redis';
 
 export const KEY_PREFIX = 'address-resolvers';
 

@@ -1,5 +1,5 @@
-import { lookupAddresses, resolveNames } from '../../../src/addressResolvers/spaceId';
 import testAddressResolver from './helper';
+import { lookupAddresses, resolveNames } from '../../../src/addressResolvers/spaceId';
 
 testAddressResolver({
   name: 'Space ID',

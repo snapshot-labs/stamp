@@ -1,5 +1,5 @@
-import { lookupAddresses, resolveNames } from '../../../src/addressResolvers/starknet';
 import testAddressResolver from './helper';
+import { lookupAddresses, resolveNames } from '../../../src/addressResolvers/starknet';
 
 testAddressResolver({
   name: 'Starknet',

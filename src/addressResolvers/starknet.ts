@@ -1,7 +1,7 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
-import { withoutEmptyValues, isSilencedError, FetchError, isStarknetAddress } from './utils';
-import { Address, Handle } from '../utils';
 import axios from 'axios';
+import { FetchError, isSilencedError, isStarknetAddress, withoutEmptyValues } from './utils';
+import { Address, Handle } from '../utils';
 
 export const NAME = 'Starknet';
 const BASE_URL = 'https://api.starknet.id';
@@ -54,9 +54,9 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
 
   try {
     return await apiCall('addr_to_domain', normalizedAddresses);
-  } catch (e) {
-    if (!isSilencedError(e)) {
-      capture(e, { input: { addresses: normalizedAddresses } });
+  } catch (err) {
+    if (!isSilencedError(err)) {
+      capture(err, { input: { addresses: normalizedAddresses } });
     }
     throw new FetchError();
   }
@@ -69,9 +69,9 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
 
   try {
     return await apiCall('domain_to_addr', normalizedHandles);
-  } catch (e) {
-    if (!isSilencedError(e)) {
-      capture(e, { input: { handles: normalizedHandles } });
+  } catch (err) {
+    if (!isSilencedError(err)) {
+      capture(err, { input: { handles: normalizedHandles } });
     }
     throw new FetchError();
   }

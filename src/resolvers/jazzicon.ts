@@ -1,8 +1,8 @@
+import jazzicon from '@metamask/jazzicon';
 import { JSDOM } from 'jsdom';
 import sharp from 'sharp';
-import jazzicon from '@metamask/jazzicon';
-import { resize } from '../utils';
 import { max } from '../constants.json';
+import { resize } from '../utils';
 
 const dom = new JSDOM('');
 global['document'] = dom.window.document;

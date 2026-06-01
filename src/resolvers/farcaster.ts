@@ -1,7 +1,7 @@
-import fetch from 'node-fetch';
 import { getAddress } from '@ethersproject/address';
-import { Address, resize } from '../utils';
+import fetch from 'node-fetch';
 import { max } from '../constants.json';
+import { Address, resize } from '../utils';
 import { fetchHttpImage } from './utils';
 
 const NEYNAR_API_URL = 'https://api.neynar.com/v2/farcaster/user/bulk-by-address';
@@ -20,7 +20,7 @@ function withCache(url: string): string {
 function normalizeAddress(address: Address): Address | null {
   try {
     return getAddress(address);
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -38,7 +38,7 @@ async function fetchAddressImageUrl(normalizedAddress: string): Promise<string |
     const data: Record<Address, UserDetails[]> = await response.json();
 
     return data[normalizedAddress.toLowerCase()]?.[0].pfp_url;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -54,7 +54,7 @@ export default async function resolve(address: string): Promise<Buffer | false> 
     const imageUrl = withCache(url);
     const input = await fetchHttpImage(imageUrl);
     return await resize(input, max, max);
-  } catch (e) {
+  } catch {
     return false;
   }
 }

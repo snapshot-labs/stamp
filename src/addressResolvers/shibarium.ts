@@ -1,7 +1,7 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
+import { DNSConnect } from '@webinterop/dns-connect';
 import { Address, Handle } from '../utils';
 import { FetchError, isEvmAddress, isSilencedError, withoutEmptyValues } from './utils';
-import { DNSConnect } from '@webinterop/dns-connect';
 import constants from '../constants.json';
 
 export const NAME = 'Shibarium';
@@ -36,9 +36,9 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
     return withoutEmptyValues(
       Object.fromEntries(normalizedAddresses.map((address, index) => [address, results[index]]))
     );
-  } catch (e) {
-    if (!isSilencedError(e)) {
-      capture(e, { input: { addresses } });
+  } catch (err) {
+    if (!isSilencedError(err)) {
+      capture(err, { input: { addresses } });
     }
     throw new FetchError();
   }
@@ -61,9 +61,9 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
     return withoutEmptyValues(
       Object.fromEntries(normalizedHandles.map((handle, index) => [handle, results[index]]))
     );
-  } catch (e) {
-    if (!isSilencedError(e)) {
-      capture(e, { input: { handles } });
+  } catch (err) {
+    if (!isSilencedError(err)) {
+      capture(err, { input: { handles } });
     }
     throw new FetchError();
   }

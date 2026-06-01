@@ -1,6 +1,6 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
-import { FetchError, isSilencedError, isEvmAddress } from './utils';
-import { graphQlCall, Address, Handle } from '../utils';
+import { FetchError, isEvmAddress, isSilencedError } from './utils';
+import { Address, graphQlCall, Handle } from '../utils';
 
 export const NAME = 'Lens';
 const API_URL = 'https://api.lens.xyz/graphql';
@@ -54,9 +54,9 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
           .map(i => [i.username.ownedBy, `${i.username.localName}.lens`])
       ) || {}
     );
-  } catch (e) {
-    if (!isSilencedError(e, MUTED_ERRORS)) {
-      capture(e, { input: { addresses: normalizedAddresses } });
+  } catch (err) {
+    if (!isSilencedError(err, MUTED_ERRORS)) {
+      capture(err, { input: { addresses: normalizedAddresses } });
     }
 
     throw new FetchError();
@@ -75,9 +75,9 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
       Object.fromEntries(accounts.map(i => [`${i.username.localName}.lens`, i.username.ownedBy])) ||
       {}
     );
-  } catch (e) {
-    if (!isSilencedError(e, MUTED_ERRORS)) {
-      capture(e, { input: { handles: normalizedHandles } });
+  } catch (err) {
+    if (!isSilencedError(err, MUTED_ERRORS)) {
+      capture(err, { input: { handles: normalizedHandles } });
     }
     throw new FetchError();
   }

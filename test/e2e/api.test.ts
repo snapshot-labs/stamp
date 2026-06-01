@@ -1,6 +1,6 @@
 import request from 'supertest';
-import redis from '../../src/helpers/redis';
 import { KEY_PREFIX } from '../../src/addressResolvers/cache';
+import redis from '../../src/helpers/redis';
 import { createTestApp } from '../helpers/testServer';
 
 const app = createTestApp();
@@ -112,9 +112,7 @@ describe('E2E api', () => {
 
     describe('on lookup_addresses', () => {
       function fetchLookupAddresses(params: any) {
-        return request(server)
-          .post('/')
-          .send({ method: 'lookup_addresses', params });
+        return request(server).post('/').send({ method: 'lookup_addresses', params });
       }
 
       describe('when not passing an array as params', () => {

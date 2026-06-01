@@ -1,6 +1,6 @@
-import axios from 'axios';
 import http from 'http';
 import https from 'https';
+import axios from 'axios';
 
 export const axiosDefaultParams = {
   httpAgent: new http.Agent({ keepAlive: true }),

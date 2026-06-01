@@ -1,12 +1,12 @@
+import { capture } from '@snapshot-labs/snapshot-sentry';
 import snapshot from '@snapshot-labs/snapshot.js';
 import Resolution, { NamingServiceName } from '@unstoppabledomains/resolution';
-import { capture } from '@snapshot-labs/snapshot-sentry';
 import {
-  provider as getProvider,
-  withoutEmptyValues,
-  isSilencedError,
   FetchError,
-  isEvmAddress
+  provider as getProvider,
+  isEvmAddress,
+  isSilencedError,
+  withoutEmptyValues
 } from './utils';
 import { Address, batchContractCalls, Handle } from '../utils';
 
@@ -43,9 +43,9 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
     );
 
     return withoutEmptyValues(names);
-  } catch (e) {
-    if (!isSilencedError(e)) {
-      capture(e, { input: { addresses, normalizedAddresses } });
+  } catch (err) {
+    if (!isSilencedError(err)) {
+      capture(err, { input: { addresses, normalizedAddresses } });
     }
     throw new FetchError();
   }
@@ -67,9 +67,9 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
             [CONTRACT_ADDRESS, 'ownerOf', [tokenId]],
             { blockTag: 'latest' }
           );
-        } catch (e) {
-          if (!isSilencedError(e)) {
-            capture(e, { input: { handles: normalizedHandles } });
+        } catch (err) {
+          if (!isSilencedError(err)) {
+            capture(err, { input: { handles: normalizedHandles } });
           }
           return;
         }
@@ -79,9 +79,9 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
     return withoutEmptyValues(
       Object.fromEntries(normalizedHandles.map((handle, index) => [handle, results[index]]))
     );
-  } catch (e) {
-    if (!isSilencedError(e)) {
-      capture(e, { input: { handles: normalizedHandles } });
+  } catch (err) {
+    if (!isSilencedError(err)) {
+      capture(err, { input: { handles: normalizedHandles } });
     }
     throw new FetchError();
   }

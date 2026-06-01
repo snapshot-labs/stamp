@@ -1,7 +1,7 @@
-import { getProvider, resize } from '../utils';
-import { max } from '../constants.json';
-import { fetchHttpImage } from './utils';
 import { isAddress } from '@ethersproject/address';
+import { max } from '../constants.json';
+import { getProvider, resize } from '../utils';
+import { fetchHttpImage } from './utils';
 import { lookupAddresses } from '../addressResolvers';
 
 async function castToEnsName(nameOrAddress: string): Promise<string | undefined> {
@@ -31,7 +31,7 @@ export default async function resolve(nameOrAddress: string) {
     const input = await fetchHttpImage(url);
 
     return await resize(input, max, max);
-  } catch (e) {
+  } catch {
     return false;
   }
 }
