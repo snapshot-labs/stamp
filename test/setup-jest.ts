@@ -1,5 +1,11 @@
+// Silence noisy console output from libraries (e.g. @webinterop/dns-connect) during tests
 // eslint-disable-next-line @typescript-eslint/no-empty-function
-jest.spyOn(console, 'log').mockImplementation(() => {});
+const silence = () => {};
+jest.spyOn(console, 'log').mockImplementation(silence);
+jest.spyOn(console, 'info').mockImplementation(silence);
+jest.spyOn(console, 'warn').mockImplementation(silence);
+jest.spyOn(console, 'error').mockImplementation(silence);
+jest.spyOn(console, 'debug').mockImplementation(silence);
 
 jest.retryTimes(3);
 
