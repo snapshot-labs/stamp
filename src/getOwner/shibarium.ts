@@ -41,7 +41,10 @@ async function getClaimedOwner(handle: Handle, chainId: string): Promise<Address
 }
 
 async function getResolvedAddress(handle: Handle, chainId: string): Promise<Address> {
-  const dnsConnect = new DNSConnect({ dns: { forwarderDomain: constants.d3[chainId].forwarder } });
+  const dnsConnect = new DNSConnect({
+    logLevel: 'silent',
+    dns: { forwarderDomain: constants.d3[chainId].forwarder }
+  });
 
   return (await dnsConnect.resolve(handle, NETWORK)) || EMPTY_ADDRESS;
 }

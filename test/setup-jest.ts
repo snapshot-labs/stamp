@@ -1,15 +1,22 @@
-// Silence noisy console output from libraries (e.g. @webinterop/dns-connect) during tests
 // eslint-disable-next-line @typescript-eslint/no-empty-function
-const silence = () => {};
-jest.spyOn(console, 'log').mockImplementation(silence);
-jest.spyOn(console, 'info').mockImplementation(silence);
-jest.spyOn(console, 'warn').mockImplementation(silence);
-jest.spyOn(console, 'error').mockImplementation(silence);
-jest.spyOn(console, 'debug').mockImplementation(silence);
+jest.spyOn(console, 'log').mockImplementation(() => {});
 
 jest.retryTimes(3);
 
 import client from '../src/helpers/redis';
+
+beforeAll(async () => {
+  // Wait for the redis singleton to finish connecting so its connect/ready logs
+  // fire during this (mocked) window instead of after the suite ends, which Jest
+  // would otherwise flag as "Cannot log after tests are done".
+  if (client) {
+    try {
+      await client.ping();
+    } catch (error) {
+      // Ignore connection errors during setup
+    }
+  }
+});
 
 afterAll(async () => {
   if (client) {

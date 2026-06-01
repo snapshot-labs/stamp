@@ -26,6 +26,7 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
 
   try {
     const dnsConnect = new DNSConnect({
+      logLevel: 'silent',
       dns: { forwarderDomain: constants.d3[CHAIN_ID].forwarder }
     });
 
@@ -51,6 +52,7 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
     if (normalizedHandles.length === 0) return {};
 
     const dnsConnect = new DNSConnect({
+      logLevel: 'silent',
       dns: { forwarderDomain: constants.d3[CHAIN_ID].forwarder }
     });
 
