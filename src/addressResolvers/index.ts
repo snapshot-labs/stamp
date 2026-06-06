@@ -1,3 +1,4 @@
+import * as basenameResolver from './basename';
 import cache, { clear } from './cache';
 import * as ensResolver from './ens';
 import * as lensResolver from './lens';
@@ -19,6 +20,7 @@ import { Address, Handle } from '../utils';
 const RESOLVERS = [
   snapshotResolver,
   ensResolver,
+  basenameResolver,
   unstoppableDomainResolver,
   lensResolver,
   starknetResolver,

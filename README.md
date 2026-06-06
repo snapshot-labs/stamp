@@ -28,12 +28,13 @@ cdn.stamp.fyi/**token**/0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e
 
 ### Identifier
 
-The identifier can be an address (case insensitive), ENS name, CAIP-10, EIP-3770, DID or Starknet domain.
+The identifier can be an address (case insensitive), ENS name, Basename, CAIP-10, EIP-3770, DID or Starknet domain.
 
 #### Examples
 
 cdn.stamp.fyi/avatar/**0xeF8305E140ac520225DAf050e2f71d5fBcC543e7**  
 cdn.stamp.fyi/avatar/**fabien.eth**  
+cdn.stamp.fyi/avatar/**jesse.base.eth**  
 cdn.stamp.fyi/token/**eth:0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e**  
 cdn.stamp.fyi/token/**eip155:1:0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e**
 cdn.stamp.fyi/avatar/**checkpoint.stark**
@@ -52,6 +53,10 @@ cdn.stamp.fyi/avatar/0xeF8305E140ac520225DAf050e2f71d5fBcC543e7?**cb=1**
 ### Resolvers
 
 #### [ENS avatar](/src/resolvers/ens.ts)
+
+#### [Basename](/src/resolvers/basename.ts)
+
+Resolves the avatar of a [Basename](https://www.base.org/names) (`*.base.eth`) by name or by address, reading the avatar text record from the Basenames L2 resolver on Base.
 
 #### [Lens](/src/resolvers/lens.ts)
 

@@ -1,3 +1,4 @@
+import basename from './basename';
 import blockie from './blockie';
 import coingecko from './coingecko';
 import ens from './ens';
@@ -21,6 +22,7 @@ export default {
   blockie,
   jazzicon,
   ens,
+  basename,
   trustwallet,
   coingecko,
   snapshot: sResolveUserAvatar,
