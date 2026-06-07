@@ -44,6 +44,24 @@ describe('E2E api', () => {
       expect(response.status).toBe(400);
     });
 
+    it('returns a 400 status when the id is neither an address nor a handle', async () => {
+      const response = await request(server).get('/avatar/not-an-address');
+      expect(response.status).toBe(400);
+      expect(response.body.status).toBe('error');
+    });
+
+    it('accepts a valid address id', async () => {
+      const response = await request(server).get(
+        '/avatar/0xeF8305E140ac520225DAf050e2f71d5fBcC543e7'
+      );
+      expect(response.status).not.toBe(400);
+    });
+
+    it('accepts a valid handle id', async () => {
+      const response = await request(server).get('/avatar/vitalik.eth');
+      expect(response.status).not.toBe(400);
+    });
+
     describe('when the image is not cached', () => {
       it.todo('returns the image');
       it.todo('caches the base image');

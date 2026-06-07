@@ -1,18 +1,22 @@
-import { isAddress } from '@ethersproject/address';
 import { max } from '../constants.json';
 import { getProvider, resize } from '../utils';
 import { fetchHttpImage } from './utils';
 import { lookupAddresses } from '../addressResolvers';
+import { addressSchema, AvatarId } from '../helpers/validation';
 
-async function castToEnsName(nameOrAddress: string): Promise<string | undefined> {
-  if (isAddress(nameOrAddress)) {
-    return (await lookupAddresses([nameOrAddress]))[nameOrAddress];
+async function castToEnsName(nameOrAddress: AvatarId): Promise<string | undefined> {
+  // Re-derive the Address brand from the already validated id: when it is an
+  // address, feed the branded value into lookupAddresses; otherwise it is a
+  // handle and used as-is.
+  const asAddress = addressSchema.safeParse(nameOrAddress);
+  if (asAddress.success) {
+    return (await lookupAddresses([asAddress.data]))[asAddress.data];
   }
 
   return nameOrAddress;
 }
 
-export default async function resolve(nameOrAddress: string) {
+export default async function resolve(nameOrAddress: AvatarId) {
   try {
     const provider = getProvider(1);
     const ensName = await castToEnsName(nameOrAddress);

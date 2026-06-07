@@ -1,9 +1,10 @@
 import getOwner from '../../src/getOwner';
+import { handle } from '../helpers/validation';
 
 describe('getOwner', () => {
   describe('on claimed names', () => {
     it('should return an address for shibarium', async () => {
-      const result = await getOwner('boorger.shib', '109');
+      const result = await getOwner(handle('boorger.shib'), '109');
       expect(result).toContain('0x220bc93D88C0aF11f1159eA89a885d5ADd3A7Cf6');
     });
   });
@@ -36,10 +37,10 @@ describe('getOwner', () => {
       const atLeastOneResolves = await new Promise<boolean>(resolve => {
         const entries = Object.entries(UNCLAIMED_SHIBARIUM);
         let pending = entries.length;
-        entries.forEach(([handle, address]) => {
-          getOwner(handle, '109')
+        entries.forEach(([name, owner]) => {
+          getOwner(handle(name), '109')
             .then(result => {
-              if (result.includes(address)) resolve(true);
+              if (result.includes(owner)) resolve(true);
             })
             .catch(() => undefined)
             .finally(() => {
@@ -53,7 +54,7 @@ describe('getOwner', () => {
   });
 
   it('should return an empty address for shibarium when domain does not exist', async () => {
-    const result = await getOwner('invalid-domain-h.shib', '109');
+    const result = await getOwner(handle('invalid-domain-h.shib'), '109');
     expect(result).toContain('0x0000000000000000000000000000000000000000');
   });
 });

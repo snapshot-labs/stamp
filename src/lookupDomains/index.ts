@@ -1,5 +1,5 @@
-import { isAddress } from '@ethersproject/address';
-import { Address, Handle } from '../utils';
+import { ValidatedAddress } from '../helpers/validation';
+import { Handle } from '../utils';
 import ens, { DEFAULT_CHAIN_ID as ENS_DEFAULT_CHAIN_ID } from './ens';
 import shibarium, { DEFAULT_CHAIN_ID as SHIBARIUM_DEFAULT_CHAIN_ID } from './shibarium';
 import unstoppableDomains, {
@@ -15,14 +15,16 @@ const DEFAULT_CHAIN_IDS = [
 ];
 
 export default async function lookupDomains(
-  address: Address,
+  address: ValidatedAddress,
   chains: string | string[] = DEFAULT_CHAIN_IDS
 ): Promise<Handle[]> {
   const promises: Promise<Handle[]>[] = [];
   let chainIds = Array.isArray(chains) ? chains : [chains];
   chainIds = [...new Set(chainIds.map(String))];
 
-  if (!isAddress(address)) return [];
+  // The address shape is now guaranteed by the branded Address type: the only
+  // caller (src/api.ts lookup_domains) validates it with lookupDomainsSchema at
+  // the boundary, so the previous runtime isAddress guard is redundant.
 
   RESOLVERS.forEach(resolver => {
     chainIds.forEach(chain => {

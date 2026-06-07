@@ -14,7 +14,14 @@ import {
 } from './helpers/validation';
 import lookupDomains from './lookupDomains';
 import resolvers from './resolvers';
-import { getCacheKey, parseQuery, resize, ResolverType, setHeader } from './utils';
+import {
+  getCacheKey,
+  InvalidQueryError,
+  parseQuery,
+  resize,
+  ResolverType,
+  setHeader
+} from './utils';
 
 const router = express.Router();
 const TYPE_CONSTRAINTS = [...Object.keys(constants.resolvers), 'address', 'name'].join('|');
@@ -74,6 +81,9 @@ router.get(`/clear/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
     }
     res.status(result ? 200 : 404).json({ status: result ? 'ok' : 'not found' });
   } catch (err) {
+    if (err instanceof InvalidQueryError) {
+      return res.status(400).json({ status: 'error', error: err.message || 'invalid id' });
+    }
     capture(err);
     res.status(500).json({ status: 'error', error: 'failed to clear cache' });
   }
@@ -89,7 +99,10 @@ router.get(`/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
       type,
       req.query
     ));
-  } catch {
+  } catch (err) {
+    if (err instanceof InvalidQueryError) {
+      return res.status(400).json({ status: 'error', error: err.message || 'invalid id' });
+    }
     return res.status(500).json({ status: 'error', error: 'failed to load content' });
   }
 

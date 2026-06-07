@@ -15,6 +15,7 @@ import {
   withoutEmptyValues
 } from './utils';
 import { timeAddressResolverResponse as timeResponse } from '../helpers/metrics';
+import { ValidatedAddress, ValidatedHandle } from '../helpers/validation';
 import { Address, Handle } from '../utils';
 
 const RESOLVERS = [
@@ -70,7 +71,9 @@ async function _call(fnName: string, input: string[], maxInputLength: number) {
   );
 }
 
-export async function lookupAddresses(addresses: Address[]): Promise<Record<Address, Handle>> {
+export async function lookupAddresses(
+  addresses: ValidatedAddress[]
+): Promise<Record<Address, Handle>> {
   const result = await _call(
     'lookupAddresses',
     Array.from(new Set(normalizeAddresses(addresses))),
@@ -80,7 +83,7 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
   return mapOriginalInput(addresses, result);
 }
 
-export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Address>> {
+export async function resolveNames(handles: ValidatedHandle[]): Promise<Record<Handle, Address>> {
   const result = await _call(
     'resolveNames',
     Array.from(new Set(normalizeHandles(handles))),
