@@ -4,7 +4,14 @@ import { clearCache, lookupAddresses, resolveNames } from './addressResolvers';
 import { clear, get, set, streamToBuffer } from './aws';
 import constants from './constants.json';
 import getOwner from './getOwner';
-import { rpcError, rpcSuccess } from './helpers/utils';
+import { rpcError, rpcInvalidParams, rpcSuccess } from './helpers/utils';
+import {
+  formatZodError,
+  getOwnerSchema,
+  lookupAddressesSchema,
+  lookupDomainsSchema,
+  resolveNamesSchema
+} from './helpers/validation';
 import lookupDomains from './lookupDomains';
 import resolvers from './resolvers';
 import { getCacheKey, parseQuery, resize, ResolverType, setHeader } from './utils';
@@ -19,15 +26,21 @@ router.post('/', async (req, res) => {
     let result: any = {};
 
     if (method === 'lookup_domains') {
-      result = await lookupDomains(params, req.body.network);
+      const parsed = lookupDomainsSchema.safeParse(params);
+      if (!parsed.success) return rpcInvalidParams(res, formatZodError(parsed.error), id);
+      result = await lookupDomains(parsed.data, req.body.network);
     } else if (method === 'get_owner') {
-      result = await getOwner(params, req.body.network);
-    } else if (['lookup_addresses', 'resolve_names'].includes(method)) {
-      if (!Array.isArray(params))
-        return rpcError(res, 400, 'params must be an array of string', id);
-
-      if (method === 'lookup_addresses') result = await lookupAddresses(params);
-      else result = await resolveNames(params);
+      const parsed = getOwnerSchema.safeParse(params);
+      if (!parsed.success) return rpcInvalidParams(res, formatZodError(parsed.error), id);
+      result = await getOwner(parsed.data, req.body.network);
+    } else if (method === 'lookup_addresses') {
+      const parsed = lookupAddressesSchema.safeParse(params);
+      if (!parsed.success) return rpcInvalidParams(res, formatZodError(parsed.error), id);
+      result = await lookupAddresses(parsed.data);
+    } else if (method === 'resolve_names') {
+      const parsed = resolveNamesSchema.safeParse(params);
+      if (!parsed.success) return rpcInvalidParams(res, formatZodError(parsed.error), id);
+      result = await resolveNames(parsed.data);
     } else return rpcError(res, 400, 'invalid method', id);
 
     if (result?.error) return rpcError(res, result.code || 500, result.error, id);
@@ -122,7 +135,7 @@ router.get(`/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
 
     if (resolver) {
       if (!currentResolvers.includes(resolver)) {
-        return res.status(500).json({ status: 'error', error: 'invalid resolvers' });
+        return res.status(400).json({ status: 'error', error: 'invalid resolver' });
       }
 
       currentResolvers = [resolver];

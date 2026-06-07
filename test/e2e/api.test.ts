@@ -39,6 +39,11 @@ describe('E2E api', () => {
   describe('GET type/TYPE/ID', () => {
     it.todo('returns a 500 status on invalid query');
 
+    it('returns a 400 status when passing an invalid resolver query', async () => {
+      const response = await request(server).get('/avatar/vitalik.eth?resolver=not-a-resolver');
+      expect(response.status).toBe(400);
+    });
+
     describe('when the image is not cached', () => {
       it.todo('returns the image');
       it.todo('caches the base image');
@@ -128,7 +133,27 @@ describe('E2E api', () => {
         it.each(tests)('returns an error when passing %s', async (_: string, params: any) => {
           const response = await fetchLookupAddresses(params);
           expect(response.status).toBe(400);
+          expect(response.body.error.code).toBe(-32602);
         });
+      });
+
+      describe('when passing an array with invalid contents', () => {
+        const tests: any[] = [
+          ['a nested array', [['0xeF8305E140ac520225DAf050e2f71d5fBcC543e7']]],
+          ['a non-address string', ['not-an-address']],
+          ['a number', [123]],
+          ['an empty array', []]
+        ];
+        // @ts-ignore
+        it.each(tests)(
+          'returns invalid params (-32602) with HTTP 400 when passing %s',
+          async (_: string, params: any) => {
+            const response = await fetchLookupAddresses(params);
+            expect(response.status).toBe(400);
+            expect(response.body.error.code).toBe(-32602);
+            expect(response.body.error.message).toBe('invalid params');
+          }
+        );
       });
 
       describe('when passing EVM addresses', () => {
@@ -181,6 +206,52 @@ describe('E2E api', () => {
             '0xe6d0dd18c6c3a9af8c2fab57d6e6a38e29d513cc': 'sdntestens.eth'
           });
         });
+      });
+    });
+
+    describe('on resolve_names', () => {
+      function fetchResolveNames(params: any) {
+        return request(server).post('/').send({ method: 'resolve_names', params });
+      }
+
+      describe('when passing invalid params', () => {
+        const tests: any[] = [
+          ['a string', 'vitalik.eth'],
+          ['a nested array', [['vitalik.eth']]],
+          ['a non-handle string', ['not-a-handle']],
+          ['a number', [123]],
+          ['an empty array', []]
+        ];
+        // @ts-ignore
+        it.each(tests)(
+          'returns invalid params (-32602) with HTTP 400 when passing %s',
+          async (_: string, params: any) => {
+            const response = await fetchResolveNames(params);
+            expect(response.status).toBe(400);
+            expect(response.body.error.code).toBe(-32602);
+            expect(response.body.error.message).toBe('invalid params');
+          }
+        );
+      });
+    });
+
+    describe('on lookup_domains', () => {
+      it('returns invalid params (-32602) with HTTP 400 on a malformed address', async () => {
+        const response = await request(server)
+          .post('/')
+          .send({ method: 'lookup_domains', params: 'not-an-address' });
+        expect(response.status).toBe(400);
+        expect(response.body.error.code).toBe(-32602);
+      });
+    });
+
+    describe('on get_owner', () => {
+      it('returns invalid params (-32602) with HTTP 400 on a malformed handle', async () => {
+        const response = await request(server)
+          .post('/')
+          .send({ method: 'get_owner', params: 'no-dot-here' });
+        expect(response.status).toBe(400);
+        expect(response.body.error.code).toBe(-32602);
       });
     });
   });
