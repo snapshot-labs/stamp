@@ -1,10 +1,10 @@
 import sharp from 'sharp';
 import resolvers from '../../../src/resolvers';
-import { PIXEL_FIXTURE_ADDRESSES } from '../../helpers/fixture-addresses';
+import { jazziconSnapshotAddresses } from '../../fixtures/image-snapshot-addresses';
 
 describe('resolvers', () => {
   describe('jazzicon pixel snapshot', () => {
-    it.each(PIXEL_FIXTURE_ADDRESSES)(
+    it.each(jazziconSnapshotAddresses)(
       'renders a deterministic identicon matching the reference for %s',
       async address => {
         const result = await resolvers.jazzicon(address);
