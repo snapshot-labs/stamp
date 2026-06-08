@@ -1,5 +1,14 @@
 import resolvers from '../../../src/resolvers';
+import {
+  remoteSnapshotInputs,
+  remoteSnapshotOptions
+} from '../../fixtures/image-snapshot-addresses';
+import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 
+// lens resolves the profile picture URL for REAL via the Lens API, fetches the
+// image, then resizes/re-encodes it via sharp. The by-handle case asserts a
+// TOLERANT image snapshot; the by-address path is asserted as a valid image (it
+// resolves the same identity, so a second baseline would be redundant).
 describe('resolvers', () => {
   describe('lens', () => {
     it('should return false if missing', async () => {
@@ -20,18 +29,20 @@ describe('resolvers', () => {
       expect(result).toBe(false);
     });
 
-    it('should resolve with handle', async () => {
-      const result = await resolvers.lens('fabien.lens');
+    it('resolves with handle and matches the reference avatar', async () => {
+      const result = await resolvers.lens(remoteSnapshotInputs.lens);
 
-      expect(result).toBeInstanceOf(Buffer);
-      expect(result.length).toBeGreaterThan(1000);
-    });
+      await expectResolverImageSnapshot(result, {
+        ...remoteSnapshotOptions,
+        customSnapshotIdentifier: 'lens'
+      });
+    }, 30e3);
 
     it('should resolve with address', async () => {
       const result = await resolvers.lens('0x218F68106128E637fc942C2b1Ed1e3c326125344');
 
       expect(result).toBeInstanceOf(Buffer);
       expect(result.length).toBeGreaterThan(1000);
-    });
+    }, 30e3);
   });
 });

@@ -1,5 +1,14 @@
 import resolvers from '../../../src/resolvers';
+import {
+  remoteSnapshotInputs,
+  remoteSnapshotOptions
+} from '../../fixtures/image-snapshot-addresses';
+import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 
+// space-sx resolves an sx-gov space avatar URL for REAL across several chains,
+// fetches the image, then resizes/re-encodes via sharp. The Arbitrum case
+// asserts a TOLERANT image snapshot of the real output; the remaining chains
+// stay as valid-image assertions (they prove the per-chain resolution path).
 describe('resolvers', () => {
   describe('space-sx', () => {
     describe('avatar', () => {
@@ -17,12 +26,14 @@ describe('resolvers', () => {
 
       it.todo('should resolve on eth');
 
-      it('should resolve on arbitrum', async () => {
-        const result = await resolvers['space-sx']('0xFd36252770642Ac48FC3A06d7A1D00be8946dd18');
+      it('resolves on arbitrum and matches the reference avatar', async () => {
+        const result = await resolvers['space-sx'](remoteSnapshotInputs.spaceSxArbitrum);
 
-        expect(result).toBeInstanceOf(Buffer);
-        expect(result.length).toBeGreaterThan(100);
-      });
+        await expectResolverImageSnapshot(result, {
+          ...remoteSnapshotOptions,
+          customSnapshotIdentifier: 'space-sx-avatar'
+        });
+      }, 30e3);
 
       it('should resolve on optimism', async () => {
         const result = await resolvers['space-sx']('0x2EF7E7CF469f5296011664682D58b57D38a3c83f');

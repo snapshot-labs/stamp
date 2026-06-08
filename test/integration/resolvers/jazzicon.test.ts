@@ -1,12 +1,21 @@
 import resolvers from '../../../src/resolvers';
+import { jazziconSnapshotAddresses } from '../../fixtures/image-snapshot-addresses';
+import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 
+// jazzicon is deterministic: the identicon is rendered purely from the address,
+// so the baseline is an EXACT pixel match (within anti-aliasing tolerance from
+// setup-jest).
 describe('resolvers', () => {
   describe('jazzicon', () => {
-    it('should resolve', async () => {
-      const result = await resolvers.jazzicon('0x556B14CbdA79A36dC33FcD461a04A5BCb5dC2A70');
+    it.each(jazziconSnapshotAddresses)(
+      'renders a deterministic identicon matching the reference for %s',
+      async address => {
+        const result = await resolvers.jazzicon(address);
 
-      expect(result).toBeInstanceOf(Buffer);
-      expect(result.length).toBeGreaterThan(1000);
-    });
+        await expectResolverImageSnapshot(result, {
+          customSnapshotIdentifier: `jazzicon-${address}`
+        });
+      }
+    );
   });
 });

@@ -1,5 +1,13 @@
 import resolvers from '../../../src/resolvers';
+import {
+  remoteSnapshotInputs,
+  remoteSnapshotOptions
+} from '../../fixtures/image-snapshot-addresses';
+import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 
+// ens reads the avatar text record for REAL via an ethers provider, fetches the
+// image, then resizes/re-encodes it via sharp. The positive case asserts a
+// TOLERANT image snapshot of the real output.
 describe('resolvers', () => {
   jest.retryTimes(3);
 
@@ -16,11 +24,13 @@ describe('resolvers', () => {
       return expect(result).toBe(false);
     }, 10e3);
 
-    it('should resolve', async () => {
-      const result = await resolvers.ens('fabien.eth');
+    it('resolves and matches the reference avatar', async () => {
+      const result = await resolvers.ens(remoteSnapshotInputs.ens);
 
-      expect(result).toBeInstanceOf(Buffer);
-      return expect(result.length).toBeGreaterThan(1000);
+      await expectResolverImageSnapshot(result, {
+        ...remoteSnapshotOptions,
+        customSnapshotIdentifier: 'ens'
+      });
     }, 30e3);
   });
 });

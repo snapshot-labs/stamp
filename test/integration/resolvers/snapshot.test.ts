@@ -1,5 +1,15 @@
 import resolvers from '../../../src/resolvers';
+import {
+  remoteSnapshotInputs,
+  remoteSnapshotOptions
+} from '../../fixtures/image-snapshot-addresses';
+import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 
+// snapshot resolvers fetch user/space avatars and covers hosted on the Snapshot
+// infra for REAL, then resize/re-encode via sharp. The primary "should resolve"
+// case for each surface asserts a TOLERANT image snapshot of the real output;
+// the network-format and legacy/non-legacy equivalence cases stay as structural
+// assertions (they verify behaviour, not pixels).
 describe('resolvers', () => {
   describe('snapshot', () => {
     describe('on user avatar', () => {
@@ -10,22 +20,20 @@ describe('resolvers', () => {
       });
 
       it('should resolve regardless of network', async () => {
-        const result = await resolvers.snapshot(
-          '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7',
-          1,
-          'eth'
-        );
+        const result = await resolvers.snapshot(remoteSnapshotInputs.snapshotUserAvatar, 1, 'eth');
 
         expect(result).toBeInstanceOf(Buffer);
         expect(result.length).toBeGreaterThan(1000);
       });
 
-      it('should resolve', async () => {
-        const result = await resolvers.snapshot('0xeF8305E140ac520225DAf050e2f71d5fBcC543e7');
+      it('resolves and matches the reference avatar', async () => {
+        const result = await resolvers.snapshot(remoteSnapshotInputs.snapshotUserAvatar);
 
-        expect(result).toBeInstanceOf(Buffer);
-        expect(result.length).toBeGreaterThan(1000);
-      });
+        await expectResolverImageSnapshot(result, {
+          ...remoteSnapshotOptions,
+          customSnapshotIdentifier: 'snapshot-user-avatar'
+        });
+      }, 30e3);
     });
   });
 
@@ -37,22 +45,20 @@ describe('resolvers', () => {
     });
 
     it('should resolve regardless of network', async () => {
-      const result = await resolvers.snapshot(
-        '0xf1f09AdC06aAB740AA16004D62Dbd89484d3Be90',
-        1,
-        'eth'
-      );
+      const result = await resolvers.snapshot(remoteSnapshotInputs.snapshotUserCover, 1, 'eth');
 
       expect(result).toBeInstanceOf(Buffer);
       expect(result.length).toBeGreaterThan(1000);
     });
 
-    it('should resolve', async () => {
-      const result = await resolvers['user-cover']('0xf1f09AdC06aAB740AA16004D62Dbd89484d3Be90');
+    it('resolves and matches the reference cover', async () => {
+      const result = await resolvers['user-cover'](remoteSnapshotInputs.snapshotUserCover);
 
-      expect(result).toBeInstanceOf(Buffer);
-      expect(result.length).toBeGreaterThan(1000);
-    });
+      await expectResolverImageSnapshot(result, {
+        ...remoteSnapshotOptions,
+        customSnapshotIdentifier: 'snapshot-user-cover'
+      });
+    }, 30e3);
   });
 
   describe('on space avatar', () => {
@@ -68,16 +74,18 @@ describe('resolvers', () => {
       expect(result).toBe(false);
     });
 
-    it('should resolve', async () => {
-      const result = await resolvers.space('ens.eth');
+    it('resolves and matches the reference avatar', async () => {
+      const result = await resolvers.space(remoteSnapshotInputs.snapshotSpaceAvatar);
 
-      expect(result).toBeInstanceOf(Buffer);
-      expect(result.length).toBeGreaterThan(1000);
-    });
+      await expectResolverImageSnapshot(result, {
+        ...remoteSnapshotOptions,
+        customSnapshotIdentifier: 'snapshot-space-avatar'
+      });
+    }, 30e3);
 
     it('should return same result for both legacy and non-legacy format', async () => {
-      const resultA = await resolvers.space('ens.eth');
-      const resultB = await resolvers.space('ens.eth', 1, 's');
+      const resultA = await resolvers.space(remoteSnapshotInputs.snapshotSpaceAvatar);
+      const resultB = await resolvers.space(remoteSnapshotInputs.snapshotSpaceAvatar, 1, 's');
 
       expect(resultA).toBeInstanceOf(Buffer);
       expect(resultA.length).toBeGreaterThan(1000);
@@ -93,21 +101,31 @@ describe('resolvers', () => {
     });
 
     it('should return false on unsupported network', async () => {
-      const result = await resolvers['space-cover']('test.wa0x6e.eth', 1, 'eth');
+      const result = await resolvers['space-cover'](
+        remoteSnapshotInputs.snapshotSpaceCover,
+        1,
+        'eth'
+      );
 
       expect(result).toBe(false);
     });
 
-    it('should resolve', async () => {
-      const result = await resolvers['space-cover']('test.wa0x6e.eth');
+    it('resolves and matches the reference cover', async () => {
+      const result = await resolvers['space-cover'](remoteSnapshotInputs.snapshotSpaceCover);
 
-      expect(result).toBeInstanceOf(Buffer);
-      expect(result.length).toBeGreaterThan(1000);
-    });
+      await expectResolverImageSnapshot(result, {
+        ...remoteSnapshotOptions,
+        customSnapshotIdentifier: 'snapshot-space-cover'
+      });
+    }, 30e3);
 
     it('should return same result for both legacy and non-legacy format', async () => {
-      const resultA = await resolvers['space-cover']('test.wa0x6e.eth');
-      const resultB = await resolvers['space-cover']('test.wa0x6e.eth', 1, 's');
+      const resultA = await resolvers['space-cover'](remoteSnapshotInputs.snapshotSpaceCover);
+      const resultB = await resolvers['space-cover'](
+        remoteSnapshotInputs.snapshotSpaceCover,
+        1,
+        's'
+      );
 
       expect(resultA).toBeInstanceOf(Buffer);
       expect(resultA.length).toBeGreaterThan(1000);

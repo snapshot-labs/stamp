@@ -1,5 +1,12 @@
 import resolvers from '../../../src/resolvers';
+import {
+  remoteSnapshotInputs,
+  remoteSnapshotOptions
+} from '../../fixtures/image-snapshot-addresses';
+import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 
+// zapper fetches a token icon from zapper's CDN for REAL, then resizes/
+// re-encodes it via sharp. The baseline is TOLERANT to absorb CDN re-encodes.
 describe('resolvers', () => {
   describe('zapper', () => {
     it('should return false if missing', async () => {
@@ -8,11 +15,14 @@ describe('resolvers', () => {
       expect(result).toBe(false);
     });
 
-    it('should resolve', async () => {
-      const result = await resolvers.zapper('0xc18360217d8f7ab5e7c516566761ea12ce7f9d72', '');
+    it('resolves and matches the reference icon', async () => {
+      const { address, chainId } = remoteSnapshotInputs.zapper;
+      const result = await resolvers.zapper(address, chainId);
 
-      expect(result).toBeInstanceOf(Buffer);
-      expect(result.length).toBeGreaterThan(1000);
-    });
+      await expectResolverImageSnapshot(result, {
+        ...remoteSnapshotOptions,
+        customSnapshotIdentifier: 'zapper'
+      });
+    }, 30e3);
   });
 });

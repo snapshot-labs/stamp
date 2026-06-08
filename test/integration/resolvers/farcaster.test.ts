@@ -1,5 +1,10 @@
 import resolvers from '../../../src/resolvers';
+import { remoteSnapshotInputs } from '../../fixtures/image-snapshot-addresses';
 
+// farcaster resolves a Warpcast pfp URL for REAL via Neynar (needs
+// NEYNAR_API_KEY), fetches it, then resizes via sharp. Warpcast pfps are
+// user-editable and served by a hot CDN, so this is ASSERTION-ONLY (valid
+// image) rather than a pixel snapshot to avoid a guaranteed-flaky baseline.
 describe('resolvers', () => {
   if (!process.env.NEYNAR_API_KEY) {
     it.todo('is missing NEYNAR_API_KEY');
@@ -17,12 +22,12 @@ describe('resolvers', () => {
         expect(result).toBe(false);
       });
 
-      it('should resolve', async () => {
-        const result = await resolvers.farcaster('0xd1a8Dd23e356B9fAE27dF5DeF9ea025A602EC81e');
+      it('should resolve to a valid image', async () => {
+        const result = await resolvers.farcaster(remoteSnapshotInputs.farcaster);
 
         expect(result).toBeInstanceOf(Buffer);
         expect((result as Buffer).length).toBeGreaterThan(1000);
-      });
+      }, 30e3);
     });
   }
 });

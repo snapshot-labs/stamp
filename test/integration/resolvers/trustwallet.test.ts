@@ -1,5 +1,13 @@
 import resolvers from '../../../src/resolvers';
+import {
+  remoteSnapshotInputs,
+  remoteSnapshotOptions
+} from '../../fixtures/image-snapshot-addresses';
+import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 
+// trustwallet fetches a token logo from the trustwallet/assets repo for REAL,
+// then resizes/re-encodes it via sharp. The baseline is TOLERANT (small
+// failureThreshold) to absorb benign upstream/CDN re-encodes.
 describe('resolvers', () => {
   describe('trustwallet', () => {
     it('should return false if missing', async () => {
@@ -8,11 +16,14 @@ describe('resolvers', () => {
       expect(result).toBe(false);
     });
 
-    it('should resolve', async () => {
-      const result = await resolvers.trustwallet('0xcf0C122c6b73ff809C693DB761e7BaeBe62b6a2E', '');
+    it('resolves and matches the reference avatar', async () => {
+      const { address, chainId } = remoteSnapshotInputs.trustwallet;
+      const result = await resolvers.trustwallet(address, chainId);
 
-      expect(result).toBeInstanceOf(Buffer);
-      expect(result.length).toBeGreaterThan(1000);
-    });
+      await expectResolverImageSnapshot(result, {
+        ...remoteSnapshotOptions,
+        customSnapshotIdentifier: 'trustwallet'
+      });
+    }, 30e3);
   });
 });
