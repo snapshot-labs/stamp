@@ -1,8 +1,0 @@
-# Pixel-comparison test fixtures and reference images are governance-gated:
-# changes to the committed reference PNGs or the pixel snapshot tests must be
-# reviewed explicitly so code PRs cannot silently re-baseline the renderings.
-/test/fixtures/images/ @wa0x6e @bonustrack
-/test/integration/resolvers/*.pixel.test.ts @wa0x6e @bonustrack
-/test/helpers/pixel.ts @wa0x6e @bonustrack
-/test/helpers/image.ts @wa0x6e @bonustrack
-/test/helpers/generate-references.ts @wa0x6e @bonustrack
