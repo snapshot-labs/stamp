@@ -1,6 +1,6 @@
+import sharp from 'sharp';
 import resolvers from '../../../src/resolvers';
 import { PIXEL_FIXTURE_ADDRESSES } from '../../helpers/fixture-addresses';
-import '../../helpers/pixel';
 
 describe('resolvers', () => {
   describe('jazzicon pixel snapshot', () => {
@@ -10,7 +10,13 @@ describe('resolvers', () => {
         const result = await resolvers.jazzicon(address);
 
         expect(result).toBeInstanceOf(Buffer);
-        await expect(result).toMatchImageSnapshot('jazzicon', address);
+        // Resolver output is WebP; jest-image-snapshot needs a PNG buffer.
+        const png = await sharp(result as Buffer)
+          .png()
+          .toBuffer();
+        expect(png).toMatchImageSnapshot({
+          customSnapshotIdentifier: `jazzicon-${address}`
+        });
       }
     );
   });

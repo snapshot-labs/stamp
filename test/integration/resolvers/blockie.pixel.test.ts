@@ -1,6 +1,6 @@
+import sharp from 'sharp';
 import resolvers from '../../../src/resolvers';
 import { PIXEL_FIXTURE_ADDRESSES } from '../../helpers/fixture-addresses';
-import '../../helpers/pixel';
 
 describe('resolvers', () => {
   describe('blockie pixel snapshot', () => {
@@ -10,7 +10,13 @@ describe('resolvers', () => {
         const result = await resolvers.blockie(address);
 
         expect(result).toBeInstanceOf(Buffer);
-        await expect(result).toMatchImageSnapshot('blockie', address);
+        // Resolver output is WebP; jest-image-snapshot needs a PNG buffer.
+        const png = await sharp(result as Buffer)
+          .png()
+          .toBuffer();
+        expect(png).toMatchImageSnapshot({
+          customSnapshotIdentifier: `blockie-${address}`
+        });
       }
     );
   });
