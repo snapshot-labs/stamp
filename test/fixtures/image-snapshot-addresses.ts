@@ -78,11 +78,9 @@ export const remoteSnapshotOptions: MatchImageSnapshotOptions = {
 // these resolvers returns false for it).
 export const NO_AVATAR_ADDRESS = '0x556B14CbdA79A36dC33FcD461a04A5BCb5dC2A70';
 
-// The native-asset sentinel. trustwallet/zapper map this (and the zero address)
-// to the base-asset (ETH) icon via getBaseAssetIconUrl. This is a SEPARATE case
-// from no-avatar: it returns the ETH fallback image, not false. Kept only where
-// a resolver actually special-cases it.
-export const NATIVE_ASSET_ADDRESS = '0x0000000000000000000000000000000000000000';
+// The EVM zero address (0x0000...0000) is intentionally not image-snapshot
+// tested: it is special-cased to the base-asset (ETH) icon, so it is not a
+// genuine avatar/no-avatar resolver path.
 
 // Starknet zero address. A Starknet address is 0x + up to 64 hex (a felt252),
 // NOT a 20-byte ETH address, so the starknet no-avatar/zero case needs a valid
