@@ -9,9 +9,9 @@ testResolverImageSnapshots({
   id: 'starknet',
   retryTimes: 3,
   withAvatar: [
-    { args: [realAvatarInputs.starknetSimpleAddress], id: 'starknet-simple' },
-    { args: [realAvatarInputs.starknetNftHandle], id: 'starknet-nft-handle' },
-    { args: [realAvatarInputs.starknetNftAddress], id: 'starknet-nft-address' }
+    realAvatarInputs.starknetSimpleAddress,
+    realAvatarInputs.starknetNftHandle,
+    realAvatarInputs.starknetNftAddress
   ],
   withoutAvatar: [
     noAvatarInputs.starknetMissing,

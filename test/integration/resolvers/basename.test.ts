@@ -9,10 +9,7 @@ import {
 testResolverImageSnapshots({
   id: 'basename',
   retryTimes: 3,
-  withAvatar: [
-    { args: [remoteSnapshotInputs.basename], id: 'basename' },
-    { args: [realAvatarInputs.basenameByAddress], id: 'basename-by-address' }
-  ],
+  withAvatar: [remoteSnapshotInputs.basename, realAvatarInputs.basenameByAddress],
   withoutAvatar: [
     NO_AVATAR_ADDRESS,
     noAvatarInputs.basenameNoName,

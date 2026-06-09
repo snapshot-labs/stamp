@@ -8,10 +8,7 @@ import {
 
 testResolverImageSnapshots({
   id: 'lens',
-  withAvatar: [
-    { args: [remoteSnapshotInputs.lens], id: 'lens' },
-    { args: [realAvatarInputs.lensByAddress], id: 'lens-by-address' }
-  ],
+  withAvatar: [remoteSnapshotInputs.lens, realAvatarInputs.lensByAddress],
   withoutAvatar: [
     noAvatarInputs.lensMissing,
     noAvatarInputs.lensInvalidAddress,

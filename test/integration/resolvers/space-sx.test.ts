@@ -9,11 +9,11 @@ import {
 testResolverImageSnapshots({
   id: 'space-sx',
   withAvatar: [
-    { args: [remoteSnapshotInputs.spaceSxArbitrum], id: 'space-sx-avatar' },
-    { args: [realAvatarInputs.spaceSxOptimism], id: 'space-sx-optimism' },
-    { args: [realAvatarInputs.spaceSxStarknet], id: 'space-sx-starknet' },
-    { args: [realAvatarInputs.spaceSxStarknetSepolia], id: 'space-sx-starknet-sepolia' },
-    { args: [realAvatarInputs.spaceSxSepolia], id: 'space-sx-sepolia' }
+    remoteSnapshotInputs.spaceSxArbitrum,
+    realAvatarInputs.spaceSxOptimism,
+    realAvatarInputs.spaceSxStarknet,
+    realAvatarInputs.spaceSxStarknetSepolia,
+    realAvatarInputs.spaceSxSepolia
   ],
   withoutAvatar: [
     noAvatarInputs.spaceSxMissing,

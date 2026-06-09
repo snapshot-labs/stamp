@@ -10,26 +10,20 @@ testResolverImageSnapshots({
   groups: [
     {
       resolver: 'snapshot',
-      id: 'on user avatar',
-      withAvatar: [
-        { args: [remoteSnapshotInputs.snapshotUserAvatar, 1, 'eth'], id: 'snapshot-user-avatar' }
-      ],
+      id: 'snapshot-user-avatar',
+      withAvatar: [{ args: [remoteSnapshotInputs.snapshotUserAvatar, 1, 'eth'] }],
       withoutAvatar: [noAvatarInputs.snapshotUserMissing, NO_AVATAR_ADDRESS]
     },
     {
       resolver: 'user-cover',
-      id: 'on user cover',
-      withAvatar: [
-        { args: [remoteSnapshotInputs.snapshotUserCover, 1, 'eth'], id: 'snapshot-user-cover' }
-      ],
+      id: 'snapshot-user-cover',
+      withAvatar: [{ args: [remoteSnapshotInputs.snapshotUserCover, 1, 'eth'] }],
       withoutAvatar: [noAvatarInputs.snapshotUserMissing, NO_AVATAR_ADDRESS]
     },
     {
       resolver: 'space',
-      id: 'on space avatar',
-      withAvatar: [
-        { args: [remoteSnapshotInputs.snapshotSpaceAvatar], id: 'snapshot-space-avatar' }
-      ],
+      id: 'snapshot-space-avatar',
+      withAvatar: [{ args: [remoteSnapshotInputs.snapshotSpaceAvatar] }],
       withoutAvatar: [
         noAvatarInputs.snapshotSpaceMissing,
         NO_AVATAR_ADDRESS,
@@ -44,8 +38,8 @@ testResolverImageSnapshots({
     },
     {
       resolver: 'space-cover',
-      id: 'on space cover',
-      withAvatar: [{ args: [remoteSnapshotInputs.snapshotSpaceCover], id: 'snapshot-space-cover' }],
+      id: 'snapshot-space-cover',
+      withAvatar: [{ args: [remoteSnapshotInputs.snapshotSpaceCover] }],
       withoutAvatar: [
         noAvatarInputs.snapshotSpaceMissing,
         NO_AVATAR_ADDRESS,

@@ -9,14 +9,13 @@ type ResolverArgs = unknown[];
 const DEFAULT_TIMEOUT = 30e3;
 
 // A single test input. The common case is a bare address/name string. Resolvers
-// that take extra positional arguments (chainId, network, ...) or that need a
-// pinned snapshot identifier to keep their committed baseline pass a richer
-// object. `id`/`timeout` are derived internally when omitted.
+// that take extra positional arguments (chainId, network, ...) pass a richer
+// object. The snapshot identifier is derived from the resolver id and the
+// input; `timeout` is derived internally when omitted.
 type Input =
   | string
   | {
       args: ResolverArgs;
-      id?: string;
       timeout?: number;
     };
 
@@ -61,12 +60,12 @@ const toArgs = (input: Input): ResolverArgs => (typeof input === 'string' ? [inp
 const toTimeout = (input: Input): number =>
   typeof input === 'string' ? DEFAULT_TIMEOUT : (input.timeout ?? DEFAULT_TIMEOUT);
 
-function snapshotIdentifier(input: Input, id: string, index: number, total: number): string {
-  if (typeof input !== 'string' && input.id) return input.id;
-  const primary = String(toArgs(input)[0]);
-  // Deterministic, per-address resolvers keep their `<id>-<address>` baselines.
-  if (total > 1 && primary.startsWith('0x')) return `${id}-${primary}`;
-  return total > 1 ? `${id}-${index + 1}` : id;
+function snapshotIdentifier(input: Input, id: string, total: number): string {
+  // Single happy-path input: the resolver id is identifier enough. Multiple
+  // inputs disambiguate by their first argument (address/name), keeping the
+  // identifier deterministic and tied to the input rather than its position.
+  if (total <= 1) return id;
+  return `${id}-${String(toArgs(input)[0])}`;
 }
 
 function buildGroup(group: ResolverGroup, fallback: ResolverName) {
@@ -80,8 +79,8 @@ function buildGroup(group: ResolverGroup, fallback: ResolverName) {
   } = group;
 
   describe(id, () => {
-    withAvatar.forEach((input, index) => {
-      const identifier = snapshotIdentifier(input, id, index, withAvatar.length);
+    withAvatar.forEach(input => {
+      const identifier = snapshotIdentifier(input, id, withAvatar.length);
       it(
         `matches the image snapshot for ${identifier}`,
         async () => {
