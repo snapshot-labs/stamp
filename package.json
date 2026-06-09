@@ -42,7 +42,6 @@
     "entities": "^7",
     "express": "^4.17.1",
     "jsdom": "^19.0.0",
-    "node-fetch": "v2.7.0",
     "nodemon": "^2.0.7",
     "redis": "^4.6.10",
     "sharp": "^0.34.5",
