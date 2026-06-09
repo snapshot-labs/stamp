@@ -25,20 +25,16 @@ type LegacyEqualityCase = {
   timeout?: number;
 };
 
-type ResolverGroup = {
-  resolver?: ResolverName;
-  id?: string;
-  withAvatar?: Input[];
-  withoutAvatar?: Input[];
-  legacyEqualityCases?: LegacyEqualityCase[];
-  todoCases?: string[];
-};
-
 type Config = {
-  // Resolver id: drives the resolver lookup, the describe block and the
-  // generated snapshot identifiers.
+  // Resolver id: drives the resolver lookup and, by default, the describe block
+  // and the generated snapshot identifiers.
   id: ResolverName | string;
   resolver?: ResolverName;
+  // Optional sub-identifier: namespaces the describe block and the derived
+  // snapshot identifiers. Lets a single resolver be exercised across several
+  // sub-variants by calling testResolverImageSnapshots once per variant, each
+  // with its own subId, instead of one call with multiple groups.
+  subId?: string;
   // Addresses that DO resolve to an avatar image: one happy-path snapshot test
   // per input.
   withAvatar?: Input[];
@@ -49,7 +45,6 @@ type Config = {
   retryTimes?: number;
   legacyEqualityCases?: LegacyEqualityCase[];
   todoCases?: string[];
-  groups?: ResolverGroup[];
 };
 
 const call = (resolver: ResolverName, args: ResolverArgs) =>
@@ -60,27 +55,25 @@ const toArgs = (input: Input): ResolverArgs => (typeof input === 'string' ? [inp
 const toTimeout = (input: Input): number =>
   typeof input === 'string' ? DEFAULT_TIMEOUT : (input.timeout ?? DEFAULT_TIMEOUT);
 
-function snapshotIdentifier(input: Input, id: string, total: number): string {
-  // Single happy-path input: the resolver id is identifier enough. Multiple
+function snapshotIdentifier(input: Input, base: string, total: number): string {
+  // Single happy-path input: the base name is identifier enough. Multiple
   // inputs disambiguate by their first argument (address/name), keeping the
   // identifier deterministic and tied to the input rather than its position.
-  if (total <= 1) return id;
-  return `${id}-${String(toArgs(input)[0])}`;
+  if (total <= 1) return base;
+  return `${base}-${String(toArgs(input)[0])}`;
 }
 
-function buildGroup(group: ResolverGroup, fallback: ResolverName) {
-  const {
-    resolver = fallback,
-    id = resolver,
-    withAvatar = [],
-    withoutAvatar = [],
-    legacyEqualityCases = [],
-    todoCases = []
-  } = group;
-
-  describe(id, () => {
+function buildResolver(
+  resolver: ResolverName,
+  base: string,
+  withAvatar: Input[],
+  withoutAvatar: Input[],
+  legacyEqualityCases: LegacyEqualityCase[],
+  todoCases: string[]
+) {
+  describe(base, () => {
     withAvatar.forEach(input => {
-      const identifier = snapshotIdentifier(input, id, withAvatar.length);
+      const identifier = snapshotIdentifier(input, base, withAvatar.length);
       it(
         `matches the image snapshot for ${identifier}`,
         async () => {
@@ -123,14 +116,14 @@ export default function testResolverImageSnapshots(config: Config) {
   const {
     id,
     resolver = id as ResolverName,
-    withAvatar,
-    withoutAvatar,
+    subId,
+    withAvatar = [],
+    withoutAvatar = [],
     skip = false,
     requireEnv = [],
     retryTimes,
-    legacyEqualityCases,
-    todoCases,
-    groups
+    legacyEqualityCases = [],
+    todoCases = []
   } = config;
 
   if (typeof retryTimes === 'number') {
@@ -145,13 +138,13 @@ export default function testResolverImageSnapshots(config: Config) {
     return;
   }
 
-  const resolvedGroups: ResolverGroup[] = groups ?? [
-    { resolver, id, withAvatar, withoutAvatar, legacyEqualityCases, todoCases }
-  ];
+  // The describe block and the derived snapshot identifiers are namespaced by
+  // subId when present, otherwise by the resolver id.
+  const base = subId ?? id;
 
   const describeResolver = skip ? describe.skip : describe;
 
   describeResolver('resolvers', () => {
-    resolvedGroups.forEach(group => buildGroup(group, resolver));
+    buildResolver(resolver, base, withAvatar, withoutAvatar, legacyEqualityCases, todoCases);
   });
 }
