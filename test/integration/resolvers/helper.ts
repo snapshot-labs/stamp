@@ -11,18 +11,16 @@ const DEFAULT_TIMEOUT = 30e3;
 // A single test input. The common case is a bare address/name string. Resolvers
 // that take extra positional arguments (chainId, network, ...) pass a richer
 // object. The snapshot identifier is derived from the resolver id and the
-// input; `timeout` is derived internally when omitted.
+// input.
 type Input =
   | string
   | {
       args: ResolverArgs;
-      timeout?: number;
     };
 
 type LegacyEqualityCase = {
   args: ResolverArgs;
   legacyArgs: ResolverArgs;
-  timeout?: number;
 };
 
 type Config = {
@@ -42,6 +40,9 @@ type Config = {
   withoutAvatar?: Input[];
   skip?: boolean;
   requireEnv?: string[];
+  // Whole-test fields: applied uniformly to every case in this call, like
+  // retryTimes.
+  timeout?: number;
   retryTimes?: number;
   legacyEqualityCases?: LegacyEqualityCase[];
   todoCases?: string[];
@@ -51,9 +52,6 @@ const call = (resolver: ResolverName, args: ResolverArgs) =>
   (resolvers[resolver] as (...a: ResolverArgs) => Promise<unknown>)(...args);
 
 const toArgs = (input: Input): ResolverArgs => (typeof input === 'string' ? [input] : input.args);
-
-const toTimeout = (input: Input): number =>
-  typeof input === 'string' ? DEFAULT_TIMEOUT : (input.timeout ?? DEFAULT_TIMEOUT);
 
 function snapshotIdentifier(input: Input, base: string, total: number): string {
   // Single happy-path input: the base name is identifier enough. Multiple
@@ -69,7 +67,8 @@ function buildResolver(
   withAvatar: Input[],
   withoutAvatar: Input[],
   legacyEqualityCases: LegacyEqualityCase[],
-  todoCases: string[]
+  todoCases: string[],
+  timeout: number
 ) {
   describe(base, () => {
     withAvatar.forEach(input => {
@@ -82,7 +81,7 @@ function buildResolver(
             customSnapshotIdentifier: identifier
           });
         },
-        toTimeout(input)
+        timeout
       );
     });
 
@@ -92,11 +91,11 @@ function buildResolver(
         async () => {
           expect(await call(resolver, toArgs(input))).toBe(false);
         },
-        toTimeout(input)
+        timeout
       );
     });
 
-    legacyEqualityCases.forEach(({ args, legacyArgs, timeout }) => {
+    legacyEqualityCases.forEach(({ args, legacyArgs }) => {
       it(
         'returns the same result for the legacy and non-legacy format',
         async () => {
@@ -121,6 +120,7 @@ export default function testResolverImageSnapshots(config: Config) {
     withoutAvatar = [],
     skip = false,
     requireEnv = [],
+    timeout = DEFAULT_TIMEOUT,
     retryTimes,
     legacyEqualityCases = [],
     todoCases = []
@@ -145,6 +145,14 @@ export default function testResolverImageSnapshots(config: Config) {
   const describeResolver = skip ? describe.skip : describe;
 
   describeResolver('resolvers', () => {
-    buildResolver(resolver, base, withAvatar, withoutAvatar, legacyEqualityCases, todoCases);
+    buildResolver(
+      resolver,
+      base,
+      withAvatar,
+      withoutAvatar,
+      legacyEqualityCases,
+      todoCases,
+      timeout
+    );
   });
 }

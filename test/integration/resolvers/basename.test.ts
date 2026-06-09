@@ -13,6 +13,6 @@ testResolverImageSnapshots({
   withoutAvatar: [
     NO_AVATAR_ADDRESS,
     noAvatarInputs.basenameNoName,
-    { args: [noAvatarInputs.basenameNonBasenameInput], timeout: 10e3 }
+    noAvatarInputs.basenameNonBasenameInput
   ]
 });
