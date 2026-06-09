@@ -6,10 +6,9 @@ import {
   remoteSnapshotInputs
 } from '../../fixtures/image-snapshot-addresses';
 
-jest.retryTimes(3);
-
 testResolverImageSnapshots({
   name: 'basename',
+  retryTimes: 3,
   snapshotCases: [
     {
       description: 'resolves an avatar by basename and matches the reference',

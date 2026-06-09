@@ -5,10 +5,9 @@ import {
   remoteSnapshotInputs
 } from '../../fixtures/image-snapshot-addresses';
 
-jest.retryTimes(3);
-
 testResolverImageSnapshots({
   name: 'ens',
+  retryTimes: 3,
   falseCases: [
     {
       description: 'should return false if avatar is not set',

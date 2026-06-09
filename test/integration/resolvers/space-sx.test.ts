@@ -56,11 +56,6 @@ testResolverImageSnapshots({
       tolerant: true,
       timeout: 30e3
     }
-  ]
-});
-
-describe('resolvers', () => {
-  describe('space-sx', () => {
-    it.todo('should resolve on eth');
-  });
+  ],
+  todoCases: ['should resolve on eth']
 });

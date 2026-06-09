@@ -3,9 +3,9 @@ import { blockieSnapshotAddresses } from '../../fixtures/image-snapshot-addresse
 
 testResolverImageSnapshots({
   name: 'blockie',
-  snapshotCases: blockieSnapshotAddresses.map(address => ({
-    description: `renders a deterministic identicon matching the reference for ${address}`,
-    args: [address],
-    identifier: `blockie-${address}`
-  }))
+  snapshotAddresses: {
+    addresses: blockieSnapshotAddresses,
+    description: address =>
+      `renders a deterministic identicon matching the reference for ${address}`
+  }
 });

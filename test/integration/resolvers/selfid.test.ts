@@ -11,11 +11,6 @@ testResolverImageSnapshots({
       description: 'returns false for a normal address with no avatar',
       args: [NO_AVATAR_ADDRESS]
     }
-  ]
-});
-
-describe.skip('resolvers', () => {
-  describe('selfid', () => {
-    it.todo('resolves and matches the reference avatar (Ceramic gateway deprecated)');
-  });
+  ],
+  todoCases: ['resolves and matches the reference avatar (Ceramic gateway deprecated)']
 });

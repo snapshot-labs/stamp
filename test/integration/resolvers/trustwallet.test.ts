@@ -5,8 +5,6 @@ import {
   remoteSnapshotInputs
 } from '../../fixtures/image-snapshot-addresses';
 
-const { address, chainId } = remoteSnapshotInputs.trustwallet;
-
 testResolverImageSnapshots({
   name: 'trustwallet',
   falseCases: [
@@ -18,7 +16,7 @@ testResolverImageSnapshots({
   snapshotCases: [
     {
       description: 'resolves and matches the reference avatar',
-      args: [address, chainId],
+      args: [remoteSnapshotInputs.trustwallet.address, remoteSnapshotInputs.trustwallet.chainId],
       identifier: 'trustwallet',
       tolerant: true,
       timeout: 30e3

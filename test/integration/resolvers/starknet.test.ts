@@ -5,10 +5,9 @@ import {
   STARKNET_ZERO_ADDRESS
 } from '../../fixtures/image-snapshot-addresses';
 
-jest.retryTimes(3);
-
 testResolverImageSnapshots({
   name: 'starknet',
+  retryTimes: 3,
   falseCases: [
     { description: 'should return false if missing', args: [noAvatarInputs.starknetMissing] },
     {

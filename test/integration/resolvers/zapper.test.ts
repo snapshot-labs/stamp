@@ -5,8 +5,6 @@ import {
   remoteSnapshotInputs
 } from '../../fixtures/image-snapshot-addresses';
 
-const { address, chainId } = remoteSnapshotInputs.zapper;
-
 testResolverImageSnapshots({
   name: 'zapper',
   falseCases: [
@@ -18,7 +16,7 @@ testResolverImageSnapshots({
   snapshotCases: [
     {
       description: 'resolves and matches the reference icon',
-      args: [address, chainId],
+      args: [remoteSnapshotInputs.zapper.address, remoteSnapshotInputs.zapper.chainId],
       identifier: 'zapper',
       tolerant: true,
       timeout: 30e3
