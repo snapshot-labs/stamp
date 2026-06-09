@@ -1,4 +1,4 @@
-import axios, { AxiosResponse } from 'axios';
+import fetch from 'node-fetch';
 import { httpError } from './errors';
 import { GraphQlResponse } from './types';
 
@@ -18,13 +18,12 @@ export async function graphQlCall<T = any>(
   query: string,
   variables?: Record<string, any>,
   options: any = { headers: {} }
-): Promise<AxiosResponse<GraphQlResponse<T>>> {
+): Promise<{ data: GraphQlResponse<T>; status: number }> {
   const data: { query: string; variables?: Record<string, any> } = { query };
   if (variables) data.variables = variables;
 
-  const response: AxiosResponse<GraphQlResponse<T>> = await axios({
-    url,
-    method: 'post',
+  const response = await fetch(url, {
+    method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       ...Object.fromEntries(
@@ -32,10 +31,20 @@ export async function graphQlCall<T = any>(
       )
     },
     timeout: 5e3,
-    data
+    body: JSON.stringify(data)
   });
 
-  const body = response.data;
+  if (!response.ok) {
+    const error: any = httpError(
+      new URL(url).host,
+      response.status,
+      `status code ${response.status}: ${response.statusText}`
+    );
+    error.response.data = await response.text().catch(() => undefined);
+    throw error;
+  }
+
+  const body = (await response.json()) as GraphQlResponse<T>;
   if (body?.errors?.length) {
     throw graphQlEnvelopeError(
       url,
@@ -46,5 +55,5 @@ export async function graphQlCall<T = any>(
   if (!body?.data) {
     throw graphQlEnvelopeError(url, response.status, 'GraphQL response has no data envelope');
   }
-  return response;
+  return { data: body, status: response.status };
 }
