@@ -7,7 +7,6 @@ import {
 
 testResolverImageSnapshots({
   id: 'starknet',
-  retryTimes: 3,
   withAvatar: [
     realAvatarInputs.starknetSimpleAddress,
     realAvatarInputs.starknetNftHandle,

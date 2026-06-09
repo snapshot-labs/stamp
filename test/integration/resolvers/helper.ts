@@ -7,6 +7,7 @@ type ResolverName = keyof typeof resolvers;
 type ResolverArgs = unknown[];
 
 const DEFAULT_TIMEOUT = 30e3;
+const DEFAULT_RETRY_TIMES = 3;
 
 // A single test input. The common case is a bare address/name string. Resolvers
 // that take extra positional arguments (chainId, network, ...) pass a richer
@@ -121,14 +122,12 @@ export default function testResolverImageSnapshots(config: Config) {
     skip = false,
     requireEnv = [],
     timeout = DEFAULT_TIMEOUT,
-    retryTimes,
+    retryTimes = DEFAULT_RETRY_TIMES,
     legacyEqualityCases = [],
     todoCases = []
   } = config;
 
-  if (typeof retryTimes === 'number') {
-    jest.retryTimes(retryTimes);
-  }
+  jest.retryTimes(retryTimes);
 
   const missingEnv = requireEnv.find(key => !process.env[key]);
   if (missingEnv) {

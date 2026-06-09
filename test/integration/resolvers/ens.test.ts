@@ -7,7 +7,6 @@ import {
 
 testResolverImageSnapshots({
   id: 'ens',
-  retryTimes: 3,
   withAvatar: [remoteSnapshotInputs.ens],
   withoutAvatar: [noAvatarInputs.ensAvatarNotSet, NO_AVATAR_ADDRESS, noAvatarInputs.ensInvalidName]
 });
