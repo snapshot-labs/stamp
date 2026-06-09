@@ -1,7 +1,7 @@
 import { provider as getProvider } from '../addressResolvers/utils';
 import { max } from '../constants.json';
 import { getUrl, resize } from '../utils';
-import { fetchHttpImage, fetchWithKeepAlive } from './utils';
+import { DEFAULT_TIMEOUT, fetchHttpImage } from './utils';
 
 const DEFAULT_IMG_URL = 'https://starknet.id/api/identicons/0';
 const provider = getProvider('0x534e5f4d41494e');
@@ -33,7 +33,7 @@ async function getImage(domainOrAddress: string): Promise<string | null> {
 }
 
 async function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: string }> {
-  const response = await fetchWithKeepAlive(url);
+  const response = await fetch(url, { signal: AbortSignal.timeout(DEFAULT_TIMEOUT) });
   const contentType: string = response.headers.get('content-type') || '';
   const data = Buffer.from(await response.arrayBuffer());
   if (contentType.includes('application/json')) {
