@@ -1,37 +1,34 @@
-import resolvers from '../../../src/resolvers';
+import testResolverImageSnapshots from './helper';
 import {
   NATIVE_ASSET_ADDRESS,
   NO_AVATAR_ADDRESS,
-  remoteSnapshotInputs,
-  remoteSnapshotOptions
+  remoteSnapshotInputs
 } from '../../fixtures/image-snapshot-addresses';
-import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 
-describe('resolvers', () => {
-  describe('trustwallet', () => {
-    it('returns false for a normal address with no token logo', async () => {
-      const result = await resolvers.trustwallet(NO_AVATAR_ADDRESS, '');
+const { address, chainId } = remoteSnapshotInputs.trustwallet;
 
-      expect(result).toBe(false);
-    });
-
-    it('resolves and matches the reference avatar', async () => {
-      const { address, chainId } = remoteSnapshotInputs.trustwallet;
-      const result = await resolvers.trustwallet(address, chainId);
-
-      await expectResolverImageSnapshot(result, {
-        ...remoteSnapshotOptions,
-        customSnapshotIdentifier: 'trustwallet'
-      });
-    }, 30e3);
-
-    it('returns the base-asset (ETH) icon for the native-asset sentinel', async () => {
-      const result = await resolvers.trustwallet(NATIVE_ASSET_ADDRESS, '');
-
-      await expectResolverImageSnapshot(result, {
-        ...remoteSnapshotOptions,
-        customSnapshotIdentifier: 'trustwallet-native-asset'
-      });
-    }, 30e3);
-  });
+testResolverImageSnapshots({
+  name: 'trustwallet',
+  falseCases: [
+    {
+      description: 'returns false for a normal address with no token logo',
+      args: [NO_AVATAR_ADDRESS, '']
+    }
+  ],
+  snapshotCases: [
+    {
+      description: 'resolves and matches the reference avatar',
+      args: [address, chainId],
+      identifier: 'trustwallet',
+      tolerant: true,
+      timeout: 30e3
+    },
+    {
+      description: 'returns the base-asset (ETH) icon for the native-asset sentinel',
+      args: [NATIVE_ASSET_ADDRESS, ''],
+      identifier: 'trustwallet-native-asset',
+      tolerant: true,
+      timeout: 30e3
+    }
+  ]
 });

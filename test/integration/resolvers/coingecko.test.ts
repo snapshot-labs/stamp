@@ -1,37 +1,32 @@
-import resolvers from '../../../src/resolvers';
-import {
-  NO_AVATAR_ADDRESS,
-  remoteSnapshotInputs,
-  remoteSnapshotOptions
-} from '../../fixtures/image-snapshot-addresses';
-import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
+import testResolverImageSnapshots from './helper';
+import { NO_AVATAR_ADDRESS, remoteSnapshotInputs } from '../../fixtures/image-snapshot-addresses';
 
-describe('resolvers', () => {
-  if (!process.env.COINGECKO_API_KEY) {
+if (!process.env.COINGECKO_API_KEY) {
+  describe('resolvers', () => {
     it.todo('is missing COINGECKO_API_KEY');
-  } else {
-    describe('coingecko', () => {
-      it('should return false on unsupported chain', async () => {
-        const result = await resolvers.coingecko(remoteSnapshotInputs.coingecko.address, '999999');
-
-        expect(result).toBe(false);
-      });
-
-      it('returns false for a normal address with no token entry', async () => {
-        const result = await resolvers.coingecko(NO_AVATAR_ADDRESS, '1');
-
-        expect(result).toBe(false);
-      }, 30e3);
-
-      it('resolves and matches the reference icon', async () => {
-        const { address, chainId } = remoteSnapshotInputs.coingecko;
-        const result = await resolvers.coingecko(address, chainId);
-
-        await expectResolverImageSnapshot(result, {
-          ...remoteSnapshotOptions,
-          customSnapshotIdentifier: 'coingecko'
-        });
-      }, 30e3);
-    });
-  }
-});
+  });
+} else {
+  testResolverImageSnapshots({
+    name: 'coingecko',
+    falseCases: [
+      {
+        description: 'should return false on unsupported chain',
+        args: [remoteSnapshotInputs.coingecko.address, '999999']
+      },
+      {
+        description: 'returns false for a normal address with no token entry',
+        args: [NO_AVATAR_ADDRESS, '1'],
+        timeout: 30e3
+      }
+    ],
+    snapshotCases: [
+      {
+        description: 'resolves and matches the reference icon',
+        args: [remoteSnapshotInputs.coingecko.address, remoteSnapshotInputs.coingecko.chainId],
+        identifier: 'coingecko',
+        tolerant: true,
+        timeout: 30e3
+      }
+    ]
+  });
+}

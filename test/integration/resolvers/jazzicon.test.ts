@@ -1,18 +1,11 @@
-import resolvers from '../../../src/resolvers';
+import testResolverImageSnapshots from './helper';
 import { jazziconSnapshotAddresses } from '../../fixtures/image-snapshot-addresses';
-import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 
-describe('resolvers', () => {
-  describe('jazzicon', () => {
-    it.each(jazziconSnapshotAddresses)(
-      'renders a deterministic identicon matching the reference for %s',
-      async address => {
-        const result = await resolvers.jazzicon(address);
-
-        await expectResolverImageSnapshot(result, {
-          customSnapshotIdentifier: `jazzicon-${address}`
-        });
-      }
-    );
-  });
+testResolverImageSnapshots({
+  name: 'jazzicon',
+  snapshotCases: jazziconSnapshotAddresses.map(address => ({
+    description: `renders a deterministic identicon matching the reference for ${address}`,
+    args: [address],
+    identifier: `jazzicon-${address}`
+  }))
 });
