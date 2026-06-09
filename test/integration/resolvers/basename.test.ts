@@ -8,10 +8,6 @@ import {
 } from '../../fixtures/image-snapshot-addresses';
 import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 
-// basename resolves the Base App avatar URL for REAL, fetches the image, then
-// resizes/re-encodes it via sharp. The by-name case asserts a TOLERANT image
-// snapshot; the by-address path is asserted as a valid image (it resolves the
-// same identity, so a second baseline would be redundant).
 describe('resolvers', () => {
   jest.retryTimes(3);
 
@@ -34,8 +30,6 @@ describe('resolvers', () => {
       });
     }, 30e3);
 
-    // No-avatar path: a normal, non-special address without a basename has no
-    // avatar, so basename has no default fallback image and returns false.
     it('returns false for a normal address with no avatar', async () => {
       const result = await resolvers.basename(NO_AVATAR_ADDRESS);
 

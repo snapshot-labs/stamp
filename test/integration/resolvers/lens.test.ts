@@ -8,10 +8,6 @@ import {
 } from '../../fixtures/image-snapshot-addresses';
 import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 
-// lens resolves the profile picture URL for REAL via the Lens API, fetches the
-// image, then resizes/re-encodes it via sharp. The by-handle case asserts a
-// TOLERANT image snapshot; the by-address path is asserted as a valid image (it
-// resolves the same identity, so a second baseline would be redundant).
 describe('resolvers', () => {
   describe('lens', () => {
     it('should return false if missing', async () => {
@@ -50,8 +46,6 @@ describe('resolvers', () => {
       });
     }, 30e3);
 
-    // No-avatar path: a normal, non-special address with no Lens account, so lens has no
-    // default fallback image and returns false.
     it('returns false for a normal address with no avatar', async () => {
       const result = await resolvers.lens(NO_AVATAR_ADDRESS);
 

@@ -8,11 +8,6 @@ import {
 } from '../../fixtures/image-snapshot-addresses';
 import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 
-// space-sx resolves an sx-gov space avatar URL for REAL across several chains,
-// fetches the image, then resizes/re-encodes via sharp. Every image-returning
-// per-chain case asserts a TOLERANT image snapshot of the real output. The
-// no-avatar path (a normal address with no space) returns false: space-sx has no
-// default fallback image.
 describe('resolvers', () => {
   describe('space-sx', () => {
     describe('avatar', () => {

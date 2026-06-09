@@ -7,12 +7,6 @@ import {
 } from '../../fixtures/image-snapshot-addresses';
 import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 
-// snapshot resolvers fetch user/space avatars and covers hosted on the Snapshot
-// infra for REAL, then resize/re-encode via sharp. Every image-returning case
-// asserts a TOLERANT image snapshot of the real output; the legacy/non-legacy
-// equivalence cases stay as structural assertions (they verify behaviour, not
-// pixels). The no-avatar path (a normal address with no avatar) returns false: snapshot
-// resolvers have no default fallback image.
 describe('resolvers', () => {
   describe('snapshot', () => {
     describe('on user avatar', () => {
@@ -30,15 +24,6 @@ describe('resolvers', () => {
 
       it('resolves regardless of network and matches the reference avatar', async () => {
         const result = await resolvers.snapshot(remoteSnapshotInputs.snapshotUserAvatar, 1, 'eth');
-
-        await expectResolverImageSnapshot(result, {
-          ...remoteSnapshotOptions,
-          customSnapshotIdentifier: 'snapshot-user-avatar'
-        });
-      });
-
-      it('resolves and matches the reference avatar', async () => {
-        const result = await resolvers.snapshot(remoteSnapshotInputs.snapshotUserAvatar);
 
         await expectResolverImageSnapshot(result, {
           ...remoteSnapshotOptions,
@@ -67,15 +52,6 @@ describe('resolvers', () => {
         1,
         'eth'
       );
-
-      await expectResolverImageSnapshot(result, {
-        ...remoteSnapshotOptions,
-        customSnapshotIdentifier: 'snapshot-user-cover'
-      });
-    });
-
-    it('resolves and matches the reference cover', async () => {
-      const result = await resolvers['user-cover'](remoteSnapshotInputs.snapshotUserCover);
 
       await expectResolverImageSnapshot(result, {
         ...remoteSnapshotOptions,

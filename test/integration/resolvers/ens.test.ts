@@ -7,9 +7,6 @@ import {
 } from '../../fixtures/image-snapshot-addresses';
 import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 
-// ens reads the avatar text record for REAL via an ethers provider, fetches the
-// image, then resizes/re-encodes it via sharp. The positive case asserts a
-// TOLERANT image snapshot of the real output.
 describe('resolvers', () => {
   jest.retryTimes(3);
 
@@ -20,8 +17,6 @@ describe('resolvers', () => {
       return expect(result).toBe(false);
     });
 
-    // No-avatar path: a normal, non-special address with no ENS name / avatar, so ens has no
-    // default fallback image and returns false.
     it('returns false for a normal address with no avatar', async () => {
       const result = await resolvers.ens(NO_AVATAR_ADDRESS);
 
