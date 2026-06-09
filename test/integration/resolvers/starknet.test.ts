@@ -7,6 +7,15 @@ import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 // TOLERANT image snapshot of the real output. The fallback path (no profile, the
 // default identicon, or the zero address) returns false: starknet has no default
 // fallback image of its own (the upstream default identicon is rejected).
+//
+// NOTE: a Starknet address is 0x + up to 64 hex (a felt252), NOT a 20-byte ETH
+// address. The no-avatar input below is therefore a VALID 64-hex Starknet felt,
+// so it passes normalizeAddress and the false is a REAL no-avatar result, not an
+// input-validation artifact. Verified against the live RPC: getStarkProfile for
+// this address succeeds and returns
+// profilePicture === 'https://starknet.id/api/identicons/0' (the DEFAULT_IMG_URL
+// the resolver explicitly rejects), so resolve() returns false. There is no
+// fallback baseline image to snapshot for starknet.
 const STARKNET_ZERO_ADDRESS = `0x${'0'.repeat(64)}`;
 
 describe('resolvers', () => {
