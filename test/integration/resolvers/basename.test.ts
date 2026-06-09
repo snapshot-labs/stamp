@@ -1,7 +1,8 @@
 import resolvers from '../../../src/resolvers';
 import {
   remoteSnapshotInputs,
-  remoteSnapshotOptions
+  remoteSnapshotOptions,
+  ZERO_ADDRESS
 } from '../../fixtures/image-snapshot-addresses';
 import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 
@@ -22,11 +23,21 @@ describe('resolvers', () => {
       });
     }, 30e3);
 
-    it('should resolve an avatar by address', async () => {
+    it('resolves an avatar by address and matches the reference', async () => {
       const result = await resolvers.basename('0x2211d1D0020DAEA8039E46Cf1367962070d77DA9');
 
-      expect(result).toBeInstanceOf(Buffer);
-      return expect((result as Buffer).length).toBeGreaterThan(1000);
+      await expectResolverImageSnapshot(result, {
+        ...remoteSnapshotOptions,
+        customSnapshotIdentifier: 'basename-by-address'
+      });
+    }, 30e3);
+
+    // Fallback path: an address without a basename / the zero address has no
+    // avatar, so basename has no default fallback image and returns false.
+    it('returns false for the zero address (no fallback image)', async () => {
+      const result = await resolvers.basename(ZERO_ADDRESS);
+
+      return expect(result).toBe(false);
     }, 30e3);
 
     it('should return false for an address without a basename', async () => {

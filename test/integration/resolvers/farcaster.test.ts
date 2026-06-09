@@ -1,10 +1,16 @@
 import resolvers from '../../../src/resolvers';
-import { remoteSnapshotInputs } from '../../fixtures/image-snapshot-addresses';
+import {
+  remoteSnapshotInputs,
+  remoteSnapshotOptions,
+  ZERO_ADDRESS
+} from '../../fixtures/image-snapshot-addresses';
+import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 
 // farcaster resolves a Warpcast pfp URL for REAL via Neynar (needs
-// NEYNAR_API_KEY), fetches it, then resizes via sharp. Warpcast pfps are
-// user-editable and served by a hot CDN, so this is ASSERTION-ONLY (valid
-// image) rather than a pixel snapshot to avoid a guaranteed-flaky baseline.
+// NEYNAR_API_KEY), fetches it, then resizes via sharp. The positive case asserts
+// a TOLERANT image snapshot of the real output. The fallback path (no farcaster
+// account / invalid / zero address) returns false: farcaster has no default
+// fallback image.
 describe('resolvers', () => {
   if (!process.env.NEYNAR_API_KEY) {
     it.todo('is missing NEYNAR_API_KEY');
@@ -22,11 +28,19 @@ describe('resolvers', () => {
         expect(result).toBe(false);
       });
 
-      it('should resolve to a valid image', async () => {
+      it('returns false for the zero address (no fallback image)', async () => {
+        const result = await resolvers.farcaster(ZERO_ADDRESS);
+
+        expect(result).toBe(false);
+      });
+
+      it('resolves and matches the reference avatar', async () => {
         const result = await resolvers.farcaster(remoteSnapshotInputs.farcaster);
 
-        expect(result).toBeInstanceOf(Buffer);
-        expect((result as Buffer).length).toBeGreaterThan(1000);
+        await expectResolverImageSnapshot(result, {
+          ...remoteSnapshotOptions,
+          customSnapshotIdentifier: 'farcaster'
+        });
       }, 30e3);
     });
   }

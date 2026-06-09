@@ -64,3 +64,9 @@ export const remoteSnapshotOptions: MatchImageSnapshotOptions = {
   failureThreshold: 1.5,
   failureThresholdType: 'percent'
 };
+
+// The canonical "no avatar set" input used to exercise each resolver's
+// default-fallback path. trustwallet/zapper return a base-asset fallback image
+// for the zero address (it is in their ETH list); every other remote resolver
+// returns false for it (no fallback image).
+export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';

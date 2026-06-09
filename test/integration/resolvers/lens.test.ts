@@ -1,7 +1,8 @@
 import resolvers from '../../../src/resolvers';
 import {
   remoteSnapshotInputs,
-  remoteSnapshotOptions
+  remoteSnapshotOptions,
+  ZERO_ADDRESS
 } from '../../fixtures/image-snapshot-addresses';
 import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 
@@ -38,11 +39,21 @@ describe('resolvers', () => {
       });
     }, 30e3);
 
-    it('should resolve with address', async () => {
+    it('resolves with address and matches the reference avatar', async () => {
       const result = await resolvers.lens('0x218F68106128E637fc942C2b1Ed1e3c326125344');
 
-      expect(result).toBeInstanceOf(Buffer);
-      expect(result.length).toBeGreaterThan(1000);
+      await expectResolverImageSnapshot(result, {
+        ...remoteSnapshotOptions,
+        customSnapshotIdentifier: 'lens-by-address'
+      });
+    }, 30e3);
+
+    // Fallback path: the zero address has no Lens account, so lens has no
+    // default fallback image and returns false.
+    it('returns false for the zero address (no fallback image)', async () => {
+      const result = await resolvers.lens(ZERO_ADDRESS);
+
+      expect(result).toBe(false);
     }, 30e3);
   });
 });

@@ -1,7 +1,8 @@
 import resolvers from '../../../src/resolvers';
 import {
   remoteSnapshotInputs,
-  remoteSnapshotOptions
+  remoteSnapshotOptions,
+  ZERO_ADDRESS
 } from '../../fixtures/image-snapshot-addresses';
 import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 
@@ -23,6 +24,17 @@ describe('resolvers', () => {
       await expectResolverImageSnapshot(result, {
         ...remoteSnapshotOptions,
         customSnapshotIdentifier: 'trustwallet'
+      });
+    }, 30e3);
+
+    // Fallback path: the zero address has no token logo, so trustwallet falls
+    // back to the base-asset (ETH) icon. Snapshot that fallback image.
+    it('falls back to the base-asset icon for the zero address', async () => {
+      const result = await resolvers.trustwallet(ZERO_ADDRESS, '');
+
+      await expectResolverImageSnapshot(result, {
+        ...remoteSnapshotOptions,
+        customSnapshotIdentifier: 'trustwallet-fallback'
       });
     }, 30e3);
   });

@@ -1,7 +1,8 @@
 import resolvers from '../../../src/resolvers';
 import {
   remoteSnapshotInputs,
-  remoteSnapshotOptions
+  remoteSnapshotOptions,
+  ZERO_ADDRESS
 } from '../../fixtures/image-snapshot-addresses';
 import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 
@@ -17,6 +18,14 @@ describe('resolvers', () => {
 
       return expect(result).toBe(false);
     });
+
+    // Fallback path: the zero address has no ENS name / avatar, so ens has no
+    // default fallback image and returns false.
+    it('returns false for the zero address (no fallback image)', async () => {
+      const result = await resolvers.ens(ZERO_ADDRESS);
+
+      return expect(result).toBe(false);
+    }, 10e3);
 
     it('should return false on invalid ENS name', async () => {
       const result = await resolvers.ens('snapshot-test.eth');

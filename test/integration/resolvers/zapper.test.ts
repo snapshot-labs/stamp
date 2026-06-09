@@ -1,7 +1,8 @@
 import resolvers from '../../../src/resolvers';
 import {
   remoteSnapshotInputs,
-  remoteSnapshotOptions
+  remoteSnapshotOptions,
+  ZERO_ADDRESS
 } from '../../fixtures/image-snapshot-addresses';
 import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 
@@ -22,6 +23,17 @@ describe('resolvers', () => {
       await expectResolverImageSnapshot(result, {
         ...remoteSnapshotOptions,
         customSnapshotIdentifier: 'zapper'
+      });
+    }, 30e3);
+
+    // Fallback path: the zero address has no token icon, so zapper falls back to
+    // the base-asset (ETH) icon. Snapshot that fallback image.
+    it('falls back to the base-asset icon for the zero address', async () => {
+      const result = await resolvers.zapper(ZERO_ADDRESS, '');
+
+      await expectResolverImageSnapshot(result, {
+        ...remoteSnapshotOptions,
+        customSnapshotIdentifier: 'zapper-fallback'
       });
     }, 30e3);
   });

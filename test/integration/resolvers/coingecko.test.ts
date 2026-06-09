@@ -1,7 +1,8 @@
 import resolvers from '../../../src/resolvers';
 import {
   remoteSnapshotInputs,
-  remoteSnapshotOptions
+  remoteSnapshotOptions,
+  ZERO_ADDRESS
 } from '../../fixtures/image-snapshot-addresses';
 import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 
@@ -19,6 +20,14 @@ describe('resolvers', () => {
 
         expect(result).toBe(false);
       });
+
+      // Fallback path: the zero address has no CoinGecko token entry, so
+      // coingecko has no default fallback image and returns false.
+      it('returns false for the zero address (no fallback image)', async () => {
+        const result = await resolvers.coingecko(ZERO_ADDRESS, '1');
+
+        expect(result).toBe(false);
+      }, 30e3);
 
       it('resolves and matches the reference icon', async () => {
         const { address, chainId } = remoteSnapshotInputs.coingecko;
