@@ -1,6 +1,7 @@
 import resolvers from '../../../src/resolvers';
 import {
   NO_AVATAR_ADDRESS,
+  noAvatarInputs,
   remoteSnapshotInputs,
   remoteSnapshotOptions
 } from '../../fixtures/image-snapshot-addresses';
@@ -16,7 +17,7 @@ describe('resolvers', () => {
   describe('snapshot', () => {
     describe('on user avatar', () => {
       it('should return false if missing', async () => {
-        const result = await resolvers.snapshot('0x556B14CbdA79A36dC33FcD461a04A5BCb5dC2A70');
+        const result = await resolvers.snapshot(noAvatarInputs.snapshotUserMissing);
 
         expect(result).toBe(false);
       });
@@ -49,7 +50,7 @@ describe('resolvers', () => {
 
   describe('on user cover', () => {
     it('should return false if missing', async () => {
-      const result = await resolvers['user-cover']('0x556B14CbdA79A36dC33FcD461a04A5BCb5dC2A70');
+      const result = await resolvers['user-cover'](noAvatarInputs.snapshotUserMissing);
 
       expect(result).toBe(false);
     });
@@ -85,7 +86,7 @@ describe('resolvers', () => {
 
   describe('on space avatar', () => {
     it('should return false if missing', async () => {
-      const result = await resolvers.space('idonthaveensdomain.eth');
+      const result = await resolvers.space(noAvatarInputs.snapshotSpaceMissing);
 
       expect(result).toBe(false);
     });
@@ -97,7 +98,11 @@ describe('resolvers', () => {
     });
 
     it('should return false on unsupported network', async () => {
-      const result = await resolvers.space('ens.eth', 1, 'eth');
+      const result = await resolvers.space(
+        noAvatarInputs.snapshotSpaceUnsupportedNetwork,
+        1,
+        'eth'
+      );
 
       expect(result).toBe(false);
     });
@@ -121,7 +126,7 @@ describe('resolvers', () => {
 
   describe('on space cover', () => {
     it('should return false if missing', async () => {
-      const result = await resolvers['space-cover']('idonthaveensdomain.eth');
+      const result = await resolvers['space-cover'](noAvatarInputs.snapshotSpaceMissing);
 
       expect(result).toBe(false);
     });

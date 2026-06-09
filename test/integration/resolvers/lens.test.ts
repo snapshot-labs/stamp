@@ -1,6 +1,8 @@
 import resolvers from '../../../src/resolvers';
 import {
   NO_AVATAR_ADDRESS,
+  noAvatarInputs,
+  realAvatarInputs,
   remoteSnapshotInputs,
   remoteSnapshotOptions
 } from '../../fixtures/image-snapshot-addresses';
@@ -13,19 +15,19 @@ import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 describe('resolvers', () => {
   describe('lens', () => {
     it('should return false if missing', async () => {
-      const result = await resolvers.lens('0x556B14CbdA79A36dC33FcD461a04A5BCb5dC2A70');
+      const result = await resolvers.lens(noAvatarInputs.lensMissing);
 
       expect(result).toBe(false);
     });
 
     it('should return false on invalid address', async () => {
-      const result = await resolvers.lens('0x556B14CbdA79A36dC33FcD461a04A5BCb5dC2A70aaa');
+      const result = await resolvers.lens(noAvatarInputs.lensInvalidAddress);
 
       expect(result).toBe(false);
     });
 
     it('should return false on non-existent domain', async () => {
-      const result = await resolvers.lens('non-existent-domain.lens');
+      const result = await resolvers.lens(noAvatarInputs.lensNonExistentDomain);
 
       expect(result).toBe(false);
     });
@@ -40,7 +42,7 @@ describe('resolvers', () => {
     }, 30e3);
 
     it('resolves with address and matches the reference avatar', async () => {
-      const result = await resolvers.lens('0x218F68106128E637fc942C2b1Ed1e3c326125344');
+      const result = await resolvers.lens(realAvatarInputs.lensByAddress);
 
       await expectResolverImageSnapshot(result, {
         ...remoteSnapshotOptions,

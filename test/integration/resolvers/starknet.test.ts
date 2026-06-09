@@ -1,5 +1,10 @@
 import resolvers from '../../../src/resolvers';
-import { remoteSnapshotOptions } from '../../fixtures/image-snapshot-addresses';
+import {
+  noAvatarInputs,
+  realAvatarInputs,
+  remoteSnapshotOptions,
+  STARKNET_ZERO_ADDRESS
+} from '../../fixtures/image-snapshot-addresses';
 import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 
 // starknet resolves a Starknet profile picture (plain image or NFT metadata) for
@@ -15,15 +20,15 @@ import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 // this address succeeds and returns
 // profilePicture === 'https://starknet.id/api/identicons/0' (the DEFAULT_IMG_URL
 // the resolver explicitly rejects), so resolve() returns false. There is no
-// fallback baseline image to snapshot for starknet.
-const STARKNET_ZERO_ADDRESS = `0x${'0'.repeat(64)}`;
+// fallback baseline image to snapshot for starknet. STARKNET_ZERO_ADDRESS lives
+// in the central fixtures.
 
 describe('resolvers', () => {
   describe('starknet', () => {
     jest.retryTimes(3);
 
     it('should return false if missing', async () => {
-      const result = await resolvers.starknet('test-not-existing.stark');
+      const result = await resolvers.starknet(noAvatarInputs.starknetMissing);
 
       expect(result).toBe(false);
     });
@@ -36,9 +41,7 @@ describe('resolvers', () => {
 
     describe('with a simple image', () => {
       it('resolves with address and matches the reference', async () => {
-        const result = await resolvers.starknet(
-          '0x0779ba6e4e227947acbbdfb978a292c401339027eeb3d768f5d12cd2e818265a'
-        );
+        const result = await resolvers.starknet(realAvatarInputs.starknetSimpleAddress);
 
         await expectResolverImageSnapshot(result, {
           ...remoteSnapshotOptions,
@@ -60,9 +63,7 @@ describe('resolvers', () => {
     // behavior.
     describe('with the default image (starknet.id default identicon, rejected)', () => {
       it('should return false', async () => {
-        const result = await resolvers.starknet(
-          '0x0047f2e8dbf39f6856fc2437dfc931e3b3a64bfe240218046f2a9fca80e768d4'
-        );
+        const result = await resolvers.starknet(noAvatarInputs.starknetDefaultIdenticon);
 
         expect(result).toBe(false);
       });
@@ -70,7 +71,7 @@ describe('resolvers', () => {
 
     describe('with an NFT image', () => {
       it('resolves with handle and matches the reference', async () => {
-        const result = await resolvers.starknet('pragmarob.stark');
+        const result = await resolvers.starknet(realAvatarInputs.starknetNftHandle);
 
         await expectResolverImageSnapshot(result, {
           ...remoteSnapshotOptions,
@@ -79,9 +80,7 @@ describe('resolvers', () => {
       }, 30e3);
 
       it('resolves with address and matches the reference', async () => {
-        const result = await resolvers.starknet(
-          '0x007b275f7524f39b99a51c7134bc44204fedc5dd1e982e920eb2047c6c2a71f0'
-        );
+        const result = await resolvers.starknet(realAvatarInputs.starknetNftAddress);
 
         await expectResolverImageSnapshot(result, {
           ...remoteSnapshotOptions,

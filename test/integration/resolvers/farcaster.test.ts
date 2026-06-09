@@ -1,6 +1,7 @@
 import resolvers from '../../../src/resolvers';
 import {
   NO_AVATAR_ADDRESS,
+  noAvatarInputs,
   remoteSnapshotInputs,
   remoteSnapshotOptions
 } from '../../fixtures/image-snapshot-addresses';
@@ -17,13 +18,13 @@ describe('resolvers', () => {
   } else {
     describe('farcaster', () => {
       it('should return false for invalid address', async () => {
-        const result = await resolvers.farcaster('0x556B14CbdA79A36dC33FcD461a04A5BCb5dC2A70!');
+        const result = await resolvers.farcaster(noAvatarInputs.farcasterInvalidAddress);
 
         expect(result).toBe(false);
       });
 
       it('should return false for address without farcaster account', async () => {
-        const result = await resolvers.farcaster('0x2963fD170E12d748d0A80430DdC090e059f6013F');
+        const result = await resolvers.farcaster(noAvatarInputs.farcasterNoAccount);
 
         expect(result).toBe(false);
       });

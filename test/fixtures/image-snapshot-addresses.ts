@@ -83,3 +83,61 @@ export const NO_AVATAR_ADDRESS = '0x556B14CbdA79A36dC33FcD461a04A5BCb5dC2A70';
 // from no-avatar: it returns the ETH fallback image, not false. Kept only where
 // a resolver actually special-cases it.
 export const NATIVE_ASSET_ADDRESS = '0x0000000000000000000000000000000000000000';
+
+// Starknet zero address. A Starknet address is 0x + up to 64 hex (a felt252),
+// NOT a 20-byte ETH address, so the starknet no-avatar/zero case needs a valid
+// 64-hex felt. See starknet.test.ts for the full rationale.
+export const STARKNET_ZERO_ADDRESS = `0x${'0'.repeat(64)}` as const;
+
+// Real-avatar inputs (positive image-snapshot path): each resolves a genuine
+// upstream avatar/icon and is asserted against a committed baseline. Grouped by
+// resolver. Some resolvers also resolve the SAME identity by a second input
+// (e.g. by-address as well as by-name); those are kept together here.
+export const realAvatarInputs = {
+  basenameByAddress: '0x2211d1D0020DAEA8039E46Cf1367962070d77DA9',
+  lensByAddress: '0x218F68106128E637fc942C2b1Ed1e3c326125344',
+  spaceSxOptimism: '0x2EF7E7CF469f5296011664682D58b57D38a3c83f',
+  spaceSxStarknet: '0x010841ba1d0c66602aa27837560823e631b19686ebbdcd591caa42a7c01611c0',
+  spaceSxStarknetSepolia: '0x00a330d13703f0af4f87e65d95c898297f8ce6e88ac7e9bff3b3bd270d2f6d5b',
+  spaceSxSepolia: '0xbFF55fd2A671288316956A0Cae8f1d24BA7E5C9B',
+  starknetSimpleAddress: '0x0779ba6e4e227947acbbdfb978a292c401339027eeb3d768f5d12cd2e818265a',
+  starknetNftHandle: 'pragmarob.stark',
+  starknetNftAddress: '0x007b275f7524f39b99a51c7134bc44204fedc5dd1e982e920eb2047c6c2a71f0'
+} as const;
+
+// No-avatar / false-path inputs: each is an input for which the resolver is
+// EXPECTED to return false (missing identity, invalid input, unsupported network,
+// or an upstream default that the resolver rejects). Grouped by resolver and by
+// case. These are distinct from the shared NO_AVATAR_ADDRESS, which is the single
+// canonical normal-address no-avatar input reused across resolvers.
+export const noAvatarInputs = {
+  // ens
+  ensAvatarNotSet: '0x556B14CbdA79A36dC33FcD461a04A5BCb5dC2A70',
+  ensInvalidName: 'snapshot-test.eth',
+  // basename
+  basenameNoName: '0x0C67A201b93cf58D4a5e8D4E970093f0FB4bb0D1',
+  basenameNonBasenameInput: 'vitalik.eth',
+  // lens
+  lensMissing: '0x556B14CbdA79A36dC33FcD461a04A5BCb5dC2A70',
+  lensInvalidAddress: '0x556B14CbdA79A36dC33FcD461a04A5BCb5dC2A70aaa',
+  lensNonExistentDomain: 'non-existent-domain.lens',
+  // space-sx
+  spaceSxMissing: '0x06ba9855965EeEc09B5D43B113944c27F45aD3Ce',
+  spaceSxInvalidAddress: '0x00006ba9855965EeEc09B5D43B113944c27F45aD3Ce',
+  // farcaster
+  farcasterInvalidAddress: '0x556B14CbdA79A36dC33FcD461a04A5BCb5dC2A70!',
+  farcasterNoAccount: '0x2963fD170E12d748d0A80430DdC090e059f6013F',
+  // selfid
+  selfidMissingDid: '0x290ADCcA6253aCe88b10A6bb34C07a5Ad10fC6B0',
+  selfidNoAvatar: '0xd98420cFB1cd92828D192565A824B5728a566B11',
+  // starknet
+  starknetMissing: 'test-not-existing.stark',
+  // starknet.id serves a DEFAULT identicon for this address; the resolver
+  // explicitly rejects that default and returns false.
+  starknetDefaultIdenticon: '0x0047f2e8dbf39f6856fc2437dfc931e3b3a64bfe240218046f2a9fca80e768d4',
+  // snapshot
+  snapshotUserMissing: '0x556B14CbdA79A36dC33FcD461a04A5BCb5dC2A70',
+  snapshotSpaceMissing: 'idonthaveensdomain.eth',
+  // a real space, but on an unsupported network -> false
+  snapshotSpaceUnsupportedNetwork: 'ens.eth'
+} as const;

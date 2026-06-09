@@ -1,5 +1,5 @@
 import resolvers from '../../../src/resolvers';
-import { NO_AVATAR_ADDRESS } from '../../fixtures/image-snapshot-addresses';
+import { NO_AVATAR_ADDRESS, noAvatarInputs } from '../../fixtures/image-snapshot-addresses';
 
 // selfid resolves a Ceramic basicProfile image for REAL. The whole suite is
 // skipped because the Ceramic gateway is effectively deprecated, so the
@@ -9,13 +9,13 @@ import { NO_AVATAR_ADDRESS } from '../../fixtures/image-snapshot-addresses';
 describe.skip('resolvers', () => {
   describe('selfid', () => {
     it('should return false if missing DID', async () => {
-      const result = await resolvers.selfid('0x290ADCcA6253aCe88b10A6bb34C07a5Ad10fC6B0');
+      const result = await resolvers.selfid(noAvatarInputs.selfidMissingDid);
 
       expect(result).toBe(false);
     });
 
     it('should return false if has no avatar', async () => {
-      const result = await resolvers.selfid('0xd98420cFB1cd92828D192565A824B5728a566B11');
+      const result = await resolvers.selfid(noAvatarInputs.selfidNoAvatar);
 
       expect(result).toBe(false);
     });

@@ -1,6 +1,8 @@
 import resolvers from '../../../src/resolvers';
 import {
   NO_AVATAR_ADDRESS,
+  noAvatarInputs,
+  realAvatarInputs,
   remoteSnapshotInputs,
   remoteSnapshotOptions
 } from '../../fixtures/image-snapshot-addresses';
@@ -24,7 +26,7 @@ describe('resolvers', () => {
     }, 30e3);
 
     it('resolves an avatar by address and matches the reference', async () => {
-      const result = await resolvers.basename('0x2211d1D0020DAEA8039E46Cf1367962070d77DA9');
+      const result = await resolvers.basename(realAvatarInputs.basenameByAddress);
 
       await expectResolverImageSnapshot(result, {
         ...remoteSnapshotOptions,
@@ -41,13 +43,13 @@ describe('resolvers', () => {
     }, 30e3);
 
     it('should return false for an address without a basename', async () => {
-      const result = await resolvers.basename('0x0C67A201b93cf58D4a5e8D4E970093f0FB4bb0D1');
+      const result = await resolvers.basename(noAvatarInputs.basenameNoName);
 
       return expect(result).toBe(false);
     }, 30e3);
 
     it('should return false for a non-basename input', async () => {
-      const result = await resolvers.basename('vitalik.eth');
+      const result = await resolvers.basename(noAvatarInputs.basenameNonBasenameInput);
 
       return expect(result).toBe(false);
     }, 10e3);
