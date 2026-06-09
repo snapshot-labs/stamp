@@ -25,7 +25,7 @@ testResolverImageSnapshots({
   id: 'snapshot',
   resolver: 'space',
   subId: 'snapshot-space-avatar',
-  withAvatar: [{ args: [remoteSnapshotInputs.snapshotSpaceAvatar] }],
+  withAvatar: [remoteSnapshotInputs.snapshotSpaceAvatar],
   withoutAvatar: [
     noAvatarInputs.snapshotSpaceMissing,
     NO_AVATAR_ADDRESS,
@@ -37,7 +37,7 @@ testResolverImageSnapshots({
   id: 'snapshot',
   resolver: 'space-cover',
   subId: 'snapshot-space-cover',
-  withAvatar: [{ args: [remoteSnapshotInputs.snapshotSpaceCover] }],
+  withAvatar: [remoteSnapshotInputs.snapshotSpaceCover],
   withoutAvatar: [
     noAvatarInputs.snapshotSpaceMissing,
     NO_AVATAR_ADDRESS,
