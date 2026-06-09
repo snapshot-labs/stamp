@@ -1,8 +1,8 @@
 import { createHash } from 'crypto';
 import { StaticJsonRpcProvider } from '@ethersproject/providers';
 import snapshot from '@snapshot-labs/snapshot.js';
-import axios from 'axios';
 import { Response } from 'express';
+import fetch from 'node-fetch';
 import sharp from 'sharp';
 import chains from './chains.json';
 import constants from './constants.json';
@@ -183,7 +183,7 @@ export const getBaseAssetIconUrl = (chainId: string) => {
   return 'https://static.cdnlogo.com/logos/e/81/ethereum-eth.svg';
 };
 
-export function graphQlCall(
+export async function graphQlCall(
   url: string,
   query: string,
   variables?: Record<string, any>,
@@ -191,13 +191,12 @@ export function graphQlCall(
     headers: {}
   }
 ) {
-  const data: { query: string; variables?: Record<string, any> } = { query };
+  const body: { query: string; variables?: Record<string, any> } = { query };
   if (variables) {
-    data.variables = variables;
+    body.variables = variables;
   }
 
-  return axios({
-    url: url,
+  const response = await fetch(url, {
     method: 'post',
     headers: {
       'Content-Type': 'application/json',
@@ -206,8 +205,26 @@ export function graphQlCall(
       )
     },
     timeout: 5e3,
-    data
+    body: JSON.stringify(body)
   });
+
+  if (!response.ok) {
+    throw new FetchError(`GraphQL request failed with status ${response.status}`, response.status);
+  }
+
+  // Preserve the previous axios response shape (`{ data: <body> }`) so callers
+  // that destructure `{ data: { data } }` keep working.
+  return { data: await response.json() };
+}
+
+class FetchError extends Error {
+  response: { status: number };
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'FetchError';
+    this.response = { status };
+  }
 }
 
 /**

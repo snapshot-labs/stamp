@@ -1,8 +1,7 @@
-import axios from 'axios';
 import { provider as getProvider } from '../addressResolvers/utils';
 import { max } from '../constants.json';
 import { getUrl, resize } from '../utils';
-import { axiosDefaultParams, fetchHttpImage } from './utils';
+import { fetchHttpImage, fetchWithKeepAlive } from './utils';
 
 const DEFAULT_IMG_URL = 'https://starknet.id/api/identicons/0';
 const provider = getProvider('0x534e5f4d41494e');
@@ -34,13 +33,9 @@ async function getImage(domainOrAddress: string): Promise<string | null> {
 }
 
 async function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: string }> {
-  const response = await axios({
-    url,
-    responseType: 'arraybuffer',
-    ...axiosDefaultParams
-  });
-  const contentType: string = response.headers['content-type'] || '';
-  const data = Buffer.from(response.data);
+  const response = await fetchWithKeepAlive(url);
+  const contentType: string = response.headers.get('content-type') || '';
+  const data = await response.buffer();
   if (contentType.includes('application/json')) {
     return JSON.parse(data.toString('utf-8'));
   }

@@ -1,5 +1,5 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
-import axios from 'axios';
+import fetch from 'node-fetch';
 import { FetchError, isSilencedError, isStarknetAddress, withoutEmptyValues } from './utils';
 import { Address, Handle } from '../utils';
 
@@ -18,9 +18,15 @@ async function apiCall(
   resolve_type: RESOLVE_TYPE,
   needles: string[]
 ): Promise<Record<string, string>> {
-  const requests = needles.map(needle =>
-    axios.get(buildApiUrl(resolve_type, needle), { timeout: 5e3 })
-  );
+  const requests = needles.map(async needle => {
+    const response = await fetch(buildApiUrl(resolve_type, needle), { timeout: 5e3 });
+
+    if (!response.ok) {
+      throw new Error(`Starknet API request failed with status ${response.status}`);
+    }
+
+    return response.json() as Promise<Record<string, string>>;
+  });
   const responses = await Promise.allSettled(requests);
 
   return withoutEmptyValues(
@@ -30,7 +36,7 @@ async function apiCall(
         let value: string | undefined;
 
         if (response.status === 'fulfilled') {
-          value = response.value.data[resolve_type === 'addr_to_domain' ? 'domain' : 'addr'];
+          value = response.value[resolve_type === 'addr_to_domain' ? 'domain' : 'addr'];
         }
 
         return [needle, value];
