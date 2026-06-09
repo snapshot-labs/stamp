@@ -7,37 +7,15 @@ import {
 } from '../../fixtures/image-snapshot-addresses';
 
 testResolverImageSnapshots({
-  name: 'basename',
+  id: 'basename',
   retryTimes: 3,
-  snapshotCases: [
-    {
-      args: [remoteSnapshotInputs.basename],
-      identifier: 'basename',
-      tolerant: true,
-      timeout: 30e3
-    },
-    {
-      args: [realAvatarInputs.basenameByAddress],
-      identifier: 'basename-by-address',
-      tolerant: true,
-      timeout: 30e3
-    }
+  withAvatar: [
+    { args: [remoteSnapshotInputs.basename], id: 'basename' },
+    { args: [realAvatarInputs.basenameByAddress], id: 'basename-by-address' }
   ],
-  falseCases: [
-    {
-      description: 'returns false for a normal address with no avatar',
-      args: [NO_AVATAR_ADDRESS],
-      timeout: 30e3
-    },
-    {
-      description: 'should return false for an address without a basename',
-      args: [noAvatarInputs.basenameNoName],
-      timeout: 30e3
-    },
-    {
-      description: 'should return false for a non-basename input',
-      args: [noAvatarInputs.basenameNonBasenameInput],
-      timeout: 10e3
-    }
+  withoutAvatar: [
+    NO_AVATAR_ADDRESS,
+    noAvatarInputs.basenameNoName,
+    { args: [noAvatarInputs.basenameNonBasenameInput], timeout: 10e3 }
   ]
 });

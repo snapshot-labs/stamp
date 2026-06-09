@@ -6,53 +6,48 @@ type ResolverName = keyof typeof resolvers;
 
 type ResolverArgs = unknown[];
 
-type FalseCase = {
-  description: string;
-  args: ResolverArgs;
-  timeout?: number;
-};
+const DEFAULT_TIMEOUT = 30e3;
 
-type SnapshotCase = {
-  args: ResolverArgs;
-  identifier: string;
-  tolerant?: boolean;
-  timeout?: number;
-};
+// A single test input. The common case is a bare address/name string. Resolvers
+// that take extra positional arguments (chainId, network, ...) or that need a
+// pinned snapshot identifier to keep their committed baseline pass a richer
+// object. `id`/`timeout` are derived internally when omitted.
+type Input =
+  | string
+  | {
+      args: ResolverArgs;
+      id?: string;
+      timeout?: number;
+    };
 
 type LegacyEqualityCase = {
-  description: string;
   args: ResolverArgs;
   legacyArgs: ResolverArgs;
   timeout?: number;
 };
 
-type SnapshotAddresses = {
-  addresses: readonly string[];
-  identifier?: (address: string) => string;
-  tolerant?: boolean;
-  timeout?: number;
-};
-
 type ResolverGroup = {
   resolver?: ResolverName;
-  describeName?: string;
-  falseCases?: FalseCase[];
-  snapshotCases?: SnapshotCase[];
-  snapshotAddresses?: SnapshotAddresses;
+  id?: string;
+  withAvatar?: Input[];
+  withoutAvatar?: Input[];
   legacyEqualityCases?: LegacyEqualityCase[];
   todoCases?: string[];
 };
 
 type Config = {
-  name: string;
+  // Resolver id: drives the resolver lookup, the describe block and the
+  // generated snapshot identifiers.
+  id: ResolverName | string;
   resolver?: ResolverName;
-  describeName?: string;
+  // Addresses that DO resolve to an avatar image: one happy-path snapshot test
+  // per input.
+  withAvatar?: Input[];
+  // Valid addresses with NO avatar set: one false-assertion test per input.
+  withoutAvatar?: Input[];
   skip?: boolean;
   requireEnv?: string[];
   retryTimes?: number;
-  falseCases?: FalseCase[];
-  snapshotCases?: SnapshotCase[];
-  snapshotAddresses?: SnapshotAddresses;
   legacyEqualityCases?: LegacyEqualityCase[];
   todoCases?: string[];
   groups?: ResolverGroup[];
@@ -61,56 +56,57 @@ type Config = {
 const call = (resolver: ResolverName, args: ResolverArgs) =>
   (resolvers[resolver] as (...a: ResolverArgs) => Promise<unknown>)(...args);
 
-function buildGroup(group: ResolverGroup, fallbackResolver: ResolverName) {
+const toArgs = (input: Input): ResolverArgs => (typeof input === 'string' ? [input] : input.args);
+
+const toTimeout = (input: Input): number =>
+  typeof input === 'string' ? DEFAULT_TIMEOUT : (input.timeout ?? DEFAULT_TIMEOUT);
+
+function snapshotIdentifier(input: Input, id: string, index: number, total: number): string {
+  if (typeof input !== 'string' && input.id) return input.id;
+  const primary = String(toArgs(input)[0]);
+  // Deterministic, per-address resolvers keep their `<id>-<address>` baselines.
+  if (total > 1 && primary.startsWith('0x')) return `${id}-${primary}`;
+  return total > 1 ? `${id}-${index + 1}` : id;
+}
+
+function buildGroup(group: ResolverGroup, fallback: ResolverName) {
   const {
-    resolver = fallbackResolver,
-    describeName = resolver,
-    falseCases = [],
-    snapshotCases = [],
-    snapshotAddresses,
+    resolver = fallback,
+    id = resolver,
+    withAvatar = [],
+    withoutAvatar = [],
     legacyEqualityCases = [],
     todoCases = []
   } = group;
 
-  const allSnapshotCases: SnapshotCase[] = [
-    ...snapshotCases,
-    ...(snapshotAddresses
-      ? snapshotAddresses.addresses.map(address => ({
-          args: [address] as ResolverArgs,
-          identifier: (snapshotAddresses.identifier ?? (a => `${resolver}-${a}`))(address),
-          tolerant: snapshotAddresses.tolerant,
-          timeout: snapshotAddresses.timeout
-        }))
-      : [])
-  ];
-
-  describe(describeName, () => {
-    falseCases.forEach(({ description, args, timeout }) => {
-      it(
-        description,
-        async () => {
-          expect(await call(resolver, args)).toBe(false);
-        },
-        timeout
-      );
-    });
-
-    allSnapshotCases.forEach(({ args, identifier, tolerant, timeout }) => {
+  describe(id, () => {
+    withAvatar.forEach((input, index) => {
+      const identifier = snapshotIdentifier(input, id, index, withAvatar.length);
       it(
         `matches the image snapshot for ${identifier}`,
         async () => {
-          await expectResolverImageSnapshot(await call(resolver, args), {
-            ...(tolerant ? remoteSnapshotOptions : {}),
+          await expectResolverImageSnapshot(await call(resolver, toArgs(input)), {
+            ...remoteSnapshotOptions,
             customSnapshotIdentifier: identifier
           });
         },
-        timeout
+        toTimeout(input)
       );
     });
 
-    legacyEqualityCases.forEach(({ description, args, legacyArgs, timeout }) => {
+    withoutAvatar.forEach(input => {
       it(
-        description,
+        'returns false when no avatar is set',
+        async () => {
+          expect(await call(resolver, toArgs(input))).toBe(false);
+        },
+        toTimeout(input)
+      );
+    });
+
+    legacyEqualityCases.forEach(({ args, legacyArgs, timeout }) => {
+      it(
+        'returns the same result for the legacy and non-legacy format',
         async () => {
           expect(await call(resolver, args)).toEqual(await call(resolver, legacyArgs));
         },
@@ -126,15 +122,13 @@ function buildGroup(group: ResolverGroup, fallbackResolver: ResolverName) {
 
 export default function testResolverImageSnapshots(config: Config) {
   const {
-    name,
-    resolver = name as ResolverName,
-    describeName = name,
+    id,
+    resolver = id as ResolverName,
+    withAvatar,
+    withoutAvatar,
     skip = false,
     requireEnv = [],
     retryTimes,
-    falseCases,
-    snapshotCases,
-    snapshotAddresses,
     legacyEqualityCases,
     todoCases,
     groups
@@ -153,15 +147,7 @@ export default function testResolverImageSnapshots(config: Config) {
   }
 
   const resolvedGroups: ResolverGroup[] = groups ?? [
-    {
-      resolver,
-      describeName,
-      falseCases,
-      snapshotCases,
-      snapshotAddresses,
-      legacyEqualityCases,
-      todoCases
-    }
+    { resolver, id, withAvatar, withoutAvatar, legacyEqualityCases, todoCases }
   ];
 
   const describeResolver = skip ? describe.skip : describe;

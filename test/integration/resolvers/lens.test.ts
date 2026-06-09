@@ -7,35 +7,15 @@ import {
 } from '../../fixtures/image-snapshot-addresses';
 
 testResolverImageSnapshots({
-  name: 'lens',
-  falseCases: [
-    { description: 'should return false if missing', args: [noAvatarInputs.lensMissing] },
-    {
-      description: 'should return false on invalid address',
-      args: [noAvatarInputs.lensInvalidAddress]
-    },
-    {
-      description: 'should return false on non-existent domain',
-      args: [noAvatarInputs.lensNonExistentDomain]
-    },
-    {
-      description: 'returns false for a normal address with no avatar',
-      args: [NO_AVATAR_ADDRESS],
-      timeout: 30e3
-    }
+  id: 'lens',
+  withAvatar: [
+    { args: [remoteSnapshotInputs.lens], id: 'lens' },
+    { args: [realAvatarInputs.lensByAddress], id: 'lens-by-address' }
   ],
-  snapshotCases: [
-    {
-      args: [remoteSnapshotInputs.lens],
-      identifier: 'lens',
-      tolerant: true,
-      timeout: 30e3
-    },
-    {
-      args: [realAvatarInputs.lensByAddress],
-      identifier: 'lens-by-address',
-      tolerant: true,
-      timeout: 30e3
-    }
+  withoutAvatar: [
+    noAvatarInputs.lensMissing,
+    noAvatarInputs.lensInvalidAddress,
+    noAvatarInputs.lensNonExistentDomain,
+    NO_AVATAR_ADDRESS
   ]
 });

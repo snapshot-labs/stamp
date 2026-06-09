@@ -6,25 +6,13 @@ import {
 } from '../../fixtures/image-snapshot-addresses';
 
 testResolverImageSnapshots({
-  name: 'trustwallet',
-  falseCases: [
-    {
-      description: 'returns false for a normal address with no token logo',
-      args: [NO_AVATAR_ADDRESS, '']
-    }
-  ],
-  snapshotCases: [
+  id: 'trustwallet',
+  withAvatar: [
     {
       args: [remoteSnapshotInputs.trustwallet.address, remoteSnapshotInputs.trustwallet.chainId],
-      identifier: 'trustwallet',
-      tolerant: true,
-      timeout: 30e3
+      id: 'trustwallet'
     },
-    {
-      args: [NATIVE_ASSET_ADDRESS, ''],
-      identifier: 'trustwallet-native-asset',
-      tolerant: true,
-      timeout: 30e3
-    }
-  ]
+    { args: [NATIVE_ASSET_ADDRESS, ''], id: 'trustwallet-native-asset' }
+  ],
+  withoutAvatar: [{ args: [NO_AVATAR_ADDRESS, ''] }]
 });

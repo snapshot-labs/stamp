@@ -7,50 +7,18 @@ import {
 } from '../../fixtures/image-snapshot-addresses';
 
 testResolverImageSnapshots({
-  name: 'space-sx',
-  describeName: 'space-sx',
-  falseCases: [
-    { description: 'should return false if missing', args: [noAvatarInputs.spaceSxMissing] },
-    {
-      description: 'returns false for a normal address with no avatar',
-      args: [NO_AVATAR_ADDRESS]
-    },
-    {
-      description: 'should return false if address is invalid',
-      args: [noAvatarInputs.spaceSxInvalidAddress]
-    }
+  id: 'space-sx',
+  withAvatar: [
+    { args: [remoteSnapshotInputs.spaceSxArbitrum], id: 'space-sx-avatar' },
+    { args: [realAvatarInputs.spaceSxOptimism], id: 'space-sx-optimism' },
+    { args: [realAvatarInputs.spaceSxStarknet], id: 'space-sx-starknet' },
+    { args: [realAvatarInputs.spaceSxStarknetSepolia], id: 'space-sx-starknet-sepolia' },
+    { args: [realAvatarInputs.spaceSxSepolia], id: 'space-sx-sepolia' }
   ],
-  snapshotCases: [
-    {
-      args: [remoteSnapshotInputs.spaceSxArbitrum],
-      identifier: 'space-sx-avatar',
-      tolerant: true,
-      timeout: 30e3
-    },
-    {
-      args: [realAvatarInputs.spaceSxOptimism],
-      identifier: 'space-sx-optimism',
-      tolerant: true,
-      timeout: 30e3
-    },
-    {
-      args: [realAvatarInputs.spaceSxStarknet],
-      identifier: 'space-sx-starknet',
-      tolerant: true,
-      timeout: 30e3
-    },
-    {
-      args: [realAvatarInputs.spaceSxStarknetSepolia],
-      identifier: 'space-sx-starknet-sepolia',
-      tolerant: true,
-      timeout: 30e3
-    },
-    {
-      args: [realAvatarInputs.spaceSxSepolia],
-      identifier: 'space-sx-sepolia',
-      tolerant: true,
-      timeout: 30e3
-    }
+  withoutAvatar: [
+    noAvatarInputs.spaceSxMissing,
+    NO_AVATAR_ADDRESS,
+    noAvatarInputs.spaceSxInvalidAddress
   ],
   todoCases: ['should resolve on eth']
 });

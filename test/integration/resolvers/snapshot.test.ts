@@ -6,80 +6,37 @@ import {
 } from '../../fixtures/image-snapshot-addresses';
 
 testResolverImageSnapshots({
-  name: 'snapshot',
+  id: 'snapshot',
   groups: [
     {
       resolver: 'snapshot',
-      describeName: 'on user avatar',
-      falseCases: [
-        {
-          description: 'should return false if missing',
-          args: [noAvatarInputs.snapshotUserMissing]
-        },
-        {
-          description: 'returns false for a normal address with no avatar',
-          args: [NO_AVATAR_ADDRESS]
-        }
+      id: 'on user avatar',
+      withAvatar: [
+        { args: [remoteSnapshotInputs.snapshotUserAvatar, 1, 'eth'], id: 'snapshot-user-avatar' }
       ],
-      snapshotCases: [
-        {
-          args: [remoteSnapshotInputs.snapshotUserAvatar, 1, 'eth'],
-          identifier: 'snapshot-user-avatar',
-          tolerant: true,
-          timeout: 30e3
-        }
-      ]
+      withoutAvatar: [noAvatarInputs.snapshotUserMissing, NO_AVATAR_ADDRESS]
     },
     {
       resolver: 'user-cover',
-      describeName: 'on user cover',
-      falseCases: [
-        {
-          description: 'should return false if missing',
-          args: [noAvatarInputs.snapshotUserMissing]
-        },
-        {
-          description: 'returns false for a normal address with no avatar',
-          args: [NO_AVATAR_ADDRESS]
-        }
+      id: 'on user cover',
+      withAvatar: [
+        { args: [remoteSnapshotInputs.snapshotUserCover, 1, 'eth'], id: 'snapshot-user-cover' }
       ],
-      snapshotCases: [
-        {
-          args: [remoteSnapshotInputs.snapshotUserCover, 1, 'eth'],
-          identifier: 'snapshot-user-cover',
-          tolerant: true,
-          timeout: 30e3
-        }
-      ]
+      withoutAvatar: [noAvatarInputs.snapshotUserMissing, NO_AVATAR_ADDRESS]
     },
     {
       resolver: 'space',
-      describeName: 'on space avatar',
-      falseCases: [
-        {
-          description: 'should return false if missing',
-          args: [noAvatarInputs.snapshotSpaceMissing]
-        },
-        {
-          description: 'returns false for a normal address with no avatar',
-          args: [NO_AVATAR_ADDRESS]
-        },
-        {
-          description: 'should return false on unsupported network',
-          args: [noAvatarInputs.snapshotSpaceUnsupportedNetwork, 1, 'eth']
-        }
+      id: 'on space avatar',
+      withAvatar: [
+        { args: [remoteSnapshotInputs.snapshotSpaceAvatar], id: 'snapshot-space-avatar' }
       ],
-      snapshotCases: [
-        {
-          args: [remoteSnapshotInputs.snapshotSpaceAvatar],
-          identifier: 'snapshot-space-avatar',
-          tolerant: true,
-          timeout: 30e3
-        }
+      withoutAvatar: [
+        noAvatarInputs.snapshotSpaceMissing,
+        NO_AVATAR_ADDRESS,
+        { args: [noAvatarInputs.snapshotSpaceUnsupportedNetwork, 1, 'eth'] }
       ],
       legacyEqualityCases: [
         {
-          description: 'should return same result for both legacy and non-legacy format',
           args: [remoteSnapshotInputs.snapshotSpaceAvatar],
           legacyArgs: [remoteSnapshotInputs.snapshotSpaceAvatar, 1, 's']
         }
@@ -87,32 +44,15 @@ testResolverImageSnapshots({
     },
     {
       resolver: 'space-cover',
-      describeName: 'on space cover',
-      falseCases: [
-        {
-          description: 'should return false if missing',
-          args: [noAvatarInputs.snapshotSpaceMissing]
-        },
-        {
-          description: 'returns false for a normal address with no avatar',
-          args: [NO_AVATAR_ADDRESS]
-        },
-        {
-          description: 'should return false on unsupported network',
-          args: [remoteSnapshotInputs.snapshotSpaceCover, 1, 'eth']
-        }
-      ],
-      snapshotCases: [
-        {
-          args: [remoteSnapshotInputs.snapshotSpaceCover],
-          identifier: 'snapshot-space-cover',
-          tolerant: true,
-          timeout: 30e3
-        }
+      id: 'on space cover',
+      withAvatar: [{ args: [remoteSnapshotInputs.snapshotSpaceCover], id: 'snapshot-space-cover' }],
+      withoutAvatar: [
+        noAvatarInputs.snapshotSpaceMissing,
+        NO_AVATAR_ADDRESS,
+        { args: [remoteSnapshotInputs.snapshotSpaceCover, 1, 'eth'] }
       ],
       legacyEqualityCases: [
         {
-          description: 'should return same result for both legacy and non-legacy format',
           args: [remoteSnapshotInputs.snapshotSpaceCover],
           legacyArgs: [remoteSnapshotInputs.snapshotSpaceCover, 1, 's']
         }
