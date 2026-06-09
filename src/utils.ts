@@ -2,7 +2,6 @@ import { createHash } from 'crypto';
 import { StaticJsonRpcProvider } from '@ethersproject/providers';
 import snapshot from '@snapshot-labs/snapshot.js';
 import { Response } from 'express';
-import fetch from 'node-fetch';
 import sharp from 'sharp';
 import chains from './chains.json';
 import constants from './constants.json';
@@ -204,7 +203,7 @@ export async function graphQlCall(
         Object.entries(options.headers).filter(([, value]) => value !== undefined && value !== null)
       )
     },
-    timeout: 5e3,
+    signal: AbortSignal.timeout(5e3),
     body: JSON.stringify(body)
   });
 

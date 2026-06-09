@@ -1,5 +1,4 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
-import fetch from 'node-fetch';
 import constants from '../constants.json';
 import { Address, Handle } from '../utils';
 

@@ -35,7 +35,7 @@ async function getImage(domainOrAddress: string): Promise<string | null> {
 async function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: string }> {
   const response = await fetchWithKeepAlive(url);
   const contentType: string = response.headers.get('content-type') || '';
-  const data = await response.buffer();
+  const data = Buffer.from(await response.arrayBuffer());
   if (contentType.includes('application/json')) {
     return JSON.parse(data.toString('utf-8'));
   }

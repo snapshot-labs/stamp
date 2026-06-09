@@ -1,5 +1,4 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
-import fetch from 'node-fetch';
 import { FetchError, isSilencedError, isStarknetAddress, withoutEmptyValues } from './utils';
 import { Address, Handle } from '../utils';
 
@@ -19,7 +18,9 @@ async function apiCall(
   needles: string[]
 ): Promise<Record<string, string>> {
   const requests = needles.map(async needle => {
-    const response = await fetch(buildApiUrl(resolve_type, needle), { timeout: 5e3 });
+    const response = await fetch(buildApiUrl(resolve_type, needle), {
+      signal: AbortSignal.timeout(5e3)
+    });
 
     if (!response.ok) {
       throw new Error(`Starknet API request failed with status ${response.status}`);
