@@ -19,11 +19,6 @@ type Input =
       args: ResolverArgs;
     };
 
-type LegacyEqualityCase = {
-  args: ResolverArgs;
-  legacyArgs: ResolverArgs;
-};
-
 type Config = {
   // Resolver id: drives the resolver lookup and, by default, the describe block
   // and the generated snapshot identifiers.
@@ -45,7 +40,6 @@ type Config = {
   // retryTimes.
   timeout?: number;
   retryTimes?: number;
-  legacyEqualityCases?: LegacyEqualityCase[];
   todoCases?: string[];
 };
 
@@ -67,7 +61,6 @@ function buildResolver(
   base: string,
   withAvatar: Input[],
   withoutAvatar: Input[],
-  legacyEqualityCases: LegacyEqualityCase[],
   todoCases: string[],
   timeout: number
 ) {
@@ -96,16 +89,6 @@ function buildResolver(
       );
     });
 
-    legacyEqualityCases.forEach(({ args, legacyArgs }) => {
-      it(
-        'returns the same result for the legacy and non-legacy format',
-        async () => {
-          expect(await call(resolver, args)).toEqual(await call(resolver, legacyArgs));
-        },
-        timeout
-      );
-    });
-
     todoCases.forEach(description => {
       it.todo(description);
     });
@@ -123,7 +106,6 @@ export default function testResolverImageSnapshots(config: Config) {
     requireEnv = [],
     timeout = DEFAULT_TIMEOUT,
     retryTimes = DEFAULT_RETRY_TIMES,
-    legacyEqualityCases = [],
     todoCases = []
   } = config;
 
@@ -144,14 +126,6 @@ export default function testResolverImageSnapshots(config: Config) {
   const describeResolver = skip ? describe.skip : describe;
 
   describeResolver('resolvers', () => {
-    buildResolver(
-      resolver,
-      base,
-      withAvatar,
-      withoutAvatar,
-      legacyEqualityCases,
-      todoCases,
-      timeout
-    );
+    buildResolver(resolver, base, withAvatar, withoutAvatar, todoCases, timeout);
   });
 }

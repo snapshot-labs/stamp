@@ -30,12 +30,6 @@ testResolverImageSnapshots({
     noAvatarInputs.snapshotSpaceMissing,
     NO_AVATAR_ADDRESS,
     { args: [noAvatarInputs.snapshotSpaceUnsupportedNetwork, 1, 'eth'] }
-  ],
-  legacyEqualityCases: [
-    {
-      args: [remoteSnapshotInputs.snapshotSpaceAvatar],
-      legacyArgs: [remoteSnapshotInputs.snapshotSpaceAvatar, 1, 's']
-    }
   ]
 });
 
@@ -48,11 +42,5 @@ testResolverImageSnapshots({
     noAvatarInputs.snapshotSpaceMissing,
     NO_AVATAR_ADDRESS,
     { args: [remoteSnapshotInputs.snapshotSpaceCover, 1, 'eth'] }
-  ],
-  legacyEqualityCases: [
-    {
-      args: [remoteSnapshotInputs.snapshotSpaceCover],
-      legacyArgs: [remoteSnapshotInputs.snapshotSpaceCover, 1, 's']
-    }
   ]
 });
