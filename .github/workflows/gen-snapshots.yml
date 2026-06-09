@@ -1,6 +1,9 @@
 name: Gen Snapshots (temp)
 
-on: workflow_dispatch
+on:
+  push:
+    branches:
+      - test/resolver-image-snapshots
 
 jobs:
   gen-snapshots:
