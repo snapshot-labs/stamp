@@ -3,8 +3,6 @@ import { NO_AVATAR_ADDRESS, remoteSnapshotInputs } from '../../fixtures/image-sn
 
 testResolverImageSnapshots({
   id: 'zapper',
-  withAvatar: [
-    { args: [remoteSnapshotInputs.zapper.address, remoteSnapshotInputs.zapper.chainId] }
-  ],
+  withAvatar: [remoteSnapshotInputs.zapper.address],
   withoutAvatar: [{ args: [NO_AVATAR_ADDRESS, ''] }]
 });

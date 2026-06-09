@@ -3,8 +3,6 @@ import { NO_AVATAR_ADDRESS, remoteSnapshotInputs } from '../../fixtures/image-sn
 
 testResolverImageSnapshots({
   id: 'trustwallet',
-  withAvatar: [
-    { args: [remoteSnapshotInputs.trustwallet.address, remoteSnapshotInputs.trustwallet.chainId] }
-  ],
+  withAvatar: [remoteSnapshotInputs.trustwallet.address],
   withoutAvatar: [{ args: [NO_AVATAR_ADDRESS, ''] }]
 });

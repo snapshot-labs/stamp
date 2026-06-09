@@ -47,9 +47,9 @@ export const remoteSnapshotInputs = {
   // space-sx: an sx-gov space avatar resolved on Arbitrum.
   spaceSxArbitrum: '0xFd36252770642Ac48FC3A06d7A1D00be8946dd18',
   // trustwallet: a token logo from the trustwallet/assets repo (very stable).
-  trustwallet: { address: '0xcf0C122c6b73ff809C693DB761e7BaeBe62b6a2E', chainId: '' },
+  trustwallet: { address: '0xcf0C122c6b73ff809C693DB761e7BaeBe62b6a2E' },
   // zapper: a token icon served by zapper's CDN.
-  zapper: { address: '0xc18360217d8f7ab5e7c516566761ea12ce7f9d72', chainId: '' },
+  zapper: { address: '0xc18360217d8f7ab5e7c516566761ea12ce7f9d72' },
   // coingecko: token metadata image (needs COINGECKO_API_KEY).
   coingecko: { address: '0xc18360217d8f7ab5e7c516566761ea12ce7f9d72', chainId: '1' },
   // farcaster: address with a Farcaster pfp (needs NEYNAR_API_KEY).
