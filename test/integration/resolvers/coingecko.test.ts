@@ -1,8 +1,8 @@
 import resolvers from '../../../src/resolvers';
 import {
+  NO_AVATAR_ADDRESS,
   remoteSnapshotInputs,
-  remoteSnapshotOptions,
-  ZERO_ADDRESS
+  remoteSnapshotOptions
 } from '../../fixtures/image-snapshot-addresses';
 import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 
@@ -21,10 +21,12 @@ describe('resolvers', () => {
         expect(result).toBe(false);
       });
 
-      // Fallback path: the zero address has no CoinGecko token entry, so
-      // coingecko has no default fallback image and returns false.
-      it('returns false for the zero address (no fallback image)', async () => {
-        const result = await resolvers.coingecko(ZERO_ADDRESS, '1');
+      // No-avatar path: a normal, non-special mainnet address with no CoinGecko
+      // token entry. coingecko has no default fallback image, so it returns
+      // false. (The zero address is avoided here: some providers special-case it
+      // to the native asset, which would not exercise the real no-avatar path.)
+      it('returns false for a normal address with no token entry', async () => {
+        const result = await resolvers.coingecko(NO_AVATAR_ADDRESS, '1');
 
         expect(result).toBe(false);
       }, 30e3);

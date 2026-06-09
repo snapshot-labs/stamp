@@ -1,8 +1,9 @@
 import resolvers from '../../../src/resolvers';
 import {
+  NATIVE_ASSET_ADDRESS,
+  NO_AVATAR_ADDRESS,
   remoteSnapshotInputs,
-  remoteSnapshotOptions,
-  ZERO_ADDRESS
+  remoteSnapshotOptions
 } from '../../fixtures/image-snapshot-addresses';
 import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 
@@ -10,8 +11,12 @@ import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 // re-encodes it via sharp. The baseline is TOLERANT to absorb CDN re-encodes.
 describe('resolvers', () => {
   describe('zapper', () => {
-    it('should return false if missing', async () => {
-      const result = await resolvers.zapper('0x556B14CbdA79A36dC33FcD461a04A5BCb5dC2A70', '');
+    // No-avatar path: a normal, non-special address with no icon on zapper's
+    // CDN. The upstream returns 404, the fetch throws, and the resolver returns
+    // false. This is the genuine no-avatar result. Each case below asserts
+    // exactly one outcome: either false OR an image, never both.
+    it('returns false for a normal address with no token icon', async () => {
+      const result = await resolvers.zapper(NO_AVATAR_ADDRESS, '');
 
       expect(result).toBe(false);
     });
@@ -26,14 +31,15 @@ describe('resolvers', () => {
       });
     }, 30e3);
 
-    // Fallback path: the zero address has no token icon, so zapper falls back to
-    // the base-asset (ETH) icon. Snapshot that fallback image.
-    it('falls back to the base-asset icon for the zero address', async () => {
-      const result = await resolvers.zapper(ZERO_ADDRESS, '');
+    // Native-asset sentinel (SEPARATE from the no-avatar path): the zero address
+    // is in the resolver's ETH list, so zapper special-cases it to the
+    // base-asset (ETH) icon via getBaseAssetIconUrl. Snapshot that ETH image.
+    it('returns the base-asset (ETH) icon for the native-asset sentinel', async () => {
+      const result = await resolvers.zapper(NATIVE_ASSET_ADDRESS, '');
 
       await expectResolverImageSnapshot(result, {
         ...remoteSnapshotOptions,
-        customSnapshotIdentifier: 'zapper-fallback'
+        customSnapshotIdentifier: 'zapper-native-asset'
       });
     }, 30e3);
   });

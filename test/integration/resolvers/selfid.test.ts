@@ -1,11 +1,11 @@
 import resolvers from '../../../src/resolvers';
-import { ZERO_ADDRESS } from '../../fixtures/image-snapshot-addresses';
+import { NO_AVATAR_ADDRESS } from '../../fixtures/image-snapshot-addresses';
 
 // selfid resolves a Ceramic basicProfile image for REAL. The whole suite is
 // skipped because the Ceramic gateway is effectively deprecated, so the
 // real-avatar image snapshot is left as it.todo (no baseline can be minted
-// against a dead upstream). The fallback path (no DID / no avatar / zero
-// address) returns false: selfid has no default fallback image.
+// against a dead upstream). The fallback path (no DID / no avatar / a
+// normal address) returns false: selfid has no default fallback image.
 describe.skip('resolvers', () => {
   describe('selfid', () => {
     it('should return false if missing DID', async () => {
@@ -20,8 +20,8 @@ describe.skip('resolvers', () => {
       expect(result).toBe(false);
     });
 
-    it('returns false for the zero address (no fallback image)', async () => {
-      const result = await resolvers.selfid(ZERO_ADDRESS);
+    it('returns false for a normal address with no avatar', async () => {
+      const result = await resolvers.selfid(NO_AVATAR_ADDRESS);
 
       expect(result).toBe(false);
     });

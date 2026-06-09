@@ -1,15 +1,15 @@
 import resolvers from '../../../src/resolvers';
 import {
+  NO_AVATAR_ADDRESS,
   remoteSnapshotInputs,
-  remoteSnapshotOptions,
-  ZERO_ADDRESS
+  remoteSnapshotOptions
 } from '../../fixtures/image-snapshot-addresses';
 import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 
 // space-sx resolves an sx-gov space avatar URL for REAL across several chains,
 // fetches the image, then resizes/re-encodes via sharp. Every image-returning
 // per-chain case asserts a TOLERANT image snapshot of the real output. The
-// fallback path (no space / zero address) returns false: space-sx has no
+// no-avatar path (a normal address with no space) returns false: space-sx has no
 // default fallback image.
 describe('resolvers', () => {
   describe('space-sx', () => {
@@ -20,8 +20,8 @@ describe('resolvers', () => {
         expect(result).toBe(false);
       });
 
-      it('returns false for the zero address (no fallback image)', async () => {
-        const result = await resolvers['space-sx'](ZERO_ADDRESS);
+      it('returns false for a normal address with no avatar', async () => {
+        const result = await resolvers['space-sx'](NO_AVATAR_ADDRESS);
 
         expect(result).toBe(false);
       });

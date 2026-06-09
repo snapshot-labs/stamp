@@ -47,7 +47,18 @@ describe('resolvers', () => {
       }, 30e3);
     });
 
-    describe('with the default image', () => {
+    // DELIBERATE BEHAVIOR (documented, not a test artifact): when an address has
+    // no custom profile picture, starknet.id still serves a DEFAULT identicon at
+    // DEFAULT_IMG_URL ('https://starknet.id/api/identicons/0'). The resolver
+    // EXPLICITLY REJECTS that default and returns false, so this is the real
+    // no-avatar result for starknet: it has no fallback image of its own.
+    //
+    // OPEN QUESTION for wa0x6e: should starknet stop rejecting the default
+    // identicon and instead snapshot/return it as a fallback image (like an
+    // avatar)? That is a behavior change and his call; this test is NOT changing
+    // the resolver, only documenting and pinning the current reject-to-false
+    // behavior.
+    describe('with the default image (starknet.id default identicon, rejected)', () => {
       it('should return false', async () => {
         const result = await resolvers.starknet(
           '0x0047f2e8dbf39f6856fc2437dfc931e3b3a64bfe240218046f2a9fca80e768d4'

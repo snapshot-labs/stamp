@@ -1,8 +1,8 @@
 import resolvers from '../../../src/resolvers';
 import {
+  NO_AVATAR_ADDRESS,
   remoteSnapshotInputs,
-  remoteSnapshotOptions,
-  ZERO_ADDRESS
+  remoteSnapshotOptions
 } from '../../fixtures/image-snapshot-addresses';
 import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 
@@ -48,10 +48,10 @@ describe('resolvers', () => {
       });
     }, 30e3);
 
-    // Fallback path: the zero address has no Lens account, so lens has no
+    // No-avatar path: a normal, non-special address with no Lens account, so lens has no
     // default fallback image and returns false.
-    it('returns false for the zero address (no fallback image)', async () => {
-      const result = await resolvers.lens(ZERO_ADDRESS);
+    it('returns false for a normal address with no avatar', async () => {
+      const result = await resolvers.lens(NO_AVATAR_ADDRESS);
 
       expect(result).toBe(false);
     }, 30e3);

@@ -1,8 +1,8 @@
 import resolvers from '../../../src/resolvers';
 import {
+  NO_AVATAR_ADDRESS,
   remoteSnapshotInputs,
-  remoteSnapshotOptions,
-  ZERO_ADDRESS
+  remoteSnapshotOptions
 } from '../../fixtures/image-snapshot-addresses';
 import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 
@@ -10,7 +10,7 @@ import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
 // infra for REAL, then resize/re-encode via sharp. Every image-returning case
 // asserts a TOLERANT image snapshot of the real output; the legacy/non-legacy
 // equivalence cases stay as structural assertions (they verify behaviour, not
-// pixels). The fallback path (no avatar / zero address) returns false: snapshot
+// pixels). The no-avatar path (a normal address with no avatar) returns false: snapshot
 // resolvers have no default fallback image.
 describe('resolvers', () => {
   describe('snapshot', () => {
@@ -21,8 +21,8 @@ describe('resolvers', () => {
         expect(result).toBe(false);
       });
 
-      it('returns false for the zero address (no fallback image)', async () => {
-        const result = await resolvers.snapshot(ZERO_ADDRESS);
+      it('returns false for a normal address with no avatar', async () => {
+        const result = await resolvers.snapshot(NO_AVATAR_ADDRESS);
 
         expect(result).toBe(false);
       });
@@ -54,8 +54,8 @@ describe('resolvers', () => {
       expect(result).toBe(false);
     });
 
-    it('returns false for the zero address (no fallback image)', async () => {
-      const result = await resolvers['user-cover'](ZERO_ADDRESS);
+    it('returns false for a normal address with no avatar', async () => {
+      const result = await resolvers['user-cover'](NO_AVATAR_ADDRESS);
 
       expect(result).toBe(false);
     });
@@ -90,8 +90,8 @@ describe('resolvers', () => {
       expect(result).toBe(false);
     });
 
-    it('returns false for the zero address (no fallback image)', async () => {
-      const result = await resolvers.space(ZERO_ADDRESS);
+    it('returns false for a normal address with no avatar', async () => {
+      const result = await resolvers.space(NO_AVATAR_ADDRESS);
 
       expect(result).toBe(false);
     });
@@ -126,8 +126,8 @@ describe('resolvers', () => {
       expect(result).toBe(false);
     });
 
-    it('returns false for the zero address (no fallback image)', async () => {
-      const result = await resolvers['space-cover'](ZERO_ADDRESS);
+    it('returns false for a normal address with no avatar', async () => {
+      const result = await resolvers['space-cover'](NO_AVATAR_ADDRESS);
 
       expect(result).toBe(false);
     });

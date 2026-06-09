@@ -65,8 +65,21 @@ export const remoteSnapshotOptions: MatchImageSnapshotOptions = {
   failureThresholdType: 'percent'
 };
 
-// The canonical "no avatar set" input used to exercise each resolver's
-// default-fallback path. trustwallet/zapper return a base-asset fallback image
-// for the zero address (it is in their ETH list); every other remote resolver
-// returns false for it (no fallback image).
-export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+// The canonical "no avatar set" input used to exercise each resolver's real
+// no-avatar path.
+//
+// IMPORTANT: this is a NORMAL, non-special address. The zero address is the
+// WRONG input for a no-avatar test: trustwallet and zapper special-case the
+// native/ETH sentinels (the zero address and 0xEeee...EEeE are in their `ETH`
+// list) and return the base-asset (ETH) icon for them, so the zero address does
+// NOT exercise the genuine no-avatar path. NO_AVATAR_ADDRESS below is a valid
+// but empty mainnet address with no token logo / token entry / profile on any
+// of these upstreams, so it exercises the real no-avatar behavior (every one of
+// these resolvers returns false for it).
+export const NO_AVATAR_ADDRESS = '0x556B14CbdA79A36dC33FcD461a04A5BCb5dC2A70';
+
+// The native-asset sentinel. trustwallet/zapper map this (and the zero address)
+// to the base-asset (ETH) icon via getBaseAssetIconUrl. This is a SEPARATE case
+// from no-avatar: it returns the ETH fallback image, not false. Kept only where
+// a resolver actually special-cases it.
+export const NATIVE_ASSET_ADDRESS = '0x0000000000000000000000000000000000000000';
