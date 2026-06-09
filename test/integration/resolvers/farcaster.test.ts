@@ -24,7 +24,6 @@ testResolverImageSnapshots({
   ],
   snapshotCases: [
     {
-      description: 'resolves and matches the reference avatar',
       args: [remoteSnapshotInputs.farcaster],
       identifier: 'farcaster',
       tolerant: true,

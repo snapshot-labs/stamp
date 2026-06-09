@@ -11,14 +11,12 @@ testResolverImageSnapshots({
   retryTimes: 3,
   snapshotCases: [
     {
-      description: 'resolves an avatar by basename and matches the reference',
       args: [remoteSnapshotInputs.basename],
       identifier: 'basename',
       tolerant: true,
       timeout: 30e3
     },
     {
-      description: 'resolves an avatar by address and matches the reference',
       args: [realAvatarInputs.basenameByAddress],
       identifier: 'basename-by-address',
       tolerant: true,

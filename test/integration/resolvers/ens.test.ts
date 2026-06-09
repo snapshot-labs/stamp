@@ -26,7 +26,6 @@ testResolverImageSnapshots({
   ],
   snapshotCases: [
     {
-      description: 'resolves and matches the reference avatar',
       args: [remoteSnapshotInputs.ens],
       identifier: 'ens',
       tolerant: true,

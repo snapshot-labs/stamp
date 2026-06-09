@@ -22,35 +22,30 @@ testResolverImageSnapshots({
   ],
   snapshotCases: [
     {
-      description: 'resolves on arbitrum and matches the reference avatar',
       args: [remoteSnapshotInputs.spaceSxArbitrum],
       identifier: 'space-sx-avatar',
       tolerant: true,
       timeout: 30e3
     },
     {
-      description: 'resolves on optimism and matches the reference avatar',
       args: [realAvatarInputs.spaceSxOptimism],
       identifier: 'space-sx-optimism',
       tolerant: true,
       timeout: 30e3
     },
     {
-      description: 'resolves on starknet and matches the reference avatar',
       args: [realAvatarInputs.spaceSxStarknet],
       identifier: 'space-sx-starknet',
       tolerant: true,
       timeout: 30e3
     },
     {
-      description: 'resolves on starknet sepolia and matches the reference avatar',
       args: [realAvatarInputs.spaceSxStarknetSepolia],
       identifier: 'space-sx-starknet-sepolia',
       tolerant: true,
       timeout: 30e3
     },
     {
-      description: 'resolves on sepolia and matches the reference avatar',
       args: [realAvatarInputs.spaceSxSepolia],
       identifier: 'space-sx-sepolia',
       tolerant: true,

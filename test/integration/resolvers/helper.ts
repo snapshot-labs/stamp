@@ -13,7 +13,6 @@ type FalseCase = {
 };
 
 type SnapshotCase = {
-  description: string;
   args: ResolverArgs;
   identifier: string;
   tolerant?: boolean;
@@ -28,7 +27,6 @@ type LegacyEqualityCase = {
 };
 
 type SnapshotAddresses = {
-  description: (address: string) => string;
   addresses: readonly string[];
   identifier?: (address: string) => string;
   tolerant?: boolean;
@@ -78,7 +76,6 @@ function buildGroup(group: ResolverGroup, fallbackResolver: ResolverName) {
     ...snapshotCases,
     ...(snapshotAddresses
       ? snapshotAddresses.addresses.map(address => ({
-          description: snapshotAddresses.description(address),
           args: [address] as ResolverArgs,
           identifier: (snapshotAddresses.identifier ?? (a => `${resolver}-${a}`))(address),
           tolerant: snapshotAddresses.tolerant,
@@ -98,9 +95,9 @@ function buildGroup(group: ResolverGroup, fallbackResolver: ResolverName) {
       );
     });
 
-    allSnapshotCases.forEach(({ description, args, identifier, tolerant, timeout }) => {
+    allSnapshotCases.forEach(({ args, identifier, tolerant, timeout }) => {
       it(
-        description,
+        `matches the image snapshot for ${identifier}`,
         async () => {
           await expectResolverImageSnapshot(await call(resolver, args), {
             ...(tolerant ? remoteSnapshotOptions : {}),

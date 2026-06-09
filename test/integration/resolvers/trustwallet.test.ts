@@ -15,14 +15,12 @@ testResolverImageSnapshots({
   ],
   snapshotCases: [
     {
-      description: 'resolves and matches the reference avatar',
       args: [remoteSnapshotInputs.trustwallet.address, remoteSnapshotInputs.trustwallet.chainId],
       identifier: 'trustwallet',
       tolerant: true,
       timeout: 30e3
     },
     {
-      description: 'returns the base-asset (ETH) icon for the native-asset sentinel',
       args: [NATIVE_ASSET_ADDRESS, ''],
       identifier: 'trustwallet-native-asset',
       tolerant: true,

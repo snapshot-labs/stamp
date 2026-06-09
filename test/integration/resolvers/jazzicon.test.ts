@@ -4,8 +4,6 @@ import { jazziconSnapshotAddresses } from '../../fixtures/image-snapshot-address
 testResolverImageSnapshots({
   name: 'jazzicon',
   snapshotAddresses: {
-    addresses: jazziconSnapshotAddresses,
-    description: address =>
-      `renders a deterministic identicon matching the reference for ${address}`
+    addresses: jazziconSnapshotAddresses
   }
 });

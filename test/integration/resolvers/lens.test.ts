@@ -26,14 +26,12 @@ testResolverImageSnapshots({
   ],
   snapshotCases: [
     {
-      description: 'resolves with handle and matches the reference avatar',
       args: [remoteSnapshotInputs.lens],
       identifier: 'lens',
       tolerant: true,
       timeout: 30e3
     },
     {
-      description: 'resolves with address and matches the reference avatar',
       args: [realAvatarInputs.lensByAddress],
       identifier: 'lens-by-address',
       tolerant: true,

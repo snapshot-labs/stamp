@@ -15,14 +15,12 @@ testResolverImageSnapshots({
   ],
   snapshotCases: [
     {
-      description: 'resolves and matches the reference icon',
       args: [remoteSnapshotInputs.zapper.address, remoteSnapshotInputs.zapper.chainId],
       identifier: 'zapper',
       tolerant: true,
       timeout: 30e3
     },
     {
-      description: 'returns the base-asset (ETH) icon for the native-asset sentinel',
       args: [NATIVE_ASSET_ADDRESS, ''],
       identifier: 'zapper-native-asset',
       tolerant: true,

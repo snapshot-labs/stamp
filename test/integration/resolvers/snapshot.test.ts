@@ -23,7 +23,6 @@ testResolverImageSnapshots({
       ],
       snapshotCases: [
         {
-          description: 'resolves regardless of network and matches the reference avatar',
           args: [remoteSnapshotInputs.snapshotUserAvatar, 1, 'eth'],
           identifier: 'snapshot-user-avatar',
           tolerant: true,
@@ -46,7 +45,6 @@ testResolverImageSnapshots({
       ],
       snapshotCases: [
         {
-          description: 'resolves regardless of network and matches the reference cover',
           args: [remoteSnapshotInputs.snapshotUserCover, 1, 'eth'],
           identifier: 'snapshot-user-cover',
           tolerant: true,
@@ -73,7 +71,6 @@ testResolverImageSnapshots({
       ],
       snapshotCases: [
         {
-          description: 'resolves and matches the reference avatar',
           args: [remoteSnapshotInputs.snapshotSpaceAvatar],
           identifier: 'snapshot-space-avatar',
           tolerant: true,
@@ -107,7 +104,6 @@ testResolverImageSnapshots({
       ],
       snapshotCases: [
         {
-          description: 'resolves and matches the reference cover',
           args: [remoteSnapshotInputs.snapshotSpaceCover],
           identifier: 'snapshot-space-cover',
           tolerant: true,

@@ -17,7 +17,6 @@ testResolverImageSnapshots({
   ],
   snapshotCases: [
     {
-      description: 'resolves and matches the reference icon',
       args: [remoteSnapshotInputs.coingecko.address, remoteSnapshotInputs.coingecko.chainId],
       identifier: 'coingecko',
       tolerant: true,
