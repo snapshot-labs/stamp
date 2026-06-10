@@ -45,7 +45,11 @@ export function sha256(str) {
   return createHash('sha256').update(str).digest('hex');
 }
 
-export async function resize(input, w, h, options?) {
+// sharp >=0.34 ships stricter bundled types that infer this chain as
+// `Promise<false | Buffer>`, which breaks callers expecting a Buffer. Keep the
+// historical (sharp 0.30) `Promise<any>` contract so the bump needs no other
+// type churn; the runtime value is always a Buffer.
+export async function resize(input, w, h, options?): Promise<any> {
   return sharp(input).resize(w, h, options).webp().toBuffer();
 }
 
