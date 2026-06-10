@@ -1,12 +1,7 @@
-import resolvers from '../../../src/resolvers';
+import testResolverImageSnapshots from './helper';
+import { jazziconSnapshotAddresses } from '../../fixtures/image-snapshot-addresses';
 
-describe('resolvers', () => {
-  describe('jazzicon', () => {
-    it('should resolve', async () => {
-      const result = await resolvers.jazzicon('0x556B14CbdA79A36dC33FcD461a04A5BCb5dC2A70');
-
-      expect(result).toBeInstanceOf(Buffer);
-      expect(result.length).toBeGreaterThan(1000);
-    });
-  });
+testResolverImageSnapshots({
+  id: 'jazzicon',
+  withAvatar: [...jazziconSnapshotAddresses]
 });
