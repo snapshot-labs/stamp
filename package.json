@@ -42,7 +42,7 @@
     "node-fetch": "v2.7.0",
     "nodemon": "^2.0.7",
     "redis": "^4.6.10",
-    "sharp": "^0.30.1",
+    "sharp": "^0.34.5",
     "starknet": "^6.11.0",
     "ts-node": "^10.8.1",
     "typescript": "^4.7.3"

@@ -45,7 +45,7 @@ export function sha256(str) {
   return createHash('sha256').update(str).digest('hex');
 }
 
-export async function resize(input, w, h, options?) {
+export async function resize(input, w, h, options?): Promise<Buffer> {
   return sharp(input).resize(w, h, options).webp().toBuffer();
 }
 
