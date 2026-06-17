@@ -9,7 +9,10 @@ testResolverImageSnapshots({
   id: 'snapshot',
   resolver: 'snapshot',
   subId: 'snapshot-user-avatar',
-  withAvatar: [{ args: [remoteSnapshotInputs.snapshotUserAvatar, 1, 'eth'] }],
+  withAvatar: [
+    { args: [remoteSnapshotInputs.snapshotUserAvatar, 1, 'eth'] },
+    { args: [remoteSnapshotInputs.snapshotUserAvatarLowercase, 1, 'eth'] }
+  ],
   withoutAvatar: [noAvatarInputs.snapshotUserMissing, NO_AVATAR_ADDRESS]
 });
 

@@ -100,6 +100,14 @@ async function getOnchainProperty(
   return spaces?.map(space => space.metadata?.[property]).filter(Boolean)[0];
 }
 
+function normalizeEvmAddress(value: string) {
+  try {
+    return getAddress(value.trim());
+  } catch {
+    return value;
+  }
+}
+
 function createPropertyResolver(entity: Entity, property: Property) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   return async (address: string, chainId = 1, networkId = defaultOffchainNetwork) => {
@@ -111,7 +119,7 @@ function createPropertyResolver(entity: Entity, property: Property) {
       if (offchainNetworks.includes(networkId) || entity === 'user') {
         value = await getOffchainProperty(
           offchainNetworks.includes(networkId) ? networkId : defaultOffchainNetwork,
-          address,
+          normalizeEvmAddress(address),
           entity,
           property
         );
