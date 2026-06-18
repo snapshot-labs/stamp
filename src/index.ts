@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import './instrument';
 import { fallbackLogger } from '@snapshot-labs/snapshot-sentry';
 import compression from 'compression';
