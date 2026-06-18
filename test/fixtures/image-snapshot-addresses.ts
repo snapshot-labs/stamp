@@ -41,6 +41,7 @@ export const remoteSnapshotInputs = {
   lens: 'fabien.lens',
   // Snapshot hosted avatars (stored on the snapshot infra, very stable).
   snapshotUserAvatar: '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7',
+  snapshotUserAvatarLowercase: '0xef8305e140ac520225daf050e2f71d5fbcc543e7',
   snapshotUserCover: '0xf1f09AdC06aAB740AA16004D62Dbd89484d3Be90',
   snapshotSpaceAvatar: 'ens.eth',
   snapshotSpaceCover: 'test.wa0x6e.eth',
