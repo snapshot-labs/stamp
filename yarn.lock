@@ -2829,10 +2829,10 @@
     node-fetch "^2.7.0"
     prom-client "^14.2.0"
 
-"@snapshot-labs/snapshot-sentry@^2.2.0":
-  version "2.2.0"
-  resolved "https://registry.yarnpkg.com/@snapshot-labs/snapshot-sentry/-/snapshot-sentry-2.2.0.tgz#c7a48c297e5b97f491ebec6eb0d9275b4b038294"
-  integrity sha512-sD28gupz3xfXsLCt6H3UBiUpTbvkhDw4OQ0XZzKNQFKR3ZmIRLOVeLVNNZz5tgnF8WFPqy+fnS8RUrhJHz2F/w==
+"@snapshot-labs/snapshot-sentry@^3.0.1":
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/@snapshot-labs/snapshot-sentry/-/snapshot-sentry-3.0.1.tgz#e9c6e43b1a592e02c6d41fc769e0ca4e34dda9b7"
+  integrity sha512-SURO5JZA5k64Qxe5iUVUOjpxNyRcdwj+sP0UrxlMLXXqtf4yRAm91fFKHnn0AhO1F757ldrt3faZVSftcCRASQ==
   dependencies:
     "@sentry/node" "^10.52.0"
 
