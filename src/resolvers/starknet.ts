@@ -34,6 +34,11 @@ async function getImage(domainOrAddress: string): Promise<string | null> {
 
 async function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: string }> {
   const response = await fetch(url, { signal: AbortSignal.timeout(DEFAULT_TIMEOUT) });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch ${url}: status ${response.status}`);
+  }
+
   const contentType: string = response.headers.get('content-type') || '';
   const data = Buffer.from(await response.arrayBuffer());
   if (contentType.includes('application/json')) {

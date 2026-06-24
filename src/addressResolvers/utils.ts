@@ -58,11 +58,26 @@ export function isSilencedError(error: any, additionalMessages?: string[]): bool
     'Received error status from DNS server: 2.',
     ...(additionalMessages || [])
   ];
-  const codes = [error.error?.code, error.error?.status, error.code, error.response?.status];
+  const codes = [
+    error.error?.code,
+    error.error?.status,
+    error.code,
+    error.response?.status,
+    // Native fetch (undici) surfaces socket-level failures as a TypeError with
+    // message 'fetch failed' and the real errno on error.cause.code, while
+    // AbortSignal.timeout() rejects with a DOMException named 'TimeoutError'.
+    error.cause?.code,
+    error.name
+  ];
   return (
     messages.some(m => error.message?.includes(m) || error.error?.message?.includes(m)) ||
-    ['TIMEOUT', 'ECONNABORTED', 'ETIMEDOUT', 'ECONNRESET', 504].some(c =>
-      codes.some(v => String(v ?? '').includes(String(c)))
+    ['TIMEOUT', 'ECONNABORTED', 'ETIMEDOUT', 'ECONNRESET', 'ENOTFOUND', 'ECONNREFUSED', 504].some(
+      c =>
+        codes.some(v =>
+          String(v ?? '')
+            .toUpperCase()
+            .includes(String(c).toUpperCase())
+        )
     )
   );
 }

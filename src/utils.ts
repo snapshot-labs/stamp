@@ -6,6 +6,8 @@ import sharp from 'sharp';
 import chains from './chains.json';
 import constants from './constants.json';
 
+export const DEFAULT_TIMEOUT = 5e3;
+
 export type Address = string;
 export type Handle = string;
 export type ResolverType =
@@ -196,19 +198,28 @@ export async function graphQlCall(
   }
 
   const response = await fetch(url, {
-    method: 'post',
+    method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       ...Object.fromEntries(
         Object.entries(options.headers).filter(([, value]) => value !== undefined && value !== null)
       )
     },
-    signal: AbortSignal.timeout(5e3),
+    signal: AbortSignal.timeout(DEFAULT_TIMEOUT),
     body: JSON.stringify(body)
   });
 
   if (!response.ok) {
-    throw new FetchError(`GraphQL request failed with status ${response.status}`, response.status);
+    // Preserve the axios error shape relied on downstream: `error.message`
+    // carries the status (so `isSilencedError` substring matching keeps
+    // working) and `error.response` exposes both `status` and `data` (the
+    // response body) so Sentry context capture keeps the upstream payload.
+    const data = await response.text().catch(() => undefined);
+    throw new GraphqlError(
+      `GraphQL request failed with status code ${response.status}`,
+      response.status,
+      data
+    );
   }
 
   // Preserve the previous axios response shape (`{ data: <body> }`) so callers
@@ -216,13 +227,13 @@ export async function graphQlCall(
   return { data: await response.json() };
 }
 
-class FetchError extends Error {
-  response: { status: number };
+export class GraphqlError extends Error {
+  response: { status: number; data?: string };
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, data?: string) {
     super(message);
-    this.name = 'FetchError';
-    this.response = { status };
+    this.name = 'GraphqlError';
+    this.response = { status, data };
   }
 }
 

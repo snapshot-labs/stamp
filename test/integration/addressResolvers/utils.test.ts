@@ -110,5 +110,37 @@ describe('utils', () => {
       // Status 1 (FORMERR) indicates a malformed query on our side — keep it visible.
       expect(isSilencedError(new Error('Received error status from DNS server: 1.'))).toBe(false);
     });
+
+    it('silences a native fetch (undici) socket error via error.cause.code', () => {
+      // undici surfaces socket-level failures as a TypeError with
+      // message 'fetch failed' and the real errno on error.cause.code.
+      const error: any = new TypeError('fetch failed');
+      error.cause = { code: 'ECONNRESET' };
+
+      expect(isSilencedError(error)).toBe(true);
+    });
+
+    it('silences a native fetch AbortSignal.timeout rejection (TimeoutError)', () => {
+      // AbortSignal.timeout() rejects with a DOMException named 'TimeoutError'
+      // and no .code, unlike axios which used ECONNABORTED/ETIMEDOUT.
+      const error: any = new Error('The operation was aborted due to timeout');
+      error.name = 'TimeoutError';
+
+      expect(isSilencedError(error)).toBe(true);
+    });
+
+    it('silences a GraphqlError carrying a transient status in the message', () => {
+      // graphQlCall throws GraphqlError('GraphQL request failed with status code 504', ...).
+      const error: any = new Error('GraphQL request failed with status code 504');
+      error.response = { status: 504 };
+
+      expect(isSilencedError(error)).toBe(true);
+    });
+
+    it('silences via additionalMessages (e.g. Lens MUTED_ERRORS)', () => {
+      const error = new Error('GraphQL request failed with status code 503');
+
+      expect(isSilencedError(error, ['status code 503', 'status code 429'])).toBe(true);
+    });
   });
 });

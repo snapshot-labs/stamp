@@ -1,6 +1,6 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import { FetchError, isSilencedError, isStarknetAddress, withoutEmptyValues } from './utils';
-import { Address, Handle } from '../utils';
+import { Address, DEFAULT_TIMEOUT, Handle } from '../utils';
 
 export const NAME = 'Starknet';
 const BASE_URL = 'https://api.starknet.id';
@@ -19,11 +19,17 @@ async function apiCall(
 ): Promise<Record<string, string>> {
   const requests = needles.map(async needle => {
     const response = await fetch(buildApiUrl(resolve_type, needle), {
-      signal: AbortSignal.timeout(5e3)
+      signal: AbortSignal.timeout(DEFAULT_TIMEOUT)
     });
 
     if (!response.ok) {
-      throw new Error(`Starknet API request failed with status ${response.status}`);
+      // Preserve the axios error shape so isSilencedError keeps silencing
+      // transient upstream statuses (e.g. 504) via error.response.status.
+      const error: any = new Error(
+        `Starknet API request failed with status code ${response.status}`
+      );
+      error.response = { status: response.status };
+      throw error;
     }
 
     return response.json() as Promise<Record<string, string>>;
