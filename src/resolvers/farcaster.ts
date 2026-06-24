@@ -1,5 +1,4 @@
 import { getAddress } from '@ethersproject/address';
-import fetch from 'node-fetch';
 import { max } from '../constants.json';
 import { Address, resize } from '../utils';
 import { fetchHttpImage } from './utils';
