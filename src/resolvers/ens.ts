@@ -5,9 +5,8 @@ import { lookupAddresses } from '../addressResolvers';
 import { addressSchema, AvatarId } from '../helpers/validation';
 
 async function castToEnsName(nameOrAddress: AvatarId): Promise<string | undefined> {
-  // Re-derive the Address brand from the already validated id: when it is an
-  // address, feed the branded value into lookupAddresses; otherwise it is a
-  // handle and used as-is.
+  // Re-derive the Address brand: if the id is an address, reverse-resolve it;
+  // otherwise it is already a handle.
   const asAddress = addressSchema.safeParse(nameOrAddress);
   if (asAddress.success) {
     return (await lookupAddresses([asAddress.data]))[asAddress.data];

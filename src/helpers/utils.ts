@@ -18,8 +18,8 @@ export function rpcError(res, code, e, id, message = 'unauthorized') {
   });
 }
 
-// JSON-RPC "Invalid params" error (-32602), returned with HTTP 400. `data`
-// should carry a human readable summary of what was wrong with the input.
+// JSON-RPC "Invalid params" error (-32602) with HTTP 400; `data` carries a
+// human readable summary.
 export function rpcInvalidParams(res, data, id) {
   res.status(400).json({
     jsonrpc: '2.0',

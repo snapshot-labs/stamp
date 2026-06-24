@@ -23,11 +23,9 @@ describe('addressResolvers', () => {
     });
 
     describe('when the params contains invalid address', () => {
-      // The boundary schema (lookupAddressesSchema) now rejects junk before it
-      // ever reaches here, but normalizeAddresses still drops anything
-      // getAddress() can't parse (the kept normalize-filter that also guards the
-      // unbranded clearCache path). The cast simulates a value bypassing the
-      // brand to assert that filter still works.
+      // The boundary schema rejects junk before this point; the cast bypasses
+      // the brand to assert normalizeAddresses still drops what getAddress()
+      // can't parse (the filter that also guards the unbranded clearCache path).
       it('should ignore the invalid address', () => {
         expect(
           lookupAddresses([

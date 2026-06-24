@@ -20,9 +20,8 @@ describe('lookupDomains', () => {
     expect(result).toContain('testchaitu.eth');
   });
 
-  // Address shape is now enforced at the JSON-RPC boundary by
-  // lookupDomainsSchema instead of an inner isAddress guard, so the rejection
-  // of empty / malformed input is asserted on the schema directly.
+  // Empty/malformed input is now rejected by the boundary schema rather than an
+  // inner isAddress guard, so assert it on the schema directly.
   it('rejects an empty address at the boundary schema', () => {
     expect(lookupDomainsSchema.safeParse('').success).toBe(false);
   });

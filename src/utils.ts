@@ -12,11 +12,9 @@ import { AvatarId, avatarIdSchema, formatZodError } from './helpers/validation';
 // valid handle. The route handler maps this to an HTTP 400.
 export class InvalidQueryError extends Error {}
 
-// Plain value-level aliases for addresses and handles as they flow THROUGH and
-// OUT of the resolvers (resolved values come back from the network as ordinary
-// strings). The branded, validated INPUT types live in helpers/validation.ts
-// (ValidatedAddress / ValidatedHandle / AvatarId) and are what the entry-point
-// functions accept, so only values that passed a zod schema can reach them.
+// Value-level aliases for resolved addresses/handles flowing out of the
+// resolvers. The branded INPUT types (ValidatedAddress / ValidatedHandle /
+// AvatarId) live in helpers/validation.ts.
 export type Address = string;
 export type Handle = string;
 export type ResolverType =
@@ -103,10 +101,8 @@ export async function parseQuery(id: string, type: ResolverType, query) {
 
   address = address.toLowerCase();
 
-  // Validate the resolver input at this REST boundary (the JSON-RPC boundary in
-  // src/api.ts is validated separately). The stripped id must be a valid
-  // address or handle; anything else is a 400, not a 500. The parsed value is
-  // branded (AvatarId) so the address path can thread it into the resolvers.
+  // Validate the resolver input at this REST boundary (api.ts validates the
+  // JSON-RPC boundary separately): invalid id is a 400, not a 500.
   const parsedId = avatarIdSchema.safeParse(address);
   if (!parsedId.success) {
     throw new InvalidQueryError(formatZodError(parsedId.error));

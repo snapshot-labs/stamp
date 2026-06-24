@@ -29,16 +29,10 @@ export function withoutEmptyAddress(obj: Record<string, any>) {
   return Object.fromEntries(Object.entries(obj).filter(([key]) => key !== EMPTY_ADDRESS));
 }
 
-// NORMALIZATION, not validation. getAddress() checksums EVM addresses and
-// Starknet addresses are lowercased so the redis cache keys and the dedup Set
-// in src/addressResolvers/index.ts are stable regardless of input casing. This
-// step MUST stay even though the branded Address type already guarantees shape
-// at the JSON-RPC boundary.
-//
-// It also still drops anything getAddress() rejects: the clearCache path
-// (src/api.ts /clear/address/:id) reaches here with a raw, unbranded route
-// param, so this thin reject is the boundary guard for that one path. The
-// other callers pass branded Address[] for which the filter is a no-op.
+// Normalization (not validation): checksums EVM addresses and lowercases
+// Starknet ones so cache keys and dedup stay stable across input casing. Keep
+// the trailing filter: it also guards the clearCache path (/clear/address/:id),
+// which arrives unbranded; for branded callers the filter is a no-op.
 export function normalizeAddresses(addresses: string[]): Address[] {
   return addresses
     .map(a => {

@@ -71,8 +71,8 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
 // Avatar text record, used by the avatar resolver. Resolves the name against
 // Base specifically, so an address' ENS primary name can't shadow its Basename.
 export async function getAvatar(nameOrAddress: AvatarId): Promise<string | null> {
-  // Re-derive the Address brand from the already validated id: when it is an
-  // address, reverse-resolve to a Basename; otherwise treat it as a handle.
+  // Re-derive the Address brand: if the id is an address, reverse-resolve to a
+  // Basename; otherwise treat it as a handle.
   const asAddress = addressSchema.safeParse(nameOrAddress);
   const name = asAddress.success
     ? (await lookupAddresses([asAddress.data]))[asAddress.data]
