@@ -4,6 +4,7 @@ import { namehash } from '@ethersproject/hash';
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import snapshot from '@snapshot-labs/snapshot.js';
 import { FetchError, provider as getProvider, isEvmAddress, isSilencedError } from './utils';
+import { AvatarId } from '../helpers/validation';
 import { Address, EMPTY_ADDRESS, getUrl, Handle } from '../utils';
 
 export const NAME = 'Basename';
@@ -69,7 +70,7 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
 
 // Avatar text record, used by the avatar resolver. Resolves the name against
 // Base specifically, so an address' ENS primary name can't shadow its Basename.
-export async function getAvatar(nameOrAddress: string): Promise<string | null> {
+export async function getAvatar(nameOrAddress: AvatarId): Promise<string | null> {
   const name = isEvmAddress(nameOrAddress)
     ? (await lookupAddresses([nameOrAddress]))[nameOrAddress]
     : normalizeBasename(nameOrAddress);

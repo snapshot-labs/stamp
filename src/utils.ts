@@ -6,6 +6,7 @@ import { Response } from 'express';
 import sharp from 'sharp';
 import chains from './chains.json';
 import constants from './constants.json';
+import { formatZodError, imageRouteIdSchemas } from './helpers/validation';
 
 export type Address = string;
 export type Handle = string;
@@ -26,6 +27,10 @@ const providers: Record<string, StaticJsonRpcProvider> = {};
 const RESIZE_FITS = ['cover', 'contain', 'fill', 'inside', 'outside'];
 
 export const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000';
+
+export class InvalidQueryError extends Error {
+  code = 400;
+}
 
 export function getProvider(network: number): StaticJsonRpcProvider {
   if (!providers[`_${network}`])
@@ -92,6 +97,13 @@ export async function parseQuery(id: string, type: ResolverType, query) {
   // console.log('Format', format);
 
   address = address.toLowerCase();
+
+  const idSchema = imageRouteIdSchemas[type as keyof typeof imageRouteIdSchemas];
+  if (idSchema) {
+    const parsedId = idSchema.safeParse(address);
+    if (!parsedId.success) throw new InvalidQueryError(formatZodError(parsedId.error));
+  }
+
   const size = 64;
   const maxSize = type.includes('-cover') ? constants.maxCover : constants.max;
   let s = query.s ? parseInt(query.s) : size;

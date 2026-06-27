@@ -1,6 +1,7 @@
 import request from 'supertest';
 import { KEY_PREFIX } from '../../src/addressResolvers/cache';
 import redis from '../../src/helpers/redis';
+import { avatarIdSchema } from '../../src/helpers/validation';
 import { createTestApp } from '../helpers/testServer';
 
 const app = createTestApp();
@@ -38,6 +39,51 @@ describe('E2E api', () => {
   });
   describe('GET type/TYPE/ID', () => {
     it.todo('returns a 500 status on invalid query');
+
+    describe('route param validation', () => {
+      it('returns a 400 status for an invalid avatar id', async () => {
+        const response = await request(server).get('/avatar/not-an-address');
+
+        expect(response.status).toBe(400);
+      });
+
+      it.each(['a.', '.b'])('returns a 400 status for degenerate avatar handle %s', async id => {
+        const response = await request(server).get(`/avatar/${id}`);
+
+        expect(response.status).toBe(400);
+      });
+
+      it('rejects a single dot as a degenerate avatar handle', () => {
+        expect(avatarIdSchema.safeParse('.').success).toBe(false);
+      });
+
+      it('returns a 400 status for an invalid clear avatar id', async () => {
+        const response = await request(server).get('/clear/avatar/not-an-address');
+
+        expect(response.status).toBe(400);
+      });
+
+      it.each(['/avatar/0xE6D0Dd18C6C3a9Af8C2FaB57d6e6A38E29d513cC', '/avatar/snapshot.eth'])(
+        'does not reject a valid avatar id for %s',
+        async path => {
+          const response = await request(server).get(path);
+
+          expect(response.status).toBe(200);
+        }
+      );
+
+      it('does not reject a plain space slug', async () => {
+        const response = await request(server).get('/space/balancer');
+
+        expect(response.status).toBe(200);
+      });
+
+      it('does not reject a plain token id', async () => {
+        const response = await request(server).get('/token/eth');
+
+        expect(response.status).toBe(200);
+      });
+    });
 
     describe('when the image is not cached', () => {
       it.todo('returns the image');

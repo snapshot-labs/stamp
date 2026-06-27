@@ -15,6 +15,7 @@ import {
   withoutEmptyValues
 } from './utils';
 import { timeAddressResolverResponse as timeResponse } from '../helpers/metrics';
+import { MAX_LOOKUP_ADDRESSES, MAX_RESOLVE_NAMES } from '../helpers/validation';
 import { Address, Handle } from '../utils';
 
 const RESOLVERS = [
@@ -27,8 +28,7 @@ const RESOLVERS = [
   shibariumResolver,
   spaceIdResolver
 ];
-export const MAX_LOOKUP_ADDRESSES = 50;
-export const MAX_RESOLVE_NAMES = 5;
+export { MAX_LOOKUP_ADDRESSES, MAX_RESOLVE_NAMES };
 
 async function _call(fnName: string, input: string[], maxInputLength: number) {
   if (input.length > maxInputLength) {
