@@ -102,12 +102,47 @@ describe('E2E api', () => {
       await purge();
     });
 
+    async function expectInvalidParams(method: string, params: any) {
+      const response = await request(server).post('/').send({ method, params });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe(-32602);
+      expect(typeof response.body.error.data).toBe('string');
+      expect(response.body.error.data.length).toBeGreaterThan(0);
+    }
+
     describe('when passing invalid method', () => {
       it.todo('returns an error');
     });
 
     describe('when method is missing', () => {
       it.todo('returns an error');
+    });
+
+    describe('when params are malformed', () => {
+      const validEvmAddress = '0xE6D0Dd18C6C3a9Af8C2FaB57d6e6A38E29d513cC';
+      const validHandle = 'snapshot.eth';
+
+      it.each([
+        ['lookup_addresses', [[validEvmAddress]]],
+        ['lookup_addresses', [123]],
+        ['lookup_addresses', []],
+        ['lookup_addresses', Array(51).fill(validEvmAddress)],
+        ['resolve_names', [[validHandle]]],
+        ['resolve_names', [123]],
+        ['resolve_names', []],
+        ['resolve_names', Array(6).fill(validHandle)],
+        ['lookup_domains', [validEvmAddress]],
+        ['lookup_domains', 123],
+        ['lookup_domains', []],
+        ['lookup_domains', Array(51).fill(validEvmAddress)],
+        ['get_owner', [validHandle]],
+        ['get_owner', 123],
+        ['get_owner', []],
+        ['get_owner', Array(6).fill(validHandle)]
+      ])('returns invalid params for %s with %p', async (method: string, params: any) => {
+        await expectInvalidParams(method, params);
+      });
     });
 
     describe('on lookup_addresses', () => {

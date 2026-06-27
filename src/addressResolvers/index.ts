@@ -27,8 +27,8 @@ const RESOLVERS = [
   shibariumResolver,
   spaceIdResolver
 ];
-const MAX_LOOKUP_ADDRESSES = 50;
-const MAX_RESOLVE_NAMES = 5;
+export const MAX_LOOKUP_ADDRESSES = 50;
+export const MAX_RESOLVE_NAMES = 5;
 
 async function _call(fnName: string, input: string[], maxInputLength: number) {
   if (input.length > maxInputLength) {

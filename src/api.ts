@@ -1,16 +1,19 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import express from 'express';
+import { z } from 'zod';
 import { clearCache, lookupAddresses, resolveNames } from './addressResolvers';
 import { clear, get, set, streamToBuffer } from './aws';
 import constants from './constants.json';
 import getOwner from './getOwner';
-import { rpcError, rpcSuccess } from './helpers/utils';
+import { rpcError, rpcInvalidParams, rpcSuccess } from './helpers/utils';
+import { formatZodError, schemas } from './helpers/validation';
 import lookupDomains from './lookupDomains';
 import resolvers from './resolvers';
 import { getCacheKey, parseQuery, resize, ResolverType, setHeader } from './utils';
 
 const router = express.Router();
 const TYPE_CONSTRAINTS = [...Object.keys(constants.resolvers), 'address', 'name'].join('|');
+type Params<M extends keyof typeof schemas> = z.infer<(typeof schemas)[M]>;
 
 router.post('/', async (req, res) => {
   const { id = null, method, params } = req.body;
@@ -18,17 +21,20 @@ router.post('/', async (req, res) => {
   try {
     let result: any = {};
 
-    if (method === 'lookup_domains') {
-      result = await lookupDomains(params, req.body.network);
-    } else if (method === 'get_owner') {
-      result = await getOwner(params, req.body.network);
-    } else if (['lookup_addresses', 'resolve_names'].includes(method)) {
-      if (!Array.isArray(params))
-        return rpcError(res, 400, 'params must be an array of string', id);
+    const schema = schemas[method as keyof typeof schemas];
+    if (!schema) return rpcError(res, 400, 'invalid method', id);
 
-      if (method === 'lookup_addresses') result = await lookupAddresses(params);
-      else result = await resolveNames(params);
-    } else return rpcError(res, 400, 'invalid method', id);
+    const parsedParams = schema.safeParse(params);
+    if (!parsedParams.success) return rpcInvalidParams(res, formatZodError(parsedParams.error), id);
+    const data = parsedParams.data;
+
+    if (method === 'lookup_domains')
+      result = await lookupDomains(data as Params<'lookup_domains'>, req.body.network);
+    else if (method === 'get_owner')
+      result = await getOwner(data as Params<'get_owner'>, req.body.network);
+    else if (method === 'lookup_addresses')
+      result = await lookupAddresses(data as Params<'lookup_addresses'>);
+    else result = await resolveNames(data as Params<'resolve_names'>);
 
     if (result?.error) return rpcError(res, result.code || 500, result.error, id);
     return rpcSuccess(res, result, id);
