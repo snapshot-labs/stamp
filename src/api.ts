@@ -1,5 +1,6 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import express from 'express';
+import { z } from 'zod';
 import { clearCache, lookupAddresses, resolveNames } from './addressResolvers';
 import { clear, get, set, streamToBuffer } from './aws';
 import constants from './constants.json';
@@ -12,6 +13,7 @@ import { getCacheKey, parseQuery, resize, ResolverType, setHeader } from './util
 
 const router = express.Router();
 const TYPE_CONSTRAINTS = [...Object.keys(constants.resolvers), 'address', 'name'].join('|');
+type Params<M extends keyof typeof schemas> = z.infer<(typeof schemas)[M]>;
 
 router.post('/', async (req, res) => {
   const { id = null, method, params } = req.body;
@@ -26,10 +28,13 @@ router.post('/', async (req, res) => {
     if (!parsedParams.success) return rpcInvalidParams(res, formatZodError(parsedParams.error), id);
     const data = parsedParams.data;
 
-    if (method === 'lookup_domains') result = await lookupDomains(data as string, req.body.network);
-    else if (method === 'get_owner') result = await getOwner(data as string, req.body.network);
-    else if (method === 'lookup_addresses') result = await lookupAddresses(data as string[]);
-    else result = await resolveNames(data as string[]);
+    if (method === 'lookup_domains')
+      result = await lookupDomains(data as Params<'lookup_domains'>, req.body.network);
+    else if (method === 'get_owner')
+      result = await getOwner(data as Params<'get_owner'>, req.body.network);
+    else if (method === 'lookup_addresses')
+      result = await lookupAddresses(data as Params<'lookup_addresses'>);
+    else result = await resolveNames(data as Params<'resolve_names'>);
 
     if (result?.error) return rpcError(res, result.code || 500, result.error, id);
     return rpcSuccess(res, result, id);
