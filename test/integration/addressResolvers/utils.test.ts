@@ -89,6 +89,26 @@ describe('utils', () => {
       expect(isSilencedError(axiosError)).toBe(true);
     });
 
+    it('silences undici fetch failures with transient socket causes', () => {
+      const fetchError = new TypeError('fetch failed') as TypeError & {
+        cause?: Error & { code?: string };
+      };
+      fetchError.cause = Object.assign(new Error('read ECONNRESET'), {
+        code: 'ECONNRESET'
+      });
+
+      expect(isSilencedError(fetchError)).toBe(true);
+    });
+
+    it('silences errors matched by cause message', () => {
+      const fetchError = new TypeError('fetch failed') as TypeError & {
+        cause?: Error;
+      };
+      fetchError.cause = new Error('bad response status=504');
+
+      expect(isSilencedError(fetchError)).toBe(true);
+    });
+
     it('does not silence a non-504 axios error', () => {
       const axiosError = {
         message: 'Request failed with status code 500',

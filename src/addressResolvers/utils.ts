@@ -58,9 +58,20 @@ export function isSilencedError(error: any, additionalMessages?: string[]): bool
     'Received error status from DNS server: 2.',
     ...(additionalMessages || [])
   ];
-  const codes = [error.error?.code, error.error?.status, error.code, error.response?.status];
+  const codes = [
+    error.error?.code,
+    error.error?.status,
+    error.code,
+    error.response?.status,
+    error.cause?.code
+  ];
   return (
-    messages.some(m => error.message?.includes(m) || error.error?.message?.includes(m)) ||
+    messages.some(
+      m =>
+        error.message?.includes(m) ||
+        error.error?.message?.includes(m) ||
+        error.cause?.message?.includes(m)
+    ) ||
     ['TIMEOUT', 'ECONNABORTED', 'ETIMEDOUT', 'ECONNRESET', 504].some(c =>
       codes.some(v => String(v ?? '').includes(String(c)))
     )
