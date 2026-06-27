@@ -5,13 +5,7 @@ import { clear, get, set, streamToBuffer } from './aws';
 import constants from './constants.json';
 import getOwner from './getOwner';
 import { rpcError, rpcInvalidParams, rpcSuccess } from './helpers/utils';
-import {
-  formatZodError,
-  getOwnerSchema,
-  lookupAddressesSchema,
-  lookupDomainsSchema,
-  resolveNamesSchema
-} from './helpers/validation';
+import { formatZodError, schemas } from './helpers/validation';
 import lookupDomains from './lookupDomains';
 import resolvers from './resolvers';
 import { getCacheKey, parseQuery, resize, ResolverType, setHeader } from './utils';
@@ -25,31 +19,17 @@ router.post('/', async (req, res) => {
   try {
     let result: any = {};
 
-    if (method === 'lookup_domains') {
-      const parsedParams = lookupDomainsSchema.safeParse(params);
-      if (!parsedParams.success)
-        return rpcInvalidParams(res, formatZodError(parsedParams.error), id);
+    const schema = schemas[method as keyof typeof schemas];
+    if (!schema) return rpcError(res, 400, 'invalid method', id);
 
-      result = await lookupDomains(parsedParams.data, req.body.network);
-    } else if (method === 'get_owner') {
-      const parsedParams = getOwnerSchema.safeParse(params);
-      if (!parsedParams.success)
-        return rpcInvalidParams(res, formatZodError(parsedParams.error), id);
+    const parsedParams = schema.safeParse(params);
+    if (!parsedParams.success) return rpcInvalidParams(res, formatZodError(parsedParams.error), id);
+    const data = parsedParams.data;
 
-      result = await getOwner(parsedParams.data, req.body.network);
-    } else if (method === 'lookup_addresses') {
-      const parsedParams = lookupAddressesSchema.safeParse(params);
-      if (!parsedParams.success)
-        return rpcInvalidParams(res, formatZodError(parsedParams.error), id);
-
-      result = await lookupAddresses(parsedParams.data);
-    } else if (method === 'resolve_names') {
-      const parsedParams = resolveNamesSchema.safeParse(params);
-      if (!parsedParams.success)
-        return rpcInvalidParams(res, formatZodError(parsedParams.error), id);
-
-      result = await resolveNames(parsedParams.data);
-    } else return rpcError(res, 400, 'invalid method', id);
+    if (method === 'lookup_domains') result = await lookupDomains(data as string, req.body.network);
+    else if (method === 'get_owner') result = await getOwner(data as string, req.body.network);
+    else if (method === 'lookup_addresses') result = await lookupAddresses(data as string[]);
+    else result = await resolveNames(data as string[]);
 
     if (result?.error) return rpcError(res, result.code || 500, result.error, id);
     return rpcSuccess(res, result, id);
