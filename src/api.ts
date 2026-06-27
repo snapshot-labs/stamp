@@ -4,7 +4,14 @@ import { clearCache, lookupAddresses, resolveNames } from './addressResolvers';
 import { clear, get, set, streamToBuffer } from './aws';
 import constants from './constants.json';
 import getOwner from './getOwner';
-import { rpcError, rpcSuccess } from './helpers/utils';
+import { rpcError, rpcInvalidParams, rpcSuccess } from './helpers/utils';
+import {
+  formatZodError,
+  getOwnerSchema,
+  lookupAddressesSchema,
+  lookupDomainsSchema,
+  resolveNamesSchema
+} from './helpers/validation';
 import lookupDomains from './lookupDomains';
 import resolvers from './resolvers';
 import { getCacheKey, parseQuery, resize, ResolverType, setHeader } from './utils';
@@ -19,15 +26,29 @@ router.post('/', async (req, res) => {
     let result: any = {};
 
     if (method === 'lookup_domains') {
-      result = await lookupDomains(params, req.body.network);
-    } else if (method === 'get_owner') {
-      result = await getOwner(params, req.body.network);
-    } else if (['lookup_addresses', 'resolve_names'].includes(method)) {
-      if (!Array.isArray(params))
-        return rpcError(res, 400, 'params must be an array of string', id);
+      const parsedParams = lookupDomainsSchema.safeParse(params);
+      if (!parsedParams.success)
+        return rpcInvalidParams(res, formatZodError(parsedParams.error), id);
 
-      if (method === 'lookup_addresses') result = await lookupAddresses(params);
-      else result = await resolveNames(params);
+      result = await lookupDomains(parsedParams.data, req.body.network);
+    } else if (method === 'get_owner') {
+      const parsedParams = getOwnerSchema.safeParse(params);
+      if (!parsedParams.success)
+        return rpcInvalidParams(res, formatZodError(parsedParams.error), id);
+
+      result = await getOwner(parsedParams.data, req.body.network);
+    } else if (method === 'lookup_addresses') {
+      const parsedParams = lookupAddressesSchema.safeParse(params);
+      if (!parsedParams.success)
+        return rpcInvalidParams(res, formatZodError(parsedParams.error), id);
+
+      result = await lookupAddresses(parsedParams.data);
+    } else if (method === 'resolve_names') {
+      const parsedParams = resolveNamesSchema.safeParse(params);
+      if (!parsedParams.success)
+        return rpcInvalidParams(res, formatZodError(parsedParams.error), id);
+
+      result = await resolveNames(parsedParams.data);
     } else return rpcError(res, 400, 'invalid method', id);
 
     if (result?.error) return rpcError(res, result.code || 500, result.error, id);

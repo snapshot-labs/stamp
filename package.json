@@ -45,7 +45,8 @@
     "sharp": "^0.34.5",
     "starknet": "^6.11.0",
     "ts-node": "^10.8.1",
-    "typescript": "^4.7.3"
+    "typescript": "^4.7.3",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@snapshot-labs/eslint-config": "^0.1.1",

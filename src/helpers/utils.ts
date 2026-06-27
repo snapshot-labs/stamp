@@ -17,3 +17,15 @@ export function rpcError(res, code, e, id) {
     id
   });
 }
+
+export function rpcInvalidParams(res, data, id) {
+  res.status(400).json({
+    jsonrpc: '2.0',
+    error: {
+      code: -32602,
+      message: 'Invalid params',
+      data
+    },
+    id
+  });
+}
