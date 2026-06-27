@@ -35,12 +35,17 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
   if (normalizedAddresses.length === 0) return {};
 
   try {
-    const reverseRecords = await snapshot.utils.call(
-      provider,
-      abi,
-      ['0x3671aE578E63FdF66ad4F3E12CC0c0d71Ac7510C', 'getNames', [normalizedAddresses]],
-      { blockTag: 'latest' }
-    );
+    let reverseRecords: string[] = [];
+    try {
+      reverseRecords = await snapshot.utils.call(
+        provider,
+        abi,
+        ['0x3671aE578E63FdF66ad4F3E12CC0c0d71Ac7510C', 'getNames', [normalizedAddresses]],
+        { blockTag: 'latest' }
+      );
+    } catch (err: any) {
+      if (err?.code !== 'CALL_EXCEPTION') throw err;
+    }
     const validNames = normalizeEns(reverseRecords);
 
     // The batch contract only reads on-chain reverse records. Names served by
