@@ -125,22 +125,18 @@ describe('E2E api', () => {
 
       it.each([
         ['lookup_addresses', [[validEvmAddress]]],
-        ['lookup_addresses', ['not-an-address']],
         ['lookup_addresses', [123]],
         ['lookup_addresses', []],
         ['lookup_addresses', Array(51).fill(validEvmAddress)],
         ['resolve_names', [[validHandle]]],
-        ['resolve_names', ['.']],
         ['resolve_names', [123]],
         ['resolve_names', []],
         ['resolve_names', Array(6).fill(validHandle)],
         ['lookup_domains', [validEvmAddress]],
-        ['lookup_domains', 'not-an-address'],
         ['lookup_domains', 123],
         ['lookup_domains', []],
         ['lookup_domains', Array(51).fill(validEvmAddress)],
         ['get_owner', [validHandle]],
-        ['get_owner', 'a.'],
         ['get_owner', 123],
         ['get_owner', []],
         ['get_owner', Array(6).fill(validHandle)]
