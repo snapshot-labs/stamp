@@ -1,7 +1,12 @@
+import { capture } from '@snapshot-labs/snapshot-sentry';
 import snapshot from '@snapshot-labs/snapshot.js';
 import testAddressResolver from './helper';
 import { lookupAddresses, resolveNames } from '../../../src/addressResolvers/ens';
 import { FetchError } from '../../../src/addressResolvers/utils';
+
+jest.mock('@snapshot-labs/snapshot-sentry', () => ({
+  capture: jest.fn()
+}));
 
 testAddressResolver({
   name: 'ENS',
@@ -35,14 +40,17 @@ describe('ENS address resolver: CCIP-Read fallback', () => {
   }, 20e3);
 
   it('still surfaces non-CALL_EXCEPTION batch errors', async () => {
-    jest.spyOn(snapshot.utils, 'call').mockRejectedValueOnce(
-      Object.assign(new Error('timeout'), {
-        code: 'ETIMEDOUT'
-      })
-    );
+    const error = Object.assign(new Error('boom'), {
+      code: 'SERVER_ERROR'
+    });
+    const callSpy = jest.spyOn(snapshot.utils, 'call').mockRejectedValueOnce(error);
+    const address = '0xE6D0Dd18C6C3a9Af8C2FaB57d6e6A38E29d513cC';
 
-    await expect(
-      lookupAddresses(['0xE6D0Dd18C6C3a9Af8C2FaB57d6e6A38E29d513cC'])
-    ).rejects.toBeInstanceOf(FetchError);
+    try {
+      await expect(lookupAddresses([address])).rejects.toBeInstanceOf(FetchError);
+      expect(capture).toHaveBeenCalledWith(error, { input: { addresses: [address] } });
+    } finally {
+      callSpy.mockRestore();
+    }
   });
 });
