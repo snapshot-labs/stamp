@@ -1,5 +1,7 @@
 import { getAddress } from '@ethersproject/address';
-import { namehash } from '@ethersproject/hash';
+import { concat } from '@ethersproject/bytes';
+import { keccak256 } from '@ethersproject/keccak256';
+import { toUtf8Bytes } from '@ethersproject/strings';
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import { Address, batchContractCalls, EMPTY_ADDRESS, Handle } from '../utils';
 import { FetchError, provider as getProvider, isEvmAddress, isSilencedError } from './utils';
@@ -25,10 +27,22 @@ function normalizeHandles(handles: Handle[]): Handle[] {
   return handles.filter(h => h.endsWith(TLD));
 }
 
-// Token id is the ENS namehash of the name; '' when it can't be normalized.
+// Token id is the namehash of the name. Unlike ethers' namehash, the GNS
+// contract only lowercases ASCII and hashes raw UTF-8 bytes (no Unicode NFC),
+// so we mirror that exactly — otherwise composed/decomposed twins of a name
+// would hash to the same id and resolve to the wrong owner.
 function tokenId(handle: Handle): string {
   try {
-    return namehash(handle);
+    const labels = handle
+      .replace(/\.gwei$/i, '')
+      .split('.')
+      .concat('gwei');
+    let node = `0x${'00'.repeat(32)}`;
+    for (let i = labels.length - 1; i >= 0; i--) {
+      const label = labels[i].replace(/[A-Z]/g, c => c.toLowerCase());
+      node = keccak256(concat([node, keccak256(toUtf8Bytes(label))]));
+    }
+    return node;
   } catch {
     return '';
   }
