@@ -1,6 +1,7 @@
 import * as basenameResolver from './basename';
 import cache, { clear } from './cache';
 import * as ensResolver from './ens';
+import * as gweiResolver from './gwei';
 import * as lensResolver from './lens';
 import * as shibariumResolver from './shibarium';
 import * as snapshotResolver from './snapshot';
@@ -25,7 +26,8 @@ const RESOLVERS = [
   lensResolver,
   starknetResolver,
   shibariumResolver,
-  spaceIdResolver
+  spaceIdResolver,
+  gweiResolver
 ];
 export const MAX_LOOKUP_ADDRESSES = 50;
 export const MAX_RESOLVE_NAMES = 5;
