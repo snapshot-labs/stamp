@@ -12,7 +12,7 @@ describe('lookupDomains', () => {
   it('should return an array of addresses on sepolia', async () => {
     const result = await lookupDomains('0x24F15402C6Bb870554489b2fd2049A85d75B982f', '11155111');
 
-    expect(result).toContain('testchaitu.eth');
+    expect(result).toContain('chaitu.eth');
   });
 
   it('should return an empty array if the address is not provided', async () => {
