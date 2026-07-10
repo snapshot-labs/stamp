@@ -48,7 +48,8 @@
     "sharp": "^0.34.5",
     "starknet": ">=6.21.0 <6.21.2",
     "ts-node": "^10.8.1",
-    "typescript": "^4.7.3",
+    "typescript": "5.4.5",
+    "viem": "2.37.6",
     "zod": "^3.25.76"
   },
   "devDependencies": {

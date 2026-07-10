@@ -1,7 +1,7 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
-import snapshot from '@snapshot-labs/snapshot.js';
 import testAddressResolver from './helper';
 import { lookupAddresses, resolveNames } from '../../../src/addressResolvers/ens';
+import * as universalResolver from '../../../src/addressResolvers/universalResolver';
 
 jest.mock('@snapshot-labs/snapshot-sentry', () => ({
   capture: jest.fn()
@@ -17,41 +17,65 @@ testAddressResolver({
   invalidDomains: ['domain.crypto', 'domain.lens', 'domain.com']
 });
 
-describe('ENS address resolver: CCIP-Read fallback', () => {
-  // jesse.base.eth's primary name is set via an off-chain resolver that the batch
-  // getNames contract doesn't follow, so the fallback to provider.lookupAddress
-  // is required.
-  it('resolves names that the batch contract misses', async () => {
+describe('ENS address resolver: Universal Resolver', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('resolves names served by off-chain (CCIP-Read) resolvers', async () => {
     const address = '0x2211d1D0020DAEA8039E46Cf1367962070d77DA9';
     await expect(lookupAddresses([address])).resolves.toEqual({
       [address]: 'jesse.base.eth'
     });
-  }, 15e3);
+  }, 20e3);
 
-  it('falls back to per-address lookups when the batch reverse call reverts', async () => {
-    const ccipAddress = '0x3a872f8FED4421E7d5BE5c98Ab5Ea0e0245169A0';
-    const goodAddress = '0xE6D0Dd18C6C3a9Af8C2FaB57d6e6A38E29d513cC';
+  it('returns nothing for an expired name without throwing', async () => {
+    const address = '0x9c3aC02Cd616a82C83830e40D45c9534b32c4934';
+    await expect(lookupAddresses([address])).resolves.toEqual({});
+  }, 20e3);
 
-    await expect(lookupAddresses([ccipAddress])).resolves.toEqual({});
-    await expect(lookupAddresses([ccipAddress, goodAddress])).resolves.toEqual({
-      [goodAddress]: 'sdntestens.eth'
+  it('isolates per-address failures within a batch', async () => {
+    const expired = '0x9c3aC02Cd616a82C83830e40D45c9534b32c4934';
+    const good = '0xE6D0Dd18C6C3a9Af8C2FaB57d6e6A38E29d513cC';
+
+    await expect(lookupAddresses([expired, good])).resolves.toEqual({
+      [good]: 'sdntestens.eth'
     });
   }, 20e3);
 
-  it('still surfaces non-CALL_EXCEPTION batch errors', async () => {
-    const error = Object.assign(new Error('boom'), {
-      code: 'SERVER_ERROR'
-    });
-    const callSpy = jest.spyOn(snapshot.utils, 'call').mockRejectedValueOnce(error);
+  it('rethrows the original error when the whole batch fails', async () => {
+    const error = Object.assign(new Error('boom'), { code: 'SERVER_ERROR' });
+    jest
+      .spyOn(universalResolver, 'reverseLookup')
+      .mockResolvedValueOnce({ values: {}, errors: [error] });
     const address = '0xE6D0Dd18C6C3a9Af8C2FaB57d6e6A38E29d513cC';
 
-    try {
-      // The resolver rethrows the original error untouched. Reporting it is
-      // addressResolvers/index.ts' job now, so nothing is captured here.
-      await expect(lookupAddresses([address])).rejects.toBe(error);
-      expect(capture).not.toHaveBeenCalled();
-    } finally {
-      callSpy.mockRestore();
-    }
+    // The resolver rethrows the original error untouched. Reporting it is
+    // addressResolvers/index.ts' job now, so nothing is captured here.
+    await expect(lookupAddresses([address])).rejects.toBe(error);
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('reports the errors of a partly resolved batch, which never reach index.ts', async () => {
+    const error = Object.assign(new Error('boom'), { code: 'SERVER_ERROR' });
+    const good = '0xE6D0Dd18C6C3a9Af8C2FaB57d6e6A38E29d513cC';
+    const bad = '0x9c3aC02Cd616a82C83830e40D45c9534b32c4934';
+    jest
+      .spyOn(universalResolver, 'reverseLookup')
+      .mockResolvedValueOnce({ values: { [good]: 'sdntestens.eth' }, errors: [error] });
+
+    await expect(lookupAddresses([bad, good])).resolves.toEqual({ [good]: 'sdntestens.eth' });
+    expect(capture).toHaveBeenCalledWith(error, { input: { addresses: [bad, good] } });
+  });
+
+  it('does not report a silenced error', async () => {
+    const error = Object.assign(new Error('boom'), { code: 'ETIMEDOUT' });
+    const good = '0xE6D0Dd18C6C3a9Af8C2FaB57d6e6A38E29d513cC';
+    jest
+      .spyOn(universalResolver, 'reverseLookup')
+      .mockResolvedValueOnce({ values: { [good]: 'sdntestens.eth' }, errors: [error] });
+
+    await expect(lookupAddresses([good])).resolves.toEqual({ [good]: 'sdntestens.eth' });
+    expect(capture).not.toHaveBeenCalled();
   });
 });
