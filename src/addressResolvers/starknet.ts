@@ -1,41 +1,14 @@
-import axios from 'axios';
-import { isStarknetAddress, withoutEmptyValues } from './utils';
+import { provider as getProvider, isStarknetAddress, withoutEmptyValues } from './utils';
 import { Address, Handle } from '../utils';
 
 export const NAME = 'Starknet';
-const BASE_URL = 'https://api.starknet.id';
+const NETWORK = '0x534e5f4d41494e';
+const NOT_FOUND_ERROR = 'Starkname not found';
+const EMPTY_STARKNET_ADDRESS = '0x0';
+const provider = getProvider(NETWORK);
 
-type RESOLVE_TYPE = 'addr_to_domain' | 'domain_to_addr';
-
-function buildApiUrl(resolve_type: RESOLVE_TYPE, needle: string): string {
-  return `${BASE_URL}/${resolve_type}?${
-    resolve_type === 'addr_to_domain' ? 'addr' : 'domain'
-  }=${needle}`;
-}
-
-async function apiCall(
-  resolve_type: RESOLVE_TYPE,
-  needles: string[]
-): Promise<Record<string, string>> {
-  const requests = needles.map(needle =>
-    axios.get(buildApiUrl(resolve_type, needle), { timeout: 5e3 })
-  );
-  const responses = await Promise.allSettled(requests);
-
-  return withoutEmptyValues(
-    Object.fromEntries(
-      needles.map((needle, i) => {
-        const response = responses[i];
-        let value: string | undefined;
-
-        if (response.status === 'fulfilled') {
-          value = response.value.data[resolve_type === 'addr_to_domain' ? 'domain' : 'addr'];
-        }
-
-        return [needle, value];
-      })
-    )
-  );
+function padAddress(address: Address): Address {
+  return `0x${address.replace(/^0x/, '').padStart(64, '0')}`;
 }
 
 function normalizeAddresses(addresses: Address[]): Address[] {
@@ -46,12 +19,30 @@ function normalizeHandles(handles: Handle[]): Handle[] {
   return handles.filter(h => h.endsWith('.stark'));
 }
 
+async function resolveEach(
+  needles: string[],
+  lookup: (needle: string) => Promise<string | undefined>
+): Promise<Record<string, string>> {
+  const values = await Promise.all(
+    needles.map(async needle => {
+      try {
+        return await lookup(needle);
+      } catch (err: any) {
+        if (err?.message?.includes(NOT_FOUND_ERROR)) return undefined;
+        throw err;
+      }
+    })
+  );
+
+  return withoutEmptyValues(Object.fromEntries(needles.map((needle, i) => [needle, values[i]])));
+}
+
 export async function lookupAddresses(addresses: Address[]): Promise<Record<Address, Handle>> {
   const normalizedAddresses = normalizeAddresses(addresses);
 
   if (normalizedAddresses.length === 0) return {};
 
-  return await apiCall('addr_to_domain', normalizedAddresses);
+  return await resolveEach(normalizedAddresses, address => provider.getStarkName(address));
 }
 
 export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Address>> {
@@ -59,5 +50,9 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
 
   if (normalizedHandles.length === 0) return {};
 
-  return await apiCall('domain_to_addr', normalizedHandles);
+  return await resolveEach(normalizedHandles, async handle => {
+    const address = await provider.getAddressFromStarkName(handle);
+
+    return !address || address === EMPTY_STARKNET_ADDRESS ? undefined : padAddress(address);
+  });
 }
