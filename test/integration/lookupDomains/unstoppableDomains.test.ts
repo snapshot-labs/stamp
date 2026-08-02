@@ -26,7 +26,11 @@ describe('lookupDomains/unstoppableDomains', () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
-    process.env.UNSTOPPABLE_DOMAINS_API_KEY = apiKey;
+    if (apiKey === undefined) {
+      delete process.env.UNSTOPPABLE_DOMAINS_API_KEY;
+    } else {
+      process.env.UNSTOPPABLE_DOMAINS_API_KEY = apiKey;
+    }
   });
 
   it('reports the HTTP status when the API is rate limited', async () => {
