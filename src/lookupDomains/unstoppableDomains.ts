@@ -23,8 +23,21 @@ async function fetchDomains(
     }
   );
 
-  return response.json();
+  if (!response.ok) {
+    throw new Error(
+      `Unstoppable Domains API error: HTTP ${response.status} ${response.statusText}`
+    );
+  }
+
+  const data = await response.json();
+
+  if (!Array.isArray(data?.data)) {
+    throw new Error('Unstoppable Domains API error: response body is missing a data array');
+  }
+
+  return data;
 }
+
 export default async function lookupDomains(address: Address, chainId: string): Promise<Handle[]> {
   if (chainId !== DEFAULT_CHAIN_ID) return [];
 
