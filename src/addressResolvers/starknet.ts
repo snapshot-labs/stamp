@@ -1,15 +1,12 @@
+import { validateAndParseAddress } from 'starknet';
 import { provider as getProvider, isStarknetAddress, withoutEmptyValues } from './utils';
 import { Address, Handle } from '../utils';
 
 export const NAME = 'Starknet';
 const NETWORK = '0x534e5f4d41494e';
 const NOT_FOUND_ERROR = 'Starkname not found';
-const EMPTY_STARKNET_ADDRESS = '0x0';
+const EMPTY_STARKNET_ADDRESS = `0x${'0'.repeat(64)}`;
 const provider = getProvider(NETWORK);
-
-function padAddress(address: Address): Address {
-  return `0x${address.replace(/^0x/, '').padStart(64, '0')}`;
-}
 
 function normalizeAddresses(addresses: Address[]): Address[] {
   return addresses.filter(isStarknetAddress);
@@ -53,6 +50,10 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
   return await resolveEach(normalizedHandles, async handle => {
     const address = await provider.getAddressFromStarkName(handle);
 
-    return !address || address === EMPTY_STARKNET_ADDRESS ? undefined : padAddress(address);
+    if (!address) return undefined;
+
+    const parsedAddress = validateAndParseAddress(address);
+
+    return parsedAddress === EMPTY_STARKNET_ADDRESS ? undefined : parsedAddress;
   });
 }
