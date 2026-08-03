@@ -1,5 +1,6 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import fetch from 'node-fetch';
+import { isSilencedError } from '../addressResolvers/utils';
 import constants from '../constants.json';
 import { Address, Handle } from '../utils';
 
@@ -44,7 +45,9 @@ export default async function lookupDomains(
         }
 
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          throw Object.assign(new Error(`HTTP ${response.status}: ${response.statusText}`), {
+            status: response.status
+          });
         }
 
         let data: { pageItems?: Array<{ sld: string; tld: string }> };
@@ -60,7 +63,9 @@ export default async function lookupDomains(
         hasMore = domains.length === PAGE_SIZE;
         skip += PAGE_SIZE;
       } catch (err) {
-        capture(err, { input: { address, chainId, skip } });
+        if (!isSilencedError(err)) {
+          capture(err, { input: { address, chainId, skip } });
+        }
         break;
       } finally {
         clearTimeout(timeoutId);
@@ -69,7 +74,9 @@ export default async function lookupDomains(
 
     return allDomains;
   } catch (err) {
-    capture(err);
+    if (!isSilencedError(err)) {
+      capture(err);
+    }
     return allDomains;
   }
 }
