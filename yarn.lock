@@ -2820,26 +2820,26 @@
   resolved "https://registry.yarnpkg.com/@snapshot-labs/prettier-config/-/prettier-config-0.1.0.tgz#f0eafa4a3aed6a7fabaf88c016659f3343041071"
   integrity sha512-8MYAHuewlAdJs55f94qQtEs/WLFmjgYfuIVb1iJPa9gUZauHEXMzbVpKZfnkQsgpwwcXxq9hzg0S/OeOkgj3+w==
 
-"@snapshot-labs/snapshot-metrics@^1.4.3":
-  version "1.4.3"
-  resolved "https://registry.yarnpkg.com/@snapshot-labs/snapshot-metrics/-/snapshot-metrics-1.4.3.tgz#5d482dce48c8cdce828eb0543e97f0923bc70cbb"
-  integrity sha512-qbv2opVqKqYJApmt3UJuk4nBnGsrdMps2z+4WTQf7DzGVeecId3nRpBGCfv16TIZ5wuzw5qFNsczKCpLVc4lvw==
+"@snapshot-labs/snapshot-metrics@^1.5.0":
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/@snapshot-labs/snapshot-metrics/-/snapshot-metrics-1.5.0.tgz#5b650e5d62fa9934c44771e688d6dfcaeb2090ee"
+  integrity sha512-wiWJWo72yZZ4Bq5hvFPCNCzWLJFpbZc86Wbr7UcR+CZqCVpQU6h++XGcekmeikygirhGiQkiFAnBw3y+fQ3AmQ==
   dependencies:
     express-prom-bundle "^6.6.0"
     node-fetch "^2.7.0"
     prom-client "^14.2.0"
 
-"@snapshot-labs/snapshot-sentry@^3.0.1":
-  version "3.0.1"
-  resolved "https://registry.yarnpkg.com/@snapshot-labs/snapshot-sentry/-/snapshot-sentry-3.0.1.tgz#e9c6e43b1a592e02c6d41fc769e0ca4e34dda9b7"
-  integrity sha512-SURO5JZA5k64Qxe5iUVUOjpxNyRcdwj+sP0UrxlMLXXqtf4yRAm91fFKHnn0AhO1F757ldrt3faZVSftcCRASQ==
+"@snapshot-labs/snapshot-sentry@^3.1.0":
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/@snapshot-labs/snapshot-sentry/-/snapshot-sentry-3.1.0.tgz#9e9c306ea6e32025d6c902fbe45e7e882dbde2a3"
+  integrity sha512-MIIQyW0GZisXa93JvDWFdMO0Ycu9JXBH0P3ca0qJ7HhbxfNrzqLOr1dzhKdhXT0e+sTWO7UCxdeQTGF3dV0l7w==
   dependencies:
     "@sentry/node" "^10.52.0"
 
-"@snapshot-labs/snapshot.js@^0.14.25":
-  version "0.14.25"
-  resolved "https://registry.yarnpkg.com/@snapshot-labs/snapshot.js/-/snapshot.js-0.14.25.tgz#26dfa24b9f1266d0fec4cda50f753c6173558912"
-  integrity sha512-OoelS4LGcACBLsq75Qs3EddG1dKUPF4yOCBt9f7CDO2Qlb/7INJzlpIWk7W07QBUOlTKcXWgZGbfxzdy8wWqVw==
+"@snapshot-labs/snapshot.js@^0.14.26":
+  version "0.14.26"
+  resolved "https://registry.yarnpkg.com/@snapshot-labs/snapshot.js/-/snapshot.js-0.14.26.tgz#fe4495a08cde7fa00f9308075a847f0b0317598f"
+  integrity sha512-R6Gfdo7jeZVBfZ0k4lWa7HfwaKqlSocU7ACYOAv2TdOj4QGWsZ4jwv+r2ZmQguiwDrzVefwMywxzgE4erG/S+g==
   dependencies:
     "@ensdomains/eth-ens-namehash" "^2.0.15"
     "@ethersproject/abi" "^5.6.4"
