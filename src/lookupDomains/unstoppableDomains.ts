@@ -24,8 +24,9 @@ async function fetchDomains(
   );
 
   if (!response.ok) {
-    throw new Error(
-      `Unstoppable Domains API error: HTTP ${response.status} ${response.statusText}`
+    throw Object.assign(
+      new Error(`Unstoppable Domains API error: HTTP ${response.status} ${response.statusText}`),
+      { status: response.status }
     );
   }
 
