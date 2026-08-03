@@ -33,7 +33,7 @@ describe('lookupDomains/unstoppableDomains', () => {
     }
   });
 
-  it('reports the HTTP status when the API is rate limited', async () => {
+  it('does not report a rate limit to Sentry', async () => {
     mockFetch({
       status: 429,
       statusText: 'Too Many Requests',
@@ -41,9 +41,23 @@ describe('lookupDomains/unstoppableDomains', () => {
     });
 
     await expect(lookupDomains(ADDRESS, DEFAULT_CHAIN_ID)).rejects.toBeInstanceOf(FetchError);
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('does not report a gateway timeout to Sentry', async () => {
+    mockFetch({ status: 504, statusText: 'Gateway Timeout', body: {} });
+
+    await expect(lookupDomains(ADDRESS, DEFAULT_CHAIN_ID)).rejects.toBeInstanceOf(FetchError);
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('reports a server error to Sentry', async () => {
+    mockFetch({ status: 500, statusText: 'Internal Server Error', body: {} });
+
+    await expect(lookupDomains(ADDRESS, DEFAULT_CHAIN_ID)).rejects.toBeInstanceOf(FetchError);
     expect(capture).toHaveBeenCalledWith(
       expect.objectContaining({
-        message: 'Unstoppable Domains API error: HTTP 429 Too Many Requests'
+        message: 'Unstoppable Domains API error: HTTP 500 Internal Server Error'
       }),
       { input: { address: ADDRESS } }
     );

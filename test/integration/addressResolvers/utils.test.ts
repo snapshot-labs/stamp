@@ -109,6 +109,43 @@ describe('utils', () => {
       expect(isSilencedError(fetchError)).toBe(true);
     });
 
+    it('silences a rate limit carrying its HTTP status', () => {
+      const rateLimited = Object.assign(
+        new Error('Unstoppable Domains API error: HTTP 429 Too Many Requests'),
+        { status: 429 }
+      );
+
+      expect(isSilencedError(rateLimited)).toBe(true);
+    });
+
+    it('silences a gateway timeout carrying its HTTP status', () => {
+      const gatewayTimeout = Object.assign(
+        new Error('Unstoppable Domains API error: HTTP 504 Gateway Timeout'),
+        { status: 504 }
+      );
+
+      expect(isSilencedError(gatewayTimeout)).toBe(true);
+    });
+
+    it('does not silence other HTTP statuses carried on the error', () => {
+      const unauthorized = Object.assign(
+        new Error('Unstoppable Domains API error: HTTP 401 Unauthorized'),
+        { status: 401 }
+      );
+
+      expect(isSilencedError(unauthorized)).toBe(false);
+    });
+
+    it('silences an axios 429', () => {
+      const axiosError = {
+        message: 'Request failed with status code 429',
+        code: 'ERR_BAD_REQUEST',
+        response: { status: 429 }
+      };
+
+      expect(isSilencedError(axiosError)).toBe(true);
+    });
+
     it('does not silence a non-504 axios error', () => {
       const axiosError = {
         message: 'Request failed with status code 500',
