@@ -8,8 +8,21 @@ const NOT_FOUND_ERROR = 'Starkname not found';
 const EMPTY_STARKNET_ADDRESS = `0x${'0'.repeat(64)}`;
 const provider = getProvider(NETWORK);
 
+// A 64 hex-digit string is not necessarily a valid Starknet address: anything above
+// the felt address bound makes the StarknetID call fail with an opaque
+// 'Could not get stark name', which addressResolvers/index would then report as an
+// outage. Drop those here, so that error only ever means a real failure.
+function isResolvableAddress(address: Address): boolean {
+  try {
+    validateAndParseAddress(address);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function normalizeAddresses(addresses: Address[]): Address[] {
-  return addresses.filter(isStarknetAddress);
+  return addresses.filter(a => isStarknetAddress(a) && isResolvableAddress(a));
 }
 
 function normalizeHandles(handles: Handle[]): Handle[] {
