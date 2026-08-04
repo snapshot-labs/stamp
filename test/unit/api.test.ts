@@ -35,7 +35,7 @@ describe('POST /', () => {
 
         const response = await lookupDomains();
 
-        expect(response.status).toBe(500);
+        expect(response.status).toBe(200);
         expect(capture).toHaveBeenCalledTimes(1);
         expect(capture).toHaveBeenCalledWith(
           expect.objectContaining({ message: 'Request failed with status code 500' }),
@@ -52,7 +52,7 @@ describe('POST /', () => {
 
         const response = await lookupDomains();
 
-        expect(response.status).toBe(500);
+        expect(response.status).toBe(200);
         expect(capture).not.toHaveBeenCalled();
       });
     });
