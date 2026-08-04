@@ -2,7 +2,6 @@ import { capture } from '@snapshot-labs/snapshot-sentry';
 import snapshot from '@snapshot-labs/snapshot.js';
 import testAddressResolver from './helper';
 import { lookupAddresses, resolveNames } from '../../../src/addressResolvers/ens';
-import { FetchError } from '../../../src/addressResolvers/utils';
 
 jest.mock('@snapshot-labs/snapshot-sentry', () => ({
   capture: jest.fn()
@@ -47,8 +46,10 @@ describe('ENS address resolver: CCIP-Read fallback', () => {
     const address = '0xE6D0Dd18C6C3a9Af8C2FaB57d6e6A38E29d513cC';
 
     try {
-      await expect(lookupAddresses([address])).rejects.toBeInstanceOf(FetchError);
-      expect(capture).toHaveBeenCalledWith(error, { input: { addresses: [address] } });
+      // The resolver rethrows the original error untouched. Reporting it is
+      // addressResolvers/index.ts' job now, so nothing is captured here.
+      await expect(lookupAddresses([address])).rejects.toBe(error);
+      expect(capture).not.toHaveBeenCalled();
     } finally {
       callSpy.mockRestore();
     }

@@ -1,7 +1,6 @@
 import { namehash } from '@ethersproject/hash';
-import { capture } from '@snapshot-labs/snapshot-sentry';
 import { Address, batchContractCalls, EMPTY_ADDRESS, Handle } from '../utils';
-import { FetchError, provider as getProvider, isEvmAddress, isSilencedError } from './utils';
+import { provider as getProvider, isEvmAddress } from './utils';
 
 // NOTE: Space ID supports multiple networks and TLDs, this file only implements BNB with .bnb TLD
 // https://www.space.id/
@@ -35,38 +34,31 @@ async function resolveNameHashes(
   hashes: string[],
   fnName: string
 ): Promise<Record<string, Address | Handle>> {
-  try {
-    // Fetch the mapping of namehash -> resolver address
-    const resolvers: Record<string, Address> = await batchContractCalls(
-      NETWORK,
-      provider,
-      REGISTRY_ABI,
-      hashes,
-      new Array(hashes.length).fill(BNB_REGISTRY_CONTRACT),
-      'resolver'
-    );
+  // Fetch the mapping of namehash -> resolver address
+  const resolvers: Record<string, Address> = await batchContractCalls(
+    NETWORK,
+    provider,
+    REGISTRY_ABI,
+    hashes,
+    new Array(hashes.length).fill(BNB_REGISTRY_CONTRACT),
+    'resolver'
+  );
 
-    Object.keys(resolvers).forEach(hash => {
-      if (resolvers[hash] === EMPTY_ADDRESS) delete resolvers[hash];
-    });
+  Object.keys(resolvers).forEach(hash => {
+    if (resolvers[hash] === EMPTY_ADDRESS) delete resolvers[hash];
+  });
 
-    if (Object.keys(resolvers).length === 0) return {};
+  if (Object.keys(resolvers).length === 0) return {};
 
-    // Fetch the mapping of namehash -> address/handle
-    return await batchContractCalls(
-      NETWORK,
-      provider,
-      RESOLVER_ABI,
-      Object.keys(resolvers),
-      Object.values(resolvers),
-      fnName
-    );
-  } catch (err) {
-    if (!isSilencedError(err)) {
-      capture(err, { input: { hashes, fnName } });
-    }
-    throw new FetchError();
-  }
+  // Fetch the mapping of namehash -> address/handle
+  return await batchContractCalls(
+    NETWORK,
+    provider,
+    RESOLVER_ABI,
+    Object.keys(resolvers),
+    Object.values(resolvers),
+    fnName
+  );
 }
 
 export async function lookupAddresses(addresses: Address[]): Promise<Record<Address, Handle>> {
