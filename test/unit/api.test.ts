@@ -27,7 +27,7 @@ function lookupDomains() {
 
 describe('POST /', () => {
   describe('on lookup_domains', () => {
-    describe('when a resolver reports its own error', () => {
+    describe('when a resolver fails', () => {
       it('captures the resolver error only once', async () => {
         (graphQlCall as jest.Mock).mockRejectedValue(
           new Error('Request failed with status code 500')
@@ -44,7 +44,7 @@ describe('POST /', () => {
       });
     });
 
-    describe('when a resolver silences its own error', () => {
+    describe('when a resolver fails with a silenced error', () => {
       it('does not capture anything', async () => {
         (graphQlCall as jest.Mock).mockRejectedValue(
           new Error('Request failed with status=504, no body')
