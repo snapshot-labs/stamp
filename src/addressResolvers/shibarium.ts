@@ -1,7 +1,6 @@
-import { capture } from '@snapshot-labs/snapshot-sentry';
 import { DNSConnect } from '@webinterop/dns-connect';
 import { Address, Handle } from '../utils';
-import { FetchError, isEvmAddress, isSilencedError, withoutEmptyValues } from './utils';
+import { isEvmAddress, withoutEmptyValues } from './utils';
 import constants from '../constants.json';
 
 export const NAME = 'Shibarium';
@@ -24,47 +23,33 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
 
   if (normalizedAddresses.length === 0) return {};
 
-  try {
-    const dnsConnect = new DNSConnect({
-      dns: { forwarderDomain: constants.d3[CHAIN_ID].forwarder }
-    });
+  const dnsConnect = new DNSConnect({
+    dns: { forwarderDomain: constants.d3[CHAIN_ID].forwarder }
+  });
 
-    const results = await Promise.all(
-      normalizedAddresses.map(async address => dnsConnect.reverseResolve(address, NETWORK))
-    );
+  const results = await Promise.all(
+    normalizedAddresses.map(async address => dnsConnect.reverseResolve(address, NETWORK))
+  );
 
-    return withoutEmptyValues(
-      Object.fromEntries(normalizedAddresses.map((address, index) => [address, results[index]]))
-    );
-  } catch (err) {
-    if (!isSilencedError(err)) {
-      capture(err, { input: { addresses } });
-    }
-    throw new FetchError();
-  }
+  return withoutEmptyValues(
+    Object.fromEntries(normalizedAddresses.map((address, index) => [address, results[index]]))
+  );
 }
 
 export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Address>> {
-  try {
-    const normalizedHandles = normalizeHandles(handles);
+  const normalizedHandles = normalizeHandles(handles);
 
-    if (normalizedHandles.length === 0) return {};
+  if (normalizedHandles.length === 0) return {};
 
-    const dnsConnect = new DNSConnect({
-      dns: { forwarderDomain: constants.d3[CHAIN_ID].forwarder }
-    });
+  const dnsConnect = new DNSConnect({
+    dns: { forwarderDomain: constants.d3[CHAIN_ID].forwarder }
+  });
 
-    const results = await Promise.all(
-      normalizedHandles.map(async handle => dnsConnect.resolve(handle, NETWORK))
-    );
+  const results = await Promise.all(
+    normalizedHandles.map(async handle => dnsConnect.resolve(handle, NETWORK))
+  );
 
-    return withoutEmptyValues(
-      Object.fromEntries(normalizedHandles.map((handle, index) => [handle, results[index]]))
-    );
-  } catch (err) {
-    if (!isSilencedError(err)) {
-      capture(err, { input: { handles } });
-    }
-    throw new FetchError();
-  }
+  return withoutEmptyValues(
+    Object.fromEntries(normalizedHandles.map((handle, index) => [handle, results[index]]))
+  );
 }

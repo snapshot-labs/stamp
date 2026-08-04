@@ -2,9 +2,8 @@ import { getAddress } from '@ethersproject/address';
 import { concat } from '@ethersproject/bytes';
 import { keccak256 } from '@ethersproject/keccak256';
 import { toUtf8Bytes } from '@ethersproject/strings';
-import { capture } from '@snapshot-labs/snapshot-sentry';
 import { Address, batchContractCalls, EMPTY_ADDRESS, Handle } from '../utils';
-import { FetchError, provider as getProvider, isEvmAddress, isSilencedError } from './utils';
+import { provider as getProvider, isEvmAddress } from './utils';
 
 // Gwei Name Service: an ENS-compatible .gwei namespace on Ethereum. https://gwei.domains
 export const NAME = 'Gwei Name Service';
@@ -55,27 +54,22 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
 
   if (pairs.length === 0) return {};
 
-  try {
-    const addresses: Record<string, Address> = await batchContractCalls(
-      NETWORK,
-      provider,
-      ABI,
-      pairs.map(([, id]) => id),
-      new Array(pairs.length).fill(CONTRACT),
-      'resolve'
-    );
+  const addresses: Record<string, Address> = await batchContractCalls(
+    NETWORK,
+    provider,
+    ABI,
+    pairs.map(([, id]) => id),
+    new Array(pairs.length).fill(CONTRACT),
+    'resolve'
+  );
 
-    const results: Record<Handle, Address> = {};
-    pairs.forEach(([handle, id]) => {
-      const address = addresses[id];
-      if (address && address !== EMPTY_ADDRESS) results[handle] = getAddress(address);
-    });
+  const results: Record<Handle, Address> = {};
+  pairs.forEach(([handle, id]) => {
+    const address = addresses[id];
+    if (address && address !== EMPTY_ADDRESS) results[handle] = getAddress(address);
+  });
 
-    return results;
-  } catch (err) {
-    if (!isSilencedError(err)) capture(err, { input: { handles } });
-    throw new FetchError();
-  }
+  return results;
 }
 
 export async function lookupAddresses(addresses: Address[]): Promise<Record<Address, Handle>> {
@@ -83,26 +77,21 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
 
   if (normalizedAddresses.length === 0) return {};
 
-  try {
-    // reverseResolve() is forward-confirmed on-chain, so it's spoofing-safe.
-    const names: Record<string, Handle> = await batchContractCalls(
-      NETWORK,
-      provider,
-      ABI,
-      normalizedAddresses,
-      new Array(normalizedAddresses.length).fill(CONTRACT),
-      'reverseResolve'
-    );
+  // reverseResolve() is forward-confirmed on-chain, so it's spoofing-safe.
+  const names: Record<string, Handle> = await batchContractCalls(
+    NETWORK,
+    provider,
+    ABI,
+    normalizedAddresses,
+    new Array(normalizedAddresses.length).fill(CONTRACT),
+    'reverseResolve'
+  );
 
-    const results: Record<Address, Handle> = {};
-    normalizedAddresses.forEach(address => {
-      const name = names[address];
-      if (name && name.endsWith(TLD)) results[address] = name;
-    });
+  const results: Record<Address, Handle> = {};
+  normalizedAddresses.forEach(address => {
+    const name = names[address];
+    if (name && name.endsWith(TLD)) results[address] = name;
+  });
 
-    return results;
-  } catch (err) {
-    if (!isSilencedError(err)) capture(err, { input: { addresses: normalizedAddresses } });
-    throw new FetchError();
-  }
+  return results;
 }

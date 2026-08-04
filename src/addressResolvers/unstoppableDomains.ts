@@ -2,7 +2,6 @@ import { capture } from '@snapshot-labs/snapshot-sentry';
 import snapshot from '@snapshot-labs/snapshot.js';
 import Resolution, { NamingServiceName } from '@unstoppabledomains/resolution';
 import {
-  FetchError,
   provider as getProvider,
   isEvmAddress,
   isSilencedError,
@@ -32,23 +31,16 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
 
   if (normalizedAddresses.length === 0) return {};
 
-  try {
-    const names: Record<Address, Handle> = await batchContractCalls(
-      NETWORK,
-      provider,
-      ABI,
-      normalizedAddresses,
-      new Array(normalizedAddresses.length).fill(CONTRACT_ADDRESS),
-      'reverseNameOf'
-    );
+  const names: Record<Address, Handle> = await batchContractCalls(
+    NETWORK,
+    provider,
+    ABI,
+    normalizedAddresses,
+    new Array(normalizedAddresses.length).fill(CONTRACT_ADDRESS),
+    'reverseNameOf'
+  );
 
-    return withoutEmptyValues(names);
-  } catch (err) {
-    if (!isSilencedError(err)) {
-      capture(err, { input: { addresses, normalizedAddresses } });
-    }
-    throw new FetchError();
-  }
+  return withoutEmptyValues(names);
 }
 
 export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Address>> {
@@ -56,33 +48,26 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
 
   if (normalizedHandles.length === 0) return {};
 
-  try {
-    const results = await Promise.all(
-      normalizedHandles.map(async handle => {
-        try {
-          const tokenId = new Resolution().namehash(handle, NamingServiceName.UNS);
-          return await snapshot.utils.call(
-            provider,
-            ABI,
-            [CONTRACT_ADDRESS, 'ownerOf', [tokenId]],
-            { blockTag: 'latest' }
-          );
-        } catch (err) {
-          if (!isSilencedError(err)) {
-            capture(err, { input: { handles: normalizedHandles } });
-          }
-          return;
+  // Kept: this is per-handle partial-failure handling, not the resolver-level
+  // "give up" catch. One unresolvable handle must not drop the whole batch, and
+  // index.ts never sees the error, so it has to be reported from here.
+  const results = await Promise.all(
+    normalizedHandles.map(async handle => {
+      try {
+        const tokenId = new Resolution().namehash(handle, NamingServiceName.UNS);
+        return await snapshot.utils.call(provider, ABI, [CONTRACT_ADDRESS, 'ownerOf', [tokenId]], {
+          blockTag: 'latest'
+        });
+      } catch (err) {
+        if (!isSilencedError(err)) {
+          capture(err, { input: { handles: normalizedHandles } });
         }
-      })
-    );
+        return;
+      }
+    })
+  );
 
-    return withoutEmptyValues(
-      Object.fromEntries(normalizedHandles.map((handle, index) => [handle, results[index]]))
-    );
-  } catch (err) {
-    if (!isSilencedError(err)) {
-      capture(err, { input: { handles: normalizedHandles } });
-    }
-    throw new FetchError();
-  }
+  return withoutEmptyValues(
+    Object.fromEntries(normalizedHandles.map((handle, index) => [handle, results[index]]))
+  );
 }

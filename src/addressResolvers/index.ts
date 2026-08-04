@@ -1,3 +1,4 @@
+import { capture } from '@snapshot-labs/snapshot-sentry';
 import * as basenameResolver from './basename';
 import cache, { clear } from './cache';
 import * as ensResolver from './ens';
@@ -9,6 +10,7 @@ import * as spaceIdResolver from './spaceId';
 import * as starknetResolver from './starknet';
 import * as unstoppableDomainResolver from './unstoppableDomains';
 import {
+  isSilencedError,
   mapOriginalInput,
   normalizeAddresses,
   normalizeHandles,
@@ -18,7 +20,16 @@ import {
 import { timeAddressResolverResponse as timeResponse } from '../helpers/metrics';
 import { Address, Handle } from '../utils';
 
-const RESOLVERS = [
+// A resolver may export MUTED_ERRORS, a list of extra error messages this
+// resolver never wants reported (e.g. a flaky public API's own 5xx).
+type Resolver = {
+  NAME: string;
+  MUTED_ERRORS?: string[];
+  lookupAddresses: (addresses: Address[]) => Promise<Record<Address, Handle>>;
+  resolveNames: (handles: Handle[]) => Promise<Record<Handle, Address>>;
+};
+
+const RESOLVERS: Resolver[] = [
   snapshotResolver,
   ensResolver,
   basenameResolver,
@@ -57,7 +68,11 @@ async function _call(fnName: string, input: string[], maxInputLength: number) {
             try {
               result = await r[fnName](_input);
               status = 1;
-            } catch {}
+            } catch (err) {
+              if (!isSilencedError(err, r.MUTED_ERRORS)) {
+                capture(err, { input: { [fnName]: _input } });
+              }
+            }
             end({ status });
 
             return result;

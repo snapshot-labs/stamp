@@ -1,9 +1,8 @@
 import { ens_normalize } from '@adraffy/ens-normalize';
 import { getAddress } from '@ethersproject/address';
 import { namehash } from '@ethersproject/hash';
-import { capture } from '@snapshot-labs/snapshot-sentry';
 import snapshot from '@snapshot-labs/snapshot.js';
-import { FetchError, provider as getProvider, isEvmAddress, isSilencedError } from './utils';
+import { provider as getProvider, isEvmAddress } from './utils';
 import { Address, EMPTY_ADDRESS, getUrl, Handle } from '../utils';
 
 export const NAME = 'Basename';
@@ -44,13 +43,8 @@ async function collect(
   items: string[],
   query: (item: string) => Promise<[string, string]>
 ): Promise<Record<string, string>> {
-  try {
-    const entries = await Promise.all(items.map(query));
-    return Object.fromEntries(entries.filter(([, value]) => value));
-  } catch (err) {
-    if (!isSilencedError(err)) capture(err, { input: items });
-    throw new FetchError();
-  }
+  const entries = await Promise.all(items.map(query));
+  return Object.fromEntries(entries.filter(([, value]) => value));
 }
 
 export async function lookupAddresses(addresses: Address[]): Promise<Record<Address, Handle>> {
