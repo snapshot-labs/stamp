@@ -2,7 +2,6 @@ import { capture } from '@snapshot-labs/snapshot-sentry';
 import express from 'express';
 import { z } from 'zod';
 import { clearCache, lookupAddresses, resolveNames } from './addressResolvers';
-import { FetchError } from './addressResolvers/utils';
 import { clear, get, set, streamToBuffer } from './aws';
 import constants from './constants.json';
 import getOwner from './getOwner';
@@ -41,7 +40,7 @@ router.post('/', async (req, res) => {
     return rpcSuccess(res, result, id);
   } catch (err) {
     const error = err as any;
-    if (!(error instanceof FetchError) && error.code !== 400) {
+    if (error.code !== 400) {
       capture(error.error ? new Error(error.error) : error);
     }
     return rpcError(res, 500, err, id);

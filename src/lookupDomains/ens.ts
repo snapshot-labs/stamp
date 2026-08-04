@@ -1,5 +1,3 @@
-import { capture } from '@snapshot-labs/snapshot-sentry';
-import { FetchError, isSilencedError } from '../addressResolvers/utils';
 import constants from '../constants.json';
 import { Address, graphQlCall, Handle } from '../utils';
 
@@ -44,56 +42,40 @@ export default async function lookupDomains(
 ): Promise<Handle[]> {
   if (!constants.ensSubgraph[chainId]) return [];
 
-  try {
-    const {
-      data: {
-        data: { account }
-      }
-    } = await graphQlCall(
-      constants.ensSubgraph[chainId],
-      `query Domain($id: String!) {
-        account(id: $id) {
-          domains {
-            name
-            expiryDate
-          }
-          wrappedDomains {
-            name
-            expiryDate
-          }
-        }
-      }`,
-      { id: address.toLowerCase() }
-    );
-
-    const now = (Date.now() / 1000).toFixed(0);
-    const domains: Domain[] = [
-      ...(account?.domains || []),
-      ...(account?.wrappedDomains || [])
-    ].filter(
-      domain =>
-        (!domain.expiryDate || domain.expiryDate === '0' || domain.expiryDate > now) &&
-        !domain.name.endsWith('.addr.reverse')
-    );
-
-    return (
-      (await Promise.all(domains.map(domain => fetchDomainData(domain, chainId)))).map(
-        domain => domain.name
-      ) || []
-    );
-  } catch (err) {
-    console.log(err);
-    if (!isSilencedError(err)) {
-      capture(err, {
-        contexts: {
-          input: { address },
-          response: {
-            status: (err as any).response?.status,
-            body: (err as any).response?.data
-          }
-        }
-      });
+  const {
+    data: {
+      data: { account }
     }
-    throw new FetchError();
-  }
+  } = await graphQlCall(
+    constants.ensSubgraph[chainId],
+    `query Domain($id: String!) {
+      account(id: $id) {
+        domains {
+          name
+          expiryDate
+        }
+        wrappedDomains {
+          name
+          expiryDate
+        }
+      }
+    }`,
+    { id: address.toLowerCase() }
+  );
+
+  const now = (Date.now() / 1000).toFixed(0);
+  const domains: Domain[] = [
+    ...(account?.domains || []),
+    ...(account?.wrappedDomains || [])
+  ].filter(
+    domain =>
+      (!domain.expiryDate || domain.expiryDate === '0' || domain.expiryDate > now) &&
+      !domain.name.endsWith('.addr.reverse')
+  );
+
+  return (
+    (await Promise.all(domains.map(domain => fetchDomainData(domain, chainId)))).map(
+      domain => domain.name
+    ) || []
+  );
 }

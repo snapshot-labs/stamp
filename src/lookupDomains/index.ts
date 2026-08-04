@@ -1,4 +1,6 @@
 import { isAddress } from '@ethersproject/address';
+import { capture } from '@snapshot-labs/snapshot-sentry';
+import { isSilencedError } from '../addressResolvers/utils';
 import { Address, Handle } from '../utils';
 import ens, { DEFAULT_CHAIN_ID as ENS_DEFAULT_CHAIN_ID } from './ens';
 import shibarium, { DEFAULT_CHAIN_ID as SHIBARIUM_DEFAULT_CHAIN_ID } from './shibarium';
@@ -25,8 +27,13 @@ export default async function lookupDomains(
   if (!isAddress(address)) return [];
 
   RESOLVERS.forEach(resolver => {
-    chainIds.forEach(chain => {
-      promises.push(resolver(address, chain).catch(() => []));
+    chainIds.forEach(chainId => {
+      promises.push(
+        resolver(address, chainId).catch(err => {
+          if (!isSilencedError(err)) capture(err, { input: { address, chainId } });
+          return [];
+        })
+      );
     });
   });
 

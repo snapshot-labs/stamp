@@ -4,13 +4,6 @@ import { Address, EMPTY_ADDRESS, Handle } from '../utils';
 
 const broviderUrl = process.env.BROVIDER_URL || 'https://rpc.snapshot.org';
 
-export class FetchError extends Error {
-  constructor(message = 'Resolver request failed, original error reported at its source') {
-    super(message);
-    this.name = 'FetchError';
-  }
-}
-
 export function isEvmAddress(address: Address): boolean {
   return /^0x[a-fA-F0-9]{40}$/.test(address);
 }
