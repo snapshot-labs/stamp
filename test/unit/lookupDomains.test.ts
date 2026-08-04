@@ -1,8 +1,12 @@
-import { FetchError } from '../../src/addressResolvers/utils';
+import { capture } from '@snapshot-labs/snapshot-sentry';
 import lookupDomains from '../../src/lookupDomains';
 import ens from '../../src/lookupDomains/ens';
 import shibarium from '../../src/lookupDomains/shibarium';
 import unstoppableDomains from '../../src/lookupDomains/unstoppableDomains';
+
+jest.mock('@snapshot-labs/snapshot-sentry', () => ({
+  capture: jest.fn()
+}));
 
 jest.mock('../../src/lookupDomains/ens', () => ({
   __esModule: true,
@@ -25,7 +29,7 @@ const CHAINS = ['1', '109', '146'];
 
 describe('lookupDomains - resolver failures', () => {
   it('does not propagate a resolver failure and returns the other resolvers results', async () => {
-    (ens as jest.Mock).mockRejectedValue(new FetchError());
+    (ens as jest.Mock).mockRejectedValue(new Error('boom'));
     (shibarium as jest.Mock).mockResolvedValue(['boorger.shib']);
     (unstoppableDomains as jest.Mock).mockResolvedValue([]);
 
@@ -33,10 +37,51 @@ describe('lookupDomains - resolver failures', () => {
   });
 
   it('returns an empty array when every resolver fails', async () => {
-    (ens as jest.Mock).mockRejectedValue(new FetchError());
-    (shibarium as jest.Mock).mockRejectedValue(new FetchError());
-    (unstoppableDomains as jest.Mock).mockRejectedValue(new FetchError());
+    (ens as jest.Mock).mockRejectedValue(new Error('boom'));
+    (shibarium as jest.Mock).mockRejectedValue(new Error('boom'));
+    (unstoppableDomains as jest.Mock).mockRejectedValue(new Error('boom'));
 
     await expect(lookupDomains(VALID_ADDRESS, CHAINS)).resolves.toEqual([]);
+  });
+});
+
+describe('lookupDomains - error reporting', () => {
+  beforeEach(() => {
+    (shibarium as jest.Mock).mockResolvedValue([]);
+    (unstoppableDomains as jest.Mock).mockResolvedValue([]);
+  });
+
+  it('captures a resolver error, with the address and chain as context', async () => {
+    const error = new Error('boom');
+    (ens as jest.Mock).mockRejectedValue(error);
+
+    await expect(lookupDomains(VALID_ADDRESS, '1')).resolves.toEqual([]);
+    expect(capture).toHaveBeenCalledTimes(1);
+    expect(capture).toHaveBeenCalledWith(error, {
+      input: { address: VALID_ADDRESS, chainId: '1' }
+    });
+  });
+
+  it('does not capture a silenced error', async () => {
+    (ens as jest.Mock).mockRejectedValue(
+      Object.assign(new Error('Unstoppable Domains API error: HTTP 429 Too Many Requests'), {
+        status: 429
+      })
+    );
+
+    await expect(lookupDomains(VALID_ADDRESS, '1')).resolves.toEqual([]);
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('captures one event per failing chain', async () => {
+    (ens as jest.Mock).mockRejectedValue(new Error('boom'));
+
+    await expect(lookupDomains(VALID_ADDRESS, CHAINS)).resolves.toEqual([]);
+    expect(capture).toHaveBeenCalledTimes(CHAINS.length);
+    CHAINS.forEach(chainId => {
+      expect(capture).toHaveBeenCalledWith(expect.any(Error), {
+        input: { address: VALID_ADDRESS, chainId }
+      });
+    });
   });
 });

@@ -1,5 +1,3 @@
-import { capture } from '@snapshot-labs/snapshot-sentry';
-import { FetchError, isSilencedError } from '../addressResolvers/utils';
 import { Address, Handle } from '../utils';
 
 export const DEFAULT_CHAIN_ID = '146';
@@ -49,17 +47,11 @@ export default async function lookupDomains(address: Address, chainId: string): 
   const domains: string[] = [];
   let cursor = '0';
 
-  try {
-    while (cursor !== null) {
-      const data = await fetchDomains(address, cursor);
-      cursor = data.next?.split('cursor=').pop() || null;
-      domains.push(...data.data.map((domain: any) => domain.meta.domain));
-    }
-    return normalizeHandles(domains);
-  } catch (err) {
-    if (!isSilencedError(err)) {
-      capture(err, { input: { address } });
-    }
-    throw new FetchError();
+  while (cursor !== null) {
+    const data = await fetchDomains(address, cursor);
+    cursor = data.next?.split('cursor=').pop() || null;
+    domains.push(...data.data.map((domain: any) => domain.meta.domain));
   }
+
+  return normalizeHandles(domains);
 }
