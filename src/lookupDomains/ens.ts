@@ -28,7 +28,12 @@ async function fetchDomainData(domain: Domain, chainId: string): Promise<Domain>
     }`,
     { id: `0x${hash}` }
   );
-  const labelName = data?.registration?.domain?.labelName;
+  // `data?.` used to swallow a missing envelope here and return the raw
+  // `[hash]` label as if the subgraph had simply not known it. graphQlCall now
+  // throws on that, so a subgraph failure is reported rather than served as an
+  // undecoded name. A registration that genuinely has no labelName still falls
+  // through to the unchanged name.
+  const labelName = data.registration?.domain?.labelName;
 
   return {
     ...domain,
