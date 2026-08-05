@@ -45,6 +45,24 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+describe('addressResolvers - input normalization', () => {
+  // A 64-char hex value is only a Starknet address when it is below 2^251 - 256.
+  // Sending a higher one makes the hub reject the whole id_in batch, nulling the
+  // names of every address queried alongside it. See STAMP-6W.
+  const STARKNET_ADDRESS = '0x0779ba6e4e227947acbbdfb978a292c401339027eeb3d768f5d12cd2e818265a';
+  const OUT_OF_RANGE = '0x07ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00';
+
+  it('never sends an out-of-range 64-char hex value to a resolver', async () => {
+    await expect(lookupAddresses([OUT_OF_RANGE])).resolves.toEqual({});
+    expect(snapshotResolver.lookupAddresses).not.toHaveBeenCalled();
+  });
+
+  it('still sends a valid starknet address', async () => {
+    await expect(lookupAddresses([STARKNET_ADDRESS])).resolves.toEqual({});
+    expect(snapshotResolver.lookupAddresses).toHaveBeenCalledWith([STARKNET_ADDRESS]);
+  });
+});
+
 describe('addressResolvers - resolver failures', () => {
   it('captures a resolver error, with the input as context', async () => {
     const error = new Error('boom');
