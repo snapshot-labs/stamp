@@ -13,6 +13,15 @@ export function isStarknetAddress(address: Address): boolean {
   return /^0x[a-fA-F0-9]{64}$/.test(address) && snapshot.utils.isStarknetAddress(address);
 }
 
+// StarknetID's encoder skips any character outside this class instead of rejecting it,
+// so `a!b.stark` encodes exactly like `ab.stark` and resolves to that owner, and
+// `!!!.stark` encodes to felt 0, which maps to a real account. Checking the suffix is
+// therefore not enough: the whole handle has to match the character class StarknetID
+// itself accepts (`isStarkDomain` in lfglabs-dev/starknetid.js), subdomains included.
+export function isStarkDomain(domain: Handle): boolean {
+  return /^[a-z0-9-]+(\.[a-z0-9-]+)*\.stark$/.test(domain);
+}
+
 export function provider(
   network: string,
   providerOptions: { broviderUrl?: string; timeout?: number } = { broviderUrl, timeout: 5e3 }
