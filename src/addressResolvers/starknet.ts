@@ -1,5 +1,10 @@
 import { validateAndParseAddress } from 'starknet';
-import { provider as getProvider, isStarknetAddress, withoutEmptyValues } from './utils';
+import {
+  provider as getProvider,
+  isStarkDomain,
+  isStarknetAddress,
+  withoutEmptyValues
+} from './utils';
 import { Address, Handle } from '../utils';
 
 export const NAME = 'Starknet';
@@ -26,7 +31,7 @@ function normalizeAddresses(addresses: Address[]): Address[] {
 }
 
 function normalizeHandles(handles: Handle[]): Handle[] {
-  return handles.filter(h => h.endsWith('.stark'));
+  return handles.filter(isStarkDomain);
 }
 
 async function resolveEach(
