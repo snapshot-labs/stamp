@@ -1,15 +1,11 @@
 import axios from 'axios';
-import { provider as getProvider } from '../addressResolvers/utils';
+import { provider as getProvider, isStarkDomain } from '../addressResolvers/utils';
 import { max } from '../constants.json';
 import { getUrl, resize } from '../utils';
 import { axiosDefaultParams, fetchHttpImage } from './utils';
 
 const DEFAULT_IMG_URL = 'https://starknet.id/api/identicons/0';
 const provider = getProvider('0x534e5f4d41494e');
-
-function isStarknetDomain(domain: string): boolean {
-  return domain.endsWith('.stark');
-}
 
 function normalizeAddress(address: string): string {
   if (!address.match(/^(0x)?[0-9a-fA-F]{64}$/)) throw new Error('Invalid starknet address');
@@ -24,7 +20,7 @@ async function getStarknetAddress(domain: string): Promise<string | null> {
 }
 
 async function getImage(domainOrAddress: string): Promise<string | null> {
-  const address = isStarknetDomain(domainOrAddress)
+  const address = isStarkDomain(domainOrAddress)
     ? await getStarknetAddress(domainOrAddress)
     : normalizeAddress(domainOrAddress);
 
