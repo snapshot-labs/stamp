@@ -1,10 +1,36 @@
 import {
   isSilencedError,
+  normalizeAddresses,
   normalizeHandles,
   withoutEmptyAddress
 } from '../../../src/addressResolvers/utils';
 
 describe('utils', () => {
+  describe('normalizeAddresses', () => {
+    // Starknet addresses are field elements, strictly below 2^251 - 256. Any
+    // other 64-char hex value (a tx hash, a proposal id) has the same shape, and
+    // the hub rejects the whole id_in batch when one reaches it. See STAMP-6W.
+    const HIGHEST_VALID = '0x07fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffeff';
+    const UPPER_BOUND = '0x07ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00';
+    const PROPOSAL_ID = '0x4a4e4d7b8f47e2f9e0d5c3a1b6f8e2d4c7a9b1e3f5d7c9a2b4e6f8d1c3a5b7e9';
+
+    it('keeps a starknet address below the upper bound, lowercased', () => {
+      expect(
+        normalizeAddresses(['0x07FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFF'])
+      ).toEqual([HIGHEST_VALID]);
+    });
+
+    it('drops 64-char hex values at or above the upper bound', () => {
+      expect(normalizeAddresses([UPPER_BOUND, PROPOSAL_ID])).toEqual([]);
+    });
+
+    it('keeps EVM addresses, checksummed', () => {
+      expect(normalizeAddresses(['0xef8305e140ac520225daf050e2f71d5fbcc543e7'])).toEqual([
+        '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7'
+      ]);
+    });
+  });
+
   describe('normalizeHandles', () => {
     const VALID_DOMAINS = ['test.com', 'test.lens', 'test.ens'];
     const INVALID_DOMAINS = [1, '', false, 'hello world.com', 'hello'];
