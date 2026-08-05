@@ -87,6 +87,27 @@ describe('Starknet address resolver', () => {
       await expect(resolveNames(['domain.eth', 'domain.crypto'])).resolves.toEqual({});
       expect(mockGetAddressFromStarkName).not.toHaveBeenCalled();
     });
+
+    // StarknetID's encoder drops any character outside [a-z0-9-] instead of rejecting
+    // it, so these would otherwise encode like a shorter, registered handle and come
+    // back with someone else's address. They must not reach the contract at all.
+    it.each(['a!b.stark', '!!!.stark', '.stark', 'a b.stark', 'a_b.stark', 'ab.stark.eth'])(
+      'ignores %p, without looking it up',
+      async handle => {
+        await expect(resolveNames([handle])).resolves.toEqual({});
+        expect(mockGetAddressFromStarkName).not.toHaveBeenCalled();
+      }
+    );
+
+    it.each(['ab.stark', 'notion.eth.stark', 'a-b.stark', '123.stark'])(
+      'still resolves %p',
+      async handle => {
+        mockGetAddressFromStarkName.mockResolvedValueOnce(PADDED);
+
+        await expect(resolveNames([handle])).resolves.toEqual({ [handle]: PADDED });
+        expect(mockGetAddressFromStarkName).toHaveBeenCalledWith(handle);
+      }
+    );
   });
 
   describe('lookupAddresses()', () => {
