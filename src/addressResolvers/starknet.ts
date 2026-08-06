@@ -1,6 +1,7 @@
 import snapshot from '@snapshot-labs/snapshot.js';
 import { CallData, constants, starknetId, validateAndParseAddress } from 'starknet';
 import {
+  DEFAULT_TIMEOUT,
   provider as getProvider,
   hasStarknetAddressShape,
   isStarkDomain,
@@ -86,12 +87,42 @@ function decodeAddress(rawAddress: unknown): Address | undefined {
   return address === EMPTY_STARKNET_ADDRESS ? undefined : address;
 }
 
+// `provider()` passes `timeout` like every other resolver, but snapshot.js's
+// `getStarknetProvider` forwards only `nodeUrl` -- unlike `getEvmProvider`, which does
+// forward it -- and starknet.js v6's `RpcChannel` carries no `AbortSignal`, so nothing
+// downstream bounds the call. A brovider that accepts the connection but never answers
+// would otherwise hang until undici's ~300s ceiling, and since `index.ts` awaits every
+// resolver under one `Promise.all`, that stalls the whole request, non-Starknet inputs
+// included. The axios path this replaced had a real 5s bound, so keep one here until
+// `getStarknetProvider` honours the option. `ETIMEDOUT` is the code `isSilencedError`
+// already treats as a transient fault for the axios and ethers resolvers.
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () =>
+        reject(
+          Object.assign(new Error(`Starknet RPC call timed out after ${ms}ms`), {
+            code: 'ETIMEDOUT'
+          })
+        ),
+      ms
+    );
+  });
+
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 async function callNamingContract(entrypoint: string, calldata: string[][]): Promise<any[]> {
-  return await snapshot.utils.multicall(
-    NETWORK,
-    provider,
-    NAMING_ABI,
-    calldata.map(args => [NAMING_CONTRACT, entrypoint, args])
+  return await withTimeout(
+    snapshot.utils.multicall(
+      NETWORK,
+      provider,
+      NAMING_ABI,
+      calldata.map(args => [NAMING_CONTRACT, entrypoint, args])
+    ),
+    DEFAULT_TIMEOUT
   );
 }
 

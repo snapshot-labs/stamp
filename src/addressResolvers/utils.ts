@@ -4,6 +4,7 @@ import { constants, starknetId } from 'starknet';
 import { Address, EMPTY_ADDRESS, Handle } from '../utils';
 
 const broviderUrl = process.env.BROVIDER_URL || 'https://rpc.snapshot.org';
+export const DEFAULT_TIMEOUT = 5e3;
 
 export function isEvmAddress(address: Address): boolean {
   return /^0x[a-fA-F0-9]{40}$/.test(address);
@@ -45,7 +46,10 @@ export function isStarkDomain(domain: Handle): boolean {
 
 export function provider(
   network: string,
-  providerOptions: { broviderUrl?: string; timeout?: number } = { broviderUrl, timeout: 5e3 }
+  providerOptions: { broviderUrl?: string; timeout?: number } = {
+    broviderUrl,
+    timeout: DEFAULT_TIMEOUT
+  }
 ) {
   return snapshot.utils.getProvider(network, providerOptions);
 }

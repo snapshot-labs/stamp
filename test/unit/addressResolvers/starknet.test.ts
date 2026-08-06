@@ -1,15 +1,21 @@
 const mockCallContract = jest.fn();
 
+// `DEFAULT_TIMEOUT` is shortened so the "never answers" cases below can be asserted on
+// real timers. Fake timers deadlock here: Jest 28 fakes `process.nextTick` along with
+// the clock, and the suite's own timeout with it, so a test that never settles hangs
+// forever instead of failing. Every other case settles on a microtask, well inside it.
 jest.mock('../../../src/addressResolvers/utils', () => {
   const actual = jest.requireActual('../../../src/addressResolvers/utils');
 
   return {
     ...actual,
+    DEFAULT_TIMEOUT: 200,
     provider: () => ({ callContract: mockCallContract })
   };
 });
 
 import { lookupAddresses, resolveNames } from '../../../src/addressResolvers/starknet';
+import { isSilencedError } from '../../../src/addressResolvers/utils';
 
 const PADDED = '0x07ff6b17f07c4d83236e3fc5f94259a19d1ed41bbcf1822397ea17882e9b038d';
 const UNPADDED = '0x7ff6b17f07c4d83236e3fc5f94259a19d1ed41bbcf1822397ea17882e9b038d';
@@ -135,7 +141,7 @@ describe('Starknet address resolver', () => {
 
     // The expected felts are pinned literals captured from starknet.js, not recomputed
     // here with the same `useEncoded` chain the resolver uses -- otherwise the assertion
-    // is only the encoding agreeing with a copy of itself.
+    // is just the encoding agreeing with a copy of itself.
     it.each([
       ['ab.stark', ['38']],
       ['a-b.stark', ['2812']],
@@ -262,4 +268,27 @@ describe('Starknet address resolver', () => {
       expect(mockCallContract).not.toHaveBeenCalled();
     });
   });
+
+  // snapshot.js's `getStarknetProvider` drops the `timeout` option `provider()` passes,
+  // and starknet.js v6 carries no `AbortSignal`, so without a bound here a brovider that
+  // accepts the connection and never answers would hang until undici's ~300s ceiling --
+  // stalling every other resolver under the one `Promise.all` in addressResolvers/index.
+  it('bounds a call that never answers, instead of stalling the request', async () => {
+    mockCallContract.mockImplementationOnce(() => new Promise(() => undefined));
+
+    await expect(resolveNames(['checkpoint.stark'])).rejects.toMatchObject({
+      code: 'ETIMEDOUT'
+    });
+  }, 5000);
+
+  // `isSilencedError` is what addressResolvers/index consults before reporting, and a
+  // timeout is the one fault every other resolver already treats as transient rather
+  // than as an outage. Keep this path consistent with them.
+  it('raises a timeout that addressResolvers/index silences rather than reports', async () => {
+    mockCallContract.mockImplementationOnce(() => new Promise(() => undefined));
+
+    const error = await resolveNames(['checkpoint.stark']).catch(err => err);
+
+    expect(isSilencedError(error)).toBe(true);
+  }, 5000);
 });
