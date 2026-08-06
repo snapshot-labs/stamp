@@ -1,20 +1,55 @@
 import { getAddress } from '@ethersproject/address';
 import snapshot from '@snapshot-labs/snapshot.js';
+import { constants, starknetId } from 'starknet';
 import { Address, EMPTY_ADDRESS, Handle } from '../utils';
 
 const broviderUrl = process.env.BROVIDER_URL || 'https://rpc.snapshot.org';
+export const DEFAULT_TIMEOUT = 5e3;
 
 export function isEvmAddress(address: Address): boolean {
   return /^0x[a-fA-F0-9]{40}$/.test(address);
 }
 
-export function isStarknetAddress(address: Address): boolean {
+// A shape check only, and deliberately not named after `snapshot.utils.isStarknetAddress`:
+// that one asks whether the value is a felt below the address bound, and answers `true`
+// for an EVM address. This one is what tells the two address formats apart.
+export function hasStarknetAddressShape(address: Address): boolean {
   return /^0x[a-fA-F0-9]{64}$/.test(address);
+}
+
+// StarknetID's encoder skips any character outside its alphabet instead of rejecting it,
+// so `a!b.stark` encodes exactly like `ab.stark` and resolves to that owner, and
+// `!!!.stark` encodes to felt 0, which maps to a real account. Checking the suffix is
+// therefore not enough: every label has to match the alphabet, subdomains included.
+//
+// That alphabet is starknet.js's `basicAlphabet` (`[a-z0-9-]`) *plus* the two-glyph
+// `bigAlphabet` (`这来`). Those two are safe to admit: unlike a skipped character, the
+// encoder consumes them and advances the multiplier, so they round-trip through
+// `useDecoded` and cannot collide with a shorter handle. They are also in live use --
+// `来baba这.stark` is registered on mainnet.
+//
+// The character class alone is not sufficient either. A label whose felt reaches the
+// field prime is rejected by the node, and because resolution is a single atomic
+// multicall, that one value fails the *whole* batch with `-32602 ... maximum field value
+// was exceeded` -- which `isSilencedError` does not silence, so it would report an outage
+// for every name sent alongside it. Length is the wrong proxy for that bound:
+// `'a'.repeat(47) + 'b'` is 48 characters and resolves, `'a'.repeat(48)` is 48 characters
+// and is over-prime. Guard on the felt itself.
+export function isStarkDomain(domain: Handle): boolean {
+  if (!/^[a-z0-9-这来]+(\.[a-z0-9-这来]+)*\.stark$/.test(domain)) return false;
+
+  return domain
+    .replace(/\.stark$/, '')
+    .split('.')
+    .every(label => starknetId.useEncoded(label) < constants.PRIME);
 }
 
 export function provider(
   network: string,
-  providerOptions: { broviderUrl?: string; timeout?: number } = { broviderUrl, timeout: 5e3 }
+  providerOptions: { broviderUrl?: string; timeout?: number } = {
+    broviderUrl,
+    timeout: DEFAULT_TIMEOUT
+  }
 ) {
   return snapshot.utils.getProvider(network, providerOptions);
 }
@@ -30,7 +65,7 @@ export function withoutEmptyAddress(obj: Record<string, any>) {
 export function normalizeAddresses(addresses: Address[]): Address[] {
   return addresses
     .map(a => {
-      if (isStarknetAddress(a)) {
+      if (hasStarknetAddressShape(a)) {
         return a.toLowerCase();
       }
       try {
