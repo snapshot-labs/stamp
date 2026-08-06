@@ -19,6 +19,8 @@ const ZERO_ADDRESS = `0x${'0'.repeat(64)}`;
 const EVM_ADDRESS = '0xd8da6bf26964af9d7eed9e03e53415d37aa96045';
 // The felt `checkpoint.stark` encodes to, as returned live by address_to_domain.
 const CHECKPOINT_FELT = '0xb5b47279a7f0c';
+// The same felt in the decimal form the calldata carries.
+const CHECKPOINT_LABEL_FELT = '3196585909059340';
 
 const hex = (n: number) => `0x${n.toString(16)}`;
 
@@ -118,7 +120,7 @@ describe('Starknet address resolver', () => {
       expect(mockCallContract).not.toHaveBeenCalled();
     });
 
-    // StarknetID's encoder drops any character outside [a-z0-9-] instead of rejecting
+    // StarknetID's encoder drops any character outside its alphabet instead of rejecting
     // it, so these would otherwise encode like a shorter, registered handle and come
     // back with someone else's address. They must not reach the contract at all.
     it.each(['a!b.stark', '!!!.stark', '.stark', 'a b.stark', 'a_b.stark', 'ab.stark.eth'])(
@@ -129,21 +131,73 @@ describe('Starknet address resolver', () => {
       }
     );
 
-    it.each(['ab.stark', 'notion.eth.stark', 'a-b.stark', '123.stark'])(
-      'still resolves %p',
-      async handle => {
+    it.each([
+      'ab.stark',
+      'notion.eth.stark',
+      'a-b.stark',
+      '123.stark',
+      // `bigAlphabet`. The encoder consumes these two glyphs and advances the multiplier,
+      // so unlike `!` they round-trip and cannot collide, and the name is registered on
+      // mainnet -- rejecting it drops a real avatar to the blockie fallback.
+      '来baba这.stark'
+    ])('still resolves %p', async handle => {
+      mockAddresses(PADDED);
+
+      await expect(resolveNames([handle])).resolves.toEqual({ [handle]: PADDED });
+
+      const labels = handle
+        .replace(/\.stark$/, '')
+        .split('.')
+        .map(label => starknetId.useEncoded(label).toString(10));
+
+      expect(mockCallContract.mock.calls[0][0].calldata).toEqual(expect.arrayContaining(labels));
+    });
+
+    // The node rejects a label whose felt reaches the field prime, and since the lookup
+    // is one atomic multicall that failure takes every name batched alongside it down
+    // too, as a `-32602` that `isSilencedError` does not silence. The bound is a felt
+    // value and not a character count: the first two labels here are both 48 characters.
+    describe('felt bound', () => {
+      const VALID_48 = `${'a'.repeat(47)}b`;
+      const VALID_48_FELT =
+        '177757953225819951046325525739851593013572474885857896325015713055393185792';
+      const OVER_PRIME_48 = 'a'.repeat(48);
+      const OVER_PRIME_48_FELT =
+        '6577044269355338188714044452374508941502181570776742164025581383049547874304';
+      const OVER_PRIME_49 = 'a'.repeat(49);
+
+      it('resolves a 48 character label that stays below the prime', async () => {
         mockAddresses(PADDED);
 
-        await expect(resolveNames([handle])).resolves.toEqual({ [handle]: PADDED });
+        await expect(resolveNames([`${VALID_48}.stark`])).resolves.toEqual({
+          [`${VALID_48}.stark`]: PADDED
+        });
+        expect(mockCallContract.mock.calls[0][0].calldata).toEqual(
+          expect.arrayContaining([VALID_48_FELT])
+        );
+      });
 
-        const labels = handle
-          .replace(/\.stark$/, '')
-          .split('.')
-          .map(label => starknetId.useEncoded(label).toString(10));
+      it.each([
+        ['48 characters', OVER_PRIME_48],
+        ['49 characters', OVER_PRIME_49]
+      ])('drops an over-prime label of %s, without looking it up', async (_, label) => {
+        await expect(resolveNames([`${label}.stark`])).resolves.toEqual({});
+        expect(mockCallContract).not.toHaveBeenCalled();
+      });
 
-        expect(mockCallContract.mock.calls[0][0].calldata).toEqual(expect.arrayContaining(labels));
-      }
-    );
+      it('keeps the rest of the batch when one name is over-prime', async () => {
+        mockAddresses(PADDED);
+
+        await expect(resolveNames(['checkpoint.stark', `${OVER_PRIME_48}.stark`])).resolves.toEqual(
+          { 'checkpoint.stark': PADDED }
+        );
+        expect(mockCallContract).toHaveBeenCalledTimes(1);
+
+        const { calldata } = mockCallContract.mock.calls[0][0];
+        expect(calldata).toEqual(expect.arrayContaining([CHECKPOINT_LABEL_FELT]));
+        expect(calldata).not.toContain(OVER_PRIME_48_FELT);
+      });
+    });
 
     it('resolves a whole batch in a single call', async () => {
       mockAddresses(PADDED, ZERO_ADDRESS, UNPADDED);

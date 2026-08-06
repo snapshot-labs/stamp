@@ -1,5 +1,6 @@
 import { getAddress } from '@ethersproject/address';
 import snapshot from '@snapshot-labs/snapshot.js';
+import { constants, starknetId } from 'starknet';
 import { Address, EMPTY_ADDRESS, Handle } from '../utils';
 
 const broviderUrl = process.env.BROVIDER_URL || 'https://rpc.snapshot.org';
@@ -15,13 +16,31 @@ export function hasStarknetAddressShape(address: Address): boolean {
   return /^0x[a-fA-F0-9]{64}$/.test(address);
 }
 
-// StarknetID's encoder skips any character outside this class instead of rejecting it,
+// StarknetID's encoder skips any character outside its alphabet instead of rejecting it,
 // so `a!b.stark` encodes exactly like `ab.stark` and resolves to that owner, and
 // `!!!.stark` encodes to felt 0, which maps to a real account. Checking the suffix is
-// therefore not enough: the whole handle has to match the character class StarknetID
-// itself accepts (`isStarkDomain` in lfglabs-dev/starknetid.js), subdomains included.
+// therefore not enough: every label has to match the alphabet, subdomains included.
+//
+// That alphabet is starknet.js's `basicAlphabet` (`[a-z0-9-]`) *plus* the two-glyph
+// `bigAlphabet` (`这来`). Those two are safe to admit: unlike a skipped character, the
+// encoder consumes them and advances the multiplier, so they round-trip through
+// `useDecoded` and cannot collide with a shorter handle. They are also in live use --
+// `来baba这.stark` is registered on mainnet.
+//
+// The character class alone is not sufficient either. A label whose felt reaches the
+// field prime is rejected by the node, and because resolution is a single atomic
+// multicall, that one value fails the *whole* batch with `-32602 ... maximum field value
+// was exceeded` -- which `isSilencedError` does not silence, so it would report an outage
+// for every name sent alongside it. Length is the wrong proxy for that bound:
+// `'a'.repeat(47) + 'b'` is 48 characters and resolves, `'a'.repeat(48)` is 48 characters
+// and is over-prime. Guard on the felt itself.
 export function isStarkDomain(domain: Handle): boolean {
-  return /^[a-z0-9-]+(\.[a-z0-9-]+)*\.stark$/.test(domain);
+  if (!/^[a-z0-9-这来]+(\.[a-z0-9-这来]+)*\.stark$/.test(domain)) return false;
+
+  return domain
+    .replace(/\.stark$/, '')
+    .split('.')
+    .every(label => starknetId.useEncoded(label) < constants.PRIME);
 }
 
 export function provider(
