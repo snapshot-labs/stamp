@@ -1,5 +1,5 @@
 import snapshot from '@snapshot-labs/snapshot.js';
-import { constants, starknetId, validateAndParseAddress } from 'starknet';
+import { CallData, constants, starknetId, validateAndParseAddress } from 'starknet';
 import {
   provider as getProvider,
   hasStarknetAddressShape,
@@ -56,21 +56,17 @@ function normalizeHandles(handles: Handle[]): Handle[] {
   return handles.filter(isStarkDomain);
 }
 
-// `CallData.compile({ address, hint: [] })`, byte for byte what starknet.js sends: the
-// address, then an empty span, which serialises to a bare length of 0.
 function addressToDomainCalldata(address: Address): string[] {
-  return [address, '0'];
+  return CallData.compile({ address, hint: [] });
 }
 
-// `CallData.compile({ domain: encodedDomain, hint: [] })`: the label count, one felt per
-// label leaf first, then the empty hint span.
 function domainToAddressCalldata(handle: Handle): string[] {
-  const labels = handle
+  const domain = handle
     .replace(/\.stark$/, '')
     .split('.')
-    .map(label => starknetId.useEncoded(label).toString(10));
+    .map(label => starknetId.useEncoded(label));
 
-  return [labels.length.toString(), ...labels, '0'];
+  return CallData.compile({ domain, hint: [] });
 }
 
 // An address with no domain answers with an empty span rather than an error, so a miss
