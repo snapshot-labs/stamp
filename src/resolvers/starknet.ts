@@ -11,10 +11,10 @@ function isStarknetDomain(domain: string): boolean {
   return domain.endsWith('.stark');
 }
 
-function normalizeAddress(address: string): string {
-  if (!address.match(/^(0x)?[0-9a-fA-F]{64}$/)) throw new Error('Invalid starknet address');
-
-  return address;
+// Not a felt252: not a Starknet address, so there is no profile to resolve.
+// That is no data (null), not an error.
+function normalizeAddress(address: string): string | null {
+  return address.match(/^(0x)?[0-9a-fA-F]{64}$/) ? address : null;
 }
 
 async function getStarknetAddress(domain: string): Promise<string | null> {
@@ -48,22 +48,18 @@ async function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: str
 }
 
 export default async function resolve(domainOrAddress: string) {
-  try {
-    const img_url = await getImage(domainOrAddress);
+  const img_url = await getImage(domainOrAddress);
 
-    if (!img_url || img_url === DEFAULT_IMG_URL) return false;
+  if (!img_url || img_url === DEFAULT_IMG_URL) return false;
 
-    const fetched = await fetchImageOrMetadata(getUrl(img_url));
-    const buffer = Buffer.isBuffer(fetched)
-      ? fetched
-      : fetched.image
-        ? await fetchHttpImage(getUrl(fetched.image))
-        : null;
+  const fetched = await fetchImageOrMetadata(getUrl(img_url));
+  const buffer = Buffer.isBuffer(fetched)
+    ? fetched
+    : fetched.image
+      ? await fetchHttpImage(getUrl(fetched.image))
+      : null;
 
-    if (!buffer) return false;
+  if (!buffer) return false;
 
-    return await resize(buffer, max, max);
-  } catch {
-    return false;
-  }
+  return await resize(buffer, max, max);
 }

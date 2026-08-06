@@ -1,8 +1,7 @@
 import { getAddress } from '@ethersproject/address';
 import { defaultOffchainNetwork, max, offchainNetworks } from '../constants.json';
 import { getUrl, graphQlCall, resize } from '../utils';
-import { fetchHttpImage } from './utils';
-import { isStarknetAddress } from '../addressResolvers/utils';
+import { fetchHttpImage, spaceIds } from './utils';
 
 const UNIFIED_API_URL = 'https://api.snapshot.box';
 const UNIFIED_API_TESTNET_URL = 'https://testnet-api.snapshot.box';
@@ -76,10 +75,13 @@ async function getOnchainProperty(
   entity: Entity,
   property: Property
 ) {
-  const ids = [id];
-  if (!isStarknetAddress(id)) {
-    ids.push(getAddress(id));
-  }
+  // The logo lives in the offchain skin settings; SpaceMetadataItem has no logo
+  // field, so asking the onchain API for one is a GraphQL validation error
+  // rather than a missing logo. There is nothing to query.
+  if (property === 'logo') return null;
+
+  const ids = spaceIds(id);
+  if (!ids) return null;
 
   const {
     data: {
@@ -97,7 +99,7 @@ async function getOnchainProperty(
     { ids }
   );
 
-  return spaces?.map(space => space.metadata?.[property]).filter(Boolean)[0];
+  return spaces?.map(space => space.metadata?.[property]).filter(Boolean)[0] ?? null;
 }
 
 function normalizeEvmAddress(value: string) {
@@ -115,29 +117,25 @@ function createPropertyResolver(entity: Entity, property: Property) {
 
     if (!Object.keys(API_URLS).includes(networkId)) return false;
 
-    try {
-      if (offchainNetworks.includes(networkId) || entity === 'user') {
-        value = await getOffchainProperty(
-          offchainNetworks.includes(networkId) ? networkId : defaultOffchainNetwork,
-          normalizeEvmAddress(address),
-          entity,
-          property
-        );
-      } else {
-        value = await getOnchainProperty(networkId, address, entity, property);
-      }
-
-      if (!value) return false;
-
-      const url = getUrl(value);
-      const input = await fetchHttpImage(url);
-
-      if (['cover', 'logo'].includes(property)) return input;
-
-      return await resize(input, max, max);
-    } catch {
-      return false;
+    if (offchainNetworks.includes(networkId) || entity === 'user') {
+      value = await getOffchainProperty(
+        offchainNetworks.includes(networkId) ? networkId : defaultOffchainNetwork,
+        normalizeEvmAddress(address),
+        entity,
+        property
+      );
+    } else {
+      value = await getOnchainProperty(networkId, address, entity, property);
     }
+
+    if (!value) return false;
+
+    const url = getUrl(value);
+    const input = await fetchHttpImage(url);
+
+    if (['cover', 'logo'].includes(property)) return input;
+
+    return await resize(input, max, max);
   };
 }
 
