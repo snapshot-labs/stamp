@@ -2,8 +2,8 @@ import snapshot from '@snapshot-labs/snapshot.js';
 import { constants, starknetId, validateAndParseAddress } from 'starknet';
 import {
   provider as getProvider,
+  hasStarknetAddressShape,
   isStarkDomain,
-  isStarknetAddress,
   withoutEmptyValues
 } from './utils';
 import { Address, Handle } from '../utils';
@@ -41,21 +41,15 @@ const NAMING_ABI = [
   }
 ];
 
-// A 64 hex-digit string is not necessarily a valid Starknet address: anything above
-// the felt address bound makes the StarknetID call fail with an opaque
-// 'Could not get stark name', which addressResolvers/index would then report as an
-// outage. Drop those here, so that error only ever means a real failure.
-function isResolvableAddress(address: Address): boolean {
-  try {
-    validateAndParseAddress(address);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
+// Both halves are load-bearing. The shape check is what rejects EVM addresses, which
+// `snapshot.utils.isStarknetAddress` reads as perfectly valid felts. And a 64 hex-digit
+// string is in turn not necessarily a valid address: anything above the felt address
+// bound is rejected by the node, and since the lookup goes through a multicall, one such
+// value fails the *whole* batch with '-32602 ... maximum field value was exceeded', which
+// `isSilencedError` does not silence, so addressResolvers/index would report an outage
+// for every address sent alongside it. Drop them both here.
 function normalizeAddresses(addresses: Address[]): Address[] {
-  return addresses.filter(a => isStarknetAddress(a) && isResolvableAddress(a));
+  return addresses.filter(a => hasStarknetAddressShape(a) && snapshot.utils.isStarknetAddress(a));
 }
 
 function normalizeHandles(handles: Handle[]): Handle[] {
