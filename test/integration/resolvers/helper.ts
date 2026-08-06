@@ -1,6 +1,14 @@
+import { capture } from '@snapshot-labs/snapshot-sentry';
 import resolvers from '../../../src/resolvers';
 import { remoteSnapshotOptions } from '../../fixtures/image-snapshot-addresses';
 import { expectResolverImageSnapshot } from '../../helpers/imageSnapshot';
+
+// index.ts reports what a resolver throws, so the no-avatar cases below assert
+// that nothing was reported: "this address has no avatar" is an answer, not a
+// failure, and must not page anyone.
+jest.mock('@snapshot-labs/snapshot-sentry', () => ({
+  capture: jest.fn()
+}));
 
 type ResolverName = keyof typeof resolvers;
 
@@ -75,9 +83,10 @@ export default function testResolverImageSnapshots({
 
       withoutAvatar.forEach(input => {
         it(
-          'returns false when no avatar is set',
+          'returns false when no avatar is set, without reporting an error',
           async () => {
             expect(await call(resolver, input)).toBe(false);
+            expect(capture).not.toHaveBeenCalled();
           },
           TIMEOUT
         );

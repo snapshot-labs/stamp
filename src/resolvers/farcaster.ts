@@ -26,21 +26,18 @@ function normalizeAddress(address: Address): Address | null {
 }
 
 async function fetchAddressImageUrl(normalizedAddress: string): Promise<string | null> {
-  try {
-    const response = await fetch(`${NEYNAR_API_URL}?addresses=${normalizedAddress}`, {
-      headers: { Accept: 'application/json', api_key: API_KEY }
-    });
+  const response = await fetch(`${NEYNAR_API_URL}?addresses=${normalizedAddress}`, {
+    headers: { Accept: 'application/json', api_key: API_KEY }
+  });
 
-    if (!response.ok) {
-      throw new Error(`Invalid network response (${response.url} ${response.status})`);
-    }
-
-    const data: Record<Address, UserDetails[]> = await response.json();
-
-    return data[normalizedAddress.toLowerCase()]?.[0].pfp_url;
-  } catch {
-    return null;
+  if (!response.ok) {
+    throw new Error(`Invalid network response (${response.url} ${response.status})`);
   }
+
+  const data: Record<Address, UserDetails[]> = await response.json();
+
+  // No account for this address: no data.
+  return data[normalizedAddress.toLowerCase()]?.[0]?.pfp_url ?? null;
 }
 
 export default async function resolve(address: string): Promise<Buffer | false> {
@@ -50,11 +47,7 @@ export default async function resolve(address: string): Promise<Buffer | false> 
   const url = await fetchAddressImageUrl(normalizedAddress);
   if (!url) return false;
 
-  try {
-    const imageUrl = withCache(url);
-    const input = await fetchHttpImage(imageUrl);
-    return await resize(input, max, max);
-  } catch {
-    return false;
-  }
+  const imageUrl = withCache(url);
+  const input = await fetchHttpImage(imageUrl);
+  return await resize(input, max, max);
 }
