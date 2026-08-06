@@ -32,29 +32,25 @@ export default async function resolve(domainOrAddress: string) {
     return false;
   }
 
-  try {
-    const {
-      data: {
-        data: { account }
-      }
-    } = await graphQlCall(
-      `${API_URL}/graphql`,
-      `query Account($request: AccountRequest!) {
-        account(request: $request) {
-          metadata {
-            picture
-          }
+  const {
+    data: {
+      data: { account }
+    }
+  } = await graphQlCall(
+    `${API_URL}/graphql`,
+    `query Account($request: AccountRequest!) {
+      account(request: $request) {
+        metadata {
+          picture
         }
-      }`,
-      { request }
-    );
+      }
+    }`,
+    { request }
+  );
 
-    const img_url = normalizeImageUrl(account?.metadata?.picture);
-    if (!img_url) return false;
+  const img_url = normalizeImageUrl(account?.metadata?.picture);
+  if (!img_url) return false;
 
-    const input = await fetchHttpImage(img_url);
-    return await resize(input, max, max);
-  } catch {
-    return false;
-  }
+  const input = await fetchHttpImage(img_url);
+  return await resize(input, max, max);
 }

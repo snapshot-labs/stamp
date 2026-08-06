@@ -1,7 +1,6 @@
-import { getAddress } from '@ethersproject/address';
 import { max } from '../constants.json';
 import { chainIdToName, getBaseAssetIconUrl, resize } from '../utils';
-import { fetchHttpImage } from './utils';
+import { fetchHttpImage, toChecksumAddress } from './utils';
 
 const ETH = [
   '0x0000000000000000000000000000000000000000',
@@ -9,16 +8,14 @@ const ETH = [
 ];
 
 export default async function resolve(address, chainId) {
-  try {
-    const networkName = chainIdToName(chainId) || 'ethereum';
-    const checksum = getAddress(address);
+  const networkName = chainIdToName(chainId) || 'ethereum';
+  const checksum = toChecksumAddress(address);
 
-    let url = `https://storage.googleapis.com/zapper-fi-assets/tokens/${networkName}/${checksum.toLocaleLowerCase()}.png`;
-    if (ETH.includes(checksum)) url = getBaseAssetIconUrl(chainId);
+  if (!checksum) return false;
 
-    const input = await fetchHttpImage(url);
-    return await resize(input, max, max);
-  } catch {
-    return false;
-  }
+  let url = `https://storage.googleapis.com/zapper-fi-assets/tokens/${networkName}/${checksum.toLocaleLowerCase()}.png`;
+  if (ETH.includes(checksum)) url = getBaseAssetIconUrl(chainId);
+
+  const input = await fetchHttpImage(url);
+  return await resize(input, max, max);
 }
