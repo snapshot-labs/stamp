@@ -141,9 +141,7 @@ describe('Starknet address resolver', () => {
           .split('.')
           .map(label => starknetId.useEncoded(label).toString(10));
 
-        expect(mockCallContract.mock.calls[0][0].calldata).toEqual(
-          expect.arrayContaining(labels)
-        );
+        expect(mockCallContract.mock.calls[0][0].calldata).toEqual(expect.arrayContaining(labels));
       }
     );
 
