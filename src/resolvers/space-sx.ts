@@ -2,13 +2,13 @@ import { getAddress } from '@ethersproject/address';
 import { max } from '../constants.json';
 import { getUrl, graphQlCall, resize } from '../utils';
 import { fetchHttpImage } from './utils';
-import { isStarknetAddress } from '../addressResolvers/utils';
+import { hasStarknetAddressShape } from '../addressResolvers/utils';
 
 const SUBGRAPH_URLS = ['https://api.snapshot.box', 'https://testnet-api.snapshot.box'];
 
 async function getSpaceProperty(key: string, url: string, property: 'avatar' | 'cover') {
   const ids = [key];
-  if (!isStarknetAddress(key)) {
+  if (!hasStarknetAddressShape(key)) {
     ids.push(getAddress(key));
   }
 

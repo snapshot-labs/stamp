@@ -8,7 +8,10 @@ export function isEvmAddress(address: Address): boolean {
   return /^0x[a-fA-F0-9]{40}$/.test(address);
 }
 
-export function isStarknetAddress(address: Address): boolean {
+// A shape check only, and deliberately not named after `snapshot.utils.isStarknetAddress`:
+// that one asks whether the value is a felt below the address bound, and answers `true`
+// for an EVM address. This one is what tells the two address formats apart.
+export function hasStarknetAddressShape(address: Address): boolean {
   return /^0x[a-fA-F0-9]{64}$/.test(address);
 }
 
@@ -39,7 +42,7 @@ export function withoutEmptyAddress(obj: Record<string, any>) {
 export function normalizeAddresses(addresses: Address[]): Address[] {
   return addresses
     .map(a => {
-      if (isStarknetAddress(a)) {
+      if (hasStarknetAddressShape(a)) {
         return a.toLowerCase();
       }
       try {

@@ -2,7 +2,7 @@ import { getAddress } from '@ethersproject/address';
 import { defaultOffchainNetwork, max, offchainNetworks } from '../constants.json';
 import { getUrl, graphQlCall, resize } from '../utils';
 import { fetchHttpImage } from './utils';
-import { isStarknetAddress } from '../addressResolvers/utils';
+import { hasStarknetAddressShape } from '../addressResolvers/utils';
 
 const UNIFIED_API_URL = 'https://api.snapshot.box';
 const UNIFIED_API_TESTNET_URL = 'https://testnet-api.snapshot.box';
@@ -77,7 +77,7 @@ async function getOnchainProperty(
   property: Property
 ) {
   const ids = [id];
-  if (!isStarknetAddress(id)) {
+  if (!hasStarknetAddressShape(id)) {
     ids.push(getAddress(id));
   }
 
