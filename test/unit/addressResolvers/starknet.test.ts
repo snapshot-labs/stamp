@@ -9,7 +9,6 @@ jest.mock('../../../src/addressResolvers/utils', () => {
   };
 });
 
-import { starknetId } from 'starknet';
 import { lookupAddresses, resolveNames } from '../../../src/addressResolvers/starknet';
 
 const PADDED = '0x07ff6b17f07c4d83236e3fc5f94259a19d1ed41bbcf1822397ea17882e9b038d';
@@ -19,8 +18,11 @@ const ZERO_ADDRESS = `0x${'0'.repeat(64)}`;
 const EVM_ADDRESS = '0xd8da6bf26964af9d7eed9e03e53415d37aa96045';
 // The felt `checkpoint.stark` encodes to, as returned live by address_to_domain.
 const CHECKPOINT_FELT = '0xb5b47279a7f0c';
-// The same felt in the decimal form the calldata carries.
+// The same felt in the decimal form `CallData.compile` emits into the calldata.
 const CHECKPOINT_LABEL_FELT = '3196585909059340';
+// `PADDED` as the single felt the compiled address_to_domain calldata carries.
+const PADDED_AS_FELT =
+  '3617475073865317856576155523118490860061508207210341692414423635860939015053';
 
 const hex = (n: number) => `0x${n.toString(16)}`;
 
@@ -131,25 +133,22 @@ describe('Starknet address resolver', () => {
       }
     );
 
+    // The expected felts are pinned literals captured from starknet.js, not recomputed
+    // here with the same `useEncoded` chain the resolver uses -- otherwise the assertion
+    // is only the encoding agreeing with a copy of itself.
     it.each([
-      'ab.stark',
-      'notion.eth.stark',
-      'a-b.stark',
-      '123.stark',
+      ['ab.stark', ['38']],
+      ['a-b.stark', ['2812']],
+      ['123.stark', ['42967']],
+      ['notion.eth.stark', ['1059716045', '10834']],
       // `bigAlphabet`. The encoder consumes these two glyphs and advances the multiplier,
       // so unlike `!` they round-trip and cannot collide, and the name is registered on
       // mainnet -- rejecting it drops a real avatar to the blockie fallback.
-      '来baba这.stark'
-    ])('still resolves %p', async handle => {
+      ['来baba这.stark', ['11885385095']]
+    ])('still resolves %p, sending label felts %p', async (handle, labels) => {
       mockAddresses(PADDED);
 
       await expect(resolveNames([handle])).resolves.toEqual({ [handle]: PADDED });
-
-      const labels = handle
-        .replace(/\.stark$/, '')
-        .split('.')
-        .map(label => starknetId.useEncoded(label).toString(10));
-
       expect(mockCallContract.mock.calls[0][0].calldata).toEqual(expect.arrayContaining(labels));
     });
 
@@ -219,6 +218,16 @@ describe('Starknet address resolver', () => {
       await expect(lookupAddresses([PADDED])).resolves.toEqual({
         [PADDED]: 'checkpoint.stark'
       });
+    });
+
+    it('sends the address as a felt followed by an empty hint span', async () => {
+      mockDomains([CHECKPOINT_FELT]);
+
+      await lookupAddresses([PADDED]);
+
+      expect(mockCallContract.mock.calls[0][0].calldata).toEqual(
+        expect.arrayContaining([PADDED_AS_FELT])
+      );
     });
 
     it('drops addresses without a name, and keeps the others', async () => {
