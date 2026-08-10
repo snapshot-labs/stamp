@@ -46,7 +46,7 @@
     "nodemon": "^2.0.7",
     "redis": "^4.6.10",
     "sharp": "^0.34.5",
-    "starknet": "^6.11.0",
+    "starknet": ">=6.21.0 <6.21.2",
     "ts-node": "^10.8.1",
     "typescript": "^4.7.3",
     "zod": "^3.25.76"
@@ -65,5 +65,8 @@
     "prettier": "^3.1.0",
     "supertest": "^7.1.3",
     "ts-jest": "^28.0.4"
+  },
+  "resolutions": {
+    "starknet": ">=6.21.0 <6.21.2"
   }
 }

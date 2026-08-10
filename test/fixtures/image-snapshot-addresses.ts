@@ -101,7 +101,14 @@ export const realAvatarInputs = {
   spaceSxSepolia: '0xbFF55fd2A671288316956A0Cae8f1d24BA7E5C9B',
   starknetSimpleAddress: '0x0779ba6e4e227947acbbdfb978a292c401339027eeb3d768f5d12cd2e818265a',
   starknetNftHandle: 'pragmarob.stark',
-  starknetNftAddress: '0x007b275f7524f39b99a51c7134bc44204fedc5dd1e982e920eb2047c6c2a71f0'
+  starknetNftAddress: '0x007b275f7524f39b99a51c7134bc44204fedc5dd1e982e920eb2047c6c2a71f0',
+  // A .stark name spelled with StarknetID's bigAlphabet (这, 来). Those glyphs
+  // are part of the StarknetID encoding and resolve on-chain, but starknet.js
+  // 6.21.2 added an ASCII-only domain regex in front of
+  // getAddressFromStarkName, which rejects them with "Invalid domain, must be
+  // a valid .stark domain". The avatar resolver swallows that throw and returns
+  // false, so this input is the only thing that keeps the starknet pin honest.
+  starknetBigAlphabetHandle: '来baba这.stark'
 } as const;
 
 // No-avatar / false-path inputs: each is an input for which the resolver is
