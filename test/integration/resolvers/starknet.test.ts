@@ -10,7 +10,8 @@ testResolverImageSnapshots({
   withAvatar: [
     realAvatarInputs.starknetSimpleAddress,
     realAvatarInputs.starknetNftHandle,
-    realAvatarInputs.starknetNftAddress
+    realAvatarInputs.starknetNftAddress,
+    realAvatarInputs.starknetBigAlphabetHandle
   ],
   withoutAvatar: [
     noAvatarInputs.starknetMissing,
