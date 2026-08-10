@@ -1,5 +1,4 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
-import fetch from 'node-fetch';
 import { timeLookupDomainsResponse } from '../../../../src/helpers/metrics';
 import { Address, Handle } from '../../../../src/helpers/types';
 
@@ -7,13 +6,13 @@ jest.mock('@snapshot-labs/snapshot-sentry', () => ({
   capture: jest.fn()
 }));
 
-jest.mock('node-fetch', () => jest.fn());
+const originalFetch = global.fetch;
+const mockedFetch = jest.fn();
+global.fetch = mockedFetch as unknown as typeof global.fetch;
 
 const ADDRESS = '0x220bc93D88C0aF11f1159eA89a885d5ADd3A7Cf6';
 const CHAIN_ID = '109';
 const PAGE_SIZE = 25;
-
-const mockedFetch = fetch as unknown as jest.Mock;
 
 let lookupDomains: (address: Address, chainId?: string) => Promise<Handle[]>;
 let lookupDomainsThroughIndex: (address: Address, chains?: string | string[]) => Promise<Handle[]>;
@@ -27,6 +26,8 @@ beforeAll(async () => {
 });
 
 afterAll(() => {
+  global.fetch = originalFetch;
+
   if (apiKey === undefined) {
     delete process.env.D3_API_KEY_MAINNET;
   } else {
