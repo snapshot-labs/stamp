@@ -14,10 +14,6 @@ const EMPTY_STARKNET_ADDRESS = `0x${'0'.repeat(64)}`;
 const NAMING_CONTRACT = starknetId.getStarknetIdContract(NETWORK);
 const provider = getProvider(NETWORK);
 
-// The two entrypoints starknet.js calls one address at a time in `getStarkName` and
-// `getAddressFromStarkName`. Declared here so `snapshot.utils.multicall` can parse the
-// retdata: it keys off `name`, and needs `outputs` to know a domain comes back as a span
-// of felts while an address is a single one.
 const NAMING_ABI = [
   {
     name: 'address_to_domain',
@@ -41,13 +37,8 @@ const NAMING_ABI = [
   }
 ];
 
-// Both halves are load-bearing. The shape check is what rejects EVM addresses, which
-// `snapshot.utils.isStarknetAddress` reads as perfectly valid felts. And a 64 hex-digit
-// string is in turn not necessarily a valid address: anything above the felt address
-// bound is rejected by the node, and since the lookup goes through a multicall, one such
-// value fails the *whole* batch with '-32602 ... maximum field value was exceeded', which
-// `isSilencedError` does not silence, so addressResolvers/index would report an outage
-// for every address sent alongside it. Drop them both here.
+// The shape check alone is not enough: a 64 hex-digit string can still be over the felt
+// address bound, and one such value fails the *whole* multicall batch, not just itself.
 function normalizeAddresses(addresses: Address[]): Address[] {
   return addresses.filter(a => hasStarknetAddressShape(a) && snapshot.utils.isStarknetAddress(a));
 }
@@ -69,9 +60,6 @@ function domainToAddressCalldata(handle: Handle): string[] {
   return CallData.compile({ domain, hint: [] });
 }
 
-// An address with no domain answers with an empty span rather than an error, so a miss
-// is a value here instead of a throw. Anything that does throw out of `multicall` is an
-// RPC or network fault and is left to propagate to `index.ts`, which captures it.
 function decodeDomain(span: unknown): Handle | undefined {
   if (!Array.isArray(span) || span.length === 0) return undefined;
 
