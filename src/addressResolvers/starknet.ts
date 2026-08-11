@@ -37,10 +37,12 @@ const NAMING_ABI = [
   }
 ];
 
-// The shape check alone is not enough: a 64 hex-digit string can still be over the felt
-// address bound, and one such value fails the *whole* multicall batch, not just itself.
+// Shape only. The felt bound is guarded upstream, in the shared `normalizeAddresses` that
+// addressResolvers/index runs before any resolver sees the input; what is left here is the
+// part that guard does not do, rejecting EVM addresses, which are valid felts themselves.
+// The composition is pinned by test/unit/addressResolvers/starknet-batch-guard.test.ts.
 function normalizeAddresses(addresses: Address[]): Address[] {
-  return addresses.filter(a => hasStarknetAddressShape(a) && snapshot.utils.isStarknetAddress(a));
+  return addresses.filter(hasStarknetAddressShape);
 }
 
 function normalizeHandles(handles: Handle[]): Handle[] {

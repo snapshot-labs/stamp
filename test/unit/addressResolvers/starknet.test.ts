@@ -247,10 +247,5 @@ describe('Starknet address resolver', () => {
       await expect(lookupAddresses([EVM_ADDRESS])).resolves.toEqual({});
       expect(mockCallContract).not.toHaveBeenCalled();
     });
-
-    it('ignores a 64 hex-digit value above the felt address bound', async () => {
-      await expect(lookupAddresses([`0x${'f'.repeat(64)}`])).resolves.toEqual({});
-      expect(mockCallContract).not.toHaveBeenCalled();
-    });
   });
 });
