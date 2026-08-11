@@ -26,8 +26,8 @@ const PADDED_AS_FELT =
 
 const hex = (n: number) => `0x${n.toString(16)}`;
 
-// The `aggregate` retdata shape snapshot.js parses: block number, total length, then
-// each call's response prefixed with its own length.
+// The `aggregate` retdata snapshot.js parses: block number, total felt count, then each
+// call's response prefixed with its own length.
 function aggregateResponse(responses: string[][]): string[] {
   const body = responses.flatMap(response => [hex(response.length), ...response]);
 
@@ -42,7 +42,6 @@ const mockDomains = (...spans: string[][]) =>
 const mockAddresses = (...addresses: string[]) =>
   mockCallContract.mockResolvedValueOnce(aggregateResponse(addresses.map(address => [address])));
 
-// A response that stops before the slot the ABI promises.
 const mockTruncated = () => mockCallContract.mockResolvedValueOnce(aggregateResponse([[]]));
 
 beforeEach(() => {
@@ -122,9 +121,7 @@ describe('Starknet address resolver', () => {
       expect(mockCallContract).not.toHaveBeenCalled();
     });
 
-    // StarknetID's encoder drops any character outside its alphabet instead of rejecting
-    // it, so these would otherwise encode like a shorter, registered handle and come
-    // back with someone else's address. They must not reach the contract at all.
+    // These encode like a shorter, registered handle, so they must not reach the contract at all.
     it.each(['a!b.stark', '!!!.stark', '.stark', 'a b.stark', 'a_b.stark', 'ab.stark.eth'])(
       'ignores %p, without looking it up',
       async handle => {
@@ -133,17 +130,14 @@ describe('Starknet address resolver', () => {
       }
     );
 
-    // The expected felts are pinned literals captured from starknet.js, not recomputed
-    // here with the same `useEncoded` chain the resolver uses -- otherwise the assertion
-    // is only the encoding agreeing with a copy of itself.
+    // Pinned literals captured from starknet.js, deliberately not recomputed here with the same
+    // `useEncoded` the resolver calls -- that would only assert the encoder matches itself.
     it.each([
       ['ab.stark', ['38']],
       ['a-b.stark', ['2812']],
       ['123.stark', ['42967']],
       ['notion.eth.stark', ['1059716045', '10834']],
-      // `bigAlphabet`. The encoder consumes these two glyphs and advances the multiplier,
-      // so unlike `!` they round-trip and cannot collide, and the name is registered on
-      // mainnet -- rejecting it drops a real avatar to the blockie fallback.
+      // `bigAlphabet`. Registered on mainnet; rejecting it drops a real avatar to a blockie.
       ['来baba这.stark', ['11885385095']]
     ])('still resolves %p, sending label felts %p', async (handle, labels) => {
       mockAddresses(PADDED);
@@ -152,10 +146,7 @@ describe('Starknet address resolver', () => {
       expect(mockCallContract.mock.calls[0][0].calldata).toEqual(expect.arrayContaining(labels));
     });
 
-    // The node rejects a label whose felt reaches the field prime, and since the lookup
-    // is one atomic multicall that failure takes every name batched alongside it down
-    // too, as a `-32602` that `isSilencedError` does not silence. The bound is a felt
-    // value and not a character count: the first two labels here are both 48 characters.
+    // `VALID_48` and `OVER_PRIME_48` are both 48 characters: the bound is a felt, not a length.
     describe('felt bound', () => {
       const VALID_48 = `${'a'.repeat(47)}b`;
       const VALID_48_FELT =
