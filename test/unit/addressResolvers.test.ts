@@ -46,9 +46,6 @@ afterEach(() => {
 });
 
 describe('addressResolvers - input normalization', () => {
-  // A 64-char hex value is only a Starknet address when it is below 2^251 - 256.
-  // Sending a higher one makes the hub reject the whole id_in batch, nulling the
-  // names of every address queried alongside it. See STAMP-6W.
   const STARKNET_ADDRESS = '0x0779ba6e4e227947acbbdfb978a292c401339027eeb3d768f5d12cd2e818265a';
   const OUT_OF_RANGE = '0x07ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00';
 

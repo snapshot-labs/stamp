@@ -8,20 +8,9 @@ export function isEvmAddress(address: Address): boolean {
   return /^0x[a-fA-F0-9]{40}$/.test(address);
 }
 
+// `snapshot.utils.isStarknetAddress` is a felt-range check: `true` for an EVM address too.
 export function isStarknetAddress(address: Address): boolean {
-  return /^0x[a-fA-F0-9]{64}$/.test(address);
-}
-
-// A Starknet address is a field element, so it is strictly below
-// L2_ADDRESS_UPPER_BOUND. Any other 64-char hex blob (a transaction hash, a
-// proposal id) also matches isStarknetAddress, and about 97% of those are out
-// of range. Kept private and applied in normalizeAddresses only: isStarknetAddress
-// is used elsewhere as a "skip getAddress()" guard, which must keep matching on
-// shape alone.
-const L2_ADDRESS_UPPER_BOUND = 2n ** 251n - 256n;
-
-function isStarknetAddressInRange(address: Address): boolean {
-  return BigInt(address) < L2_ADDRESS_UPPER_BOUND;
+  return /^0x[a-fA-F0-9]{64}$/.test(address) && snapshot.utils.isStarknetAddress(address);
 }
 
 export function provider(
@@ -43,9 +32,7 @@ export function normalizeAddresses(addresses: Address[]): Address[] {
   return addresses
     .map(a => {
       if (isStarknetAddress(a)) {
-        // The hub rejects the whole id_in batch when a single out-of-range value
-        // reaches it, nulling the names of up to MAX_LOOKUP_ADDRESSES addresses.
-        return isStarknetAddressInRange(a) ? a.toLowerCase() : undefined;
+        return a.toLowerCase();
       }
       try {
         return getAddress(a.toLowerCase());
