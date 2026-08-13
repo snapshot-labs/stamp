@@ -1,5 +1,17 @@
 const mockCallContract = jest.fn();
 
+// `starknetId`'s members are non-configurable getters, so `jest.spyOn` cannot install on them.
+// Wrapping the encoder in a call-through mock observes it without replacing it, which keeps the
+// felt literals pinned below honest.
+jest.mock('starknet', () => {
+  const actual = jest.requireActual('starknet');
+
+  return {
+    ...actual,
+    starknetId: { ...actual.starknetId, useEncoded: jest.fn(actual.starknetId.useEncoded) }
+  };
+});
+
 jest.mock('../../../src/addressResolvers/utils', () => {
   const actual = jest.requireActual('../../../src/addressResolvers/utils');
 
@@ -9,7 +21,10 @@ jest.mock('../../../src/addressResolvers/utils', () => {
   };
 });
 
+import { starknetId } from 'starknet';
 import { lookupAddresses, resolveNames } from '../../../src/addressResolvers/starknet';
+
+const mockUseEncoded = starknetId.useEncoded as unknown as jest.Mock;
 
 const PADDED = '0x07ff6b17f07c4d83236e3fc5f94259a19d1ed41bbcf1822397ea17882e9b038d';
 const UNPADDED = '0x7ff6b17f07c4d83236e3fc5f94259a19d1ed41bbcf1822397ea17882e9b038d';
@@ -46,6 +61,7 @@ const mockTruncated = () => mockCallContract.mockResolvedValueOnce(aggregateResp
 
 beforeEach(() => {
   mockCallContract.mockReset();
+  mockUseEncoded.mockClear();
 });
 
 describe('Starknet address resolver', () => {
@@ -172,6 +188,16 @@ describe('Starknet address resolver', () => {
         ['49 characters', OVER_PRIME_49]
       ])('drops an over-prime label of %s, without looking it up', async (_, label) => {
         await expect(resolveNames([`${label}.stark`])).resolves.toEqual({});
+        expect(mockCallContract).not.toHaveBeenCalled();
+      });
+
+      // The felt check would reject this too, but only after paying the encoder, whose BigInt
+      // loop is worse than quadratic. `OVER_PRIME_49` above does not pin that: it is short
+      // enough to be cheap either way.
+      it('drops an oversized label without encoding it', async () => {
+        await expect(resolveNames([`${'a'.repeat(100_000)}.stark`])).resolves.toEqual({});
+
+        expect(mockUseEncoded).not.toHaveBeenCalled();
         expect(mockCallContract).not.toHaveBeenCalled();
       });
 

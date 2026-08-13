@@ -9,15 +9,9 @@ export function isEvmAddress(address: Address): boolean {
   return /^0x[a-fA-F0-9]{40}$/.test(address);
 }
 
-// The felt range on its own answers `true` for an EVM address, so both halves are needed.
+// `snapshot.utils.isStarknetAddress` is a felt-range check: `true` for an EVM address too.
 export function isStarknetAddress(address: Address): boolean {
-  return hasStarknetAddressShape(address) && snapshot.utils.isStarknetAddress(address);
-}
-
-// Shape only, and deliberately not named after `snapshot.utils.isStarknetAddress`: that one
-// answers `true` for an EVM address, so it cannot tell the two address formats apart.
-export function hasStarknetAddressShape(address: Address): boolean {
-  return /^0x[a-fA-F0-9]{64}$/.test(address);
+  return /^0x[a-fA-F0-9]{64}$/.test(address) && snapshot.utils.isStarknetAddress(address);
 }
 
 // StarknetID's encoder skips characters outside its alphabet instead of rejecting them, so
@@ -30,13 +24,24 @@ export function hasStarknetAddressShape(address: Address): boolean {
 // `'a'.repeat(47) + 'b'` resolves and `'a'.repeat(48)` is over-prime, both 48 characters. One
 // over-prime label fails the *whole* multicall with a `-32602` that `isSilencedError` does not
 // silence, taking down every name batched alongside it.
+//
+// The 48 character cap keeps nothing out that the felt bound would have let in -- the smallest
+// felt a 49 character label can encode to is 38^48, already past the prime -- but it stops a
+// multi-megabyte label from reaching `useEncoded`, whose BigInt loop grows worse than
+// quadratically and runs before the first await. `resolve_names` caps the array at 5 entries
+// and never the strings, so without it one unauthenticated request blocks the event loop for
+// minutes.
 export function isStarkDomain(domain: Handle): boolean {
-  if (!/^[a-z0-9-这来]+(\.[a-z0-9-这来]+)*\.stark$/.test(domain)) return false;
+  if (!/^[a-z0-9-这来]{1,48}(\.[a-z0-9-这来]{1,48})*\.stark$/.test(domain)) return false;
 
-  return domain
-    .replace(/\.stark$/, '')
-    .split('.')
-    .every(label => starknetId.useEncoded(label) < constants.PRIME);
+  return starkDomainLabels(domain).every(label => starknetId.useEncoded(label) < constants.PRIME);
+}
+
+// Shared with `domainToAddressCalldata` in addressResolvers/starknet.ts: this decomposition
+// picks the labels `isStarkDomain` validates, and the same labels are what later reach the
+// contract, so the two must not drift apart.
+export function starkDomainLabels(domain: Handle): string[] {
+  return domain.replace(/\.stark$/, '').split('.');
 }
 
 export function provider(
