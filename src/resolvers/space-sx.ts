@@ -1,6 +1,5 @@
 import { getAddress } from '@ethersproject/address';
-import { max } from '../constants.json';
-import { getUrl, graphQlCall, resize } from '../utils';
+import { getUrl, graphQlCall } from '../utils';
 import { fetchHttpImage } from './utils';
 import { isStarknetAddress } from '../addressResolvers/utils';
 
@@ -41,10 +40,8 @@ function createPropertyResolver(property: 'avatar' | 'cover') {
       );
 
       const url = getUrl(value);
-      const input = await fetchHttpImage(url);
 
-      if (property === 'cover') return input;
-      return await resize(input, max, max);
+      return await fetchHttpImage(url);
     } catch {
       return false;
     }

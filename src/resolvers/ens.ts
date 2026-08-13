@@ -1,6 +1,5 @@
 import { isAddress } from '@ethersproject/address';
-import { max } from '../constants.json';
-import { getProvider, resize } from '../utils';
+import { getProvider } from '../utils';
 import { fetchHttpImage } from './utils';
 import { lookupAddresses } from '../addressResolvers';
 
@@ -28,9 +27,7 @@ export default async function resolve(nameOrAddress: string) {
     let url = await ensResolver.getText('avatar');
     url = url?.startsWith('http') ? url : `https://metadata.ens.domains/mainnet/avatar/${ensName}`;
 
-    const input = await fetchHttpImage(url);
-
-    return await resize(input, max, max);
+    return await fetchHttpImage(url);
   } catch {
     return false;
   }

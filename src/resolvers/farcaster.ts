@@ -1,7 +1,7 @@
 import { getAddress } from '@ethersproject/address';
 import fetch from 'node-fetch';
 import { max } from '../constants.json';
-import { Address, resize } from '../utils';
+import { Address } from '../utils';
 import { fetchHttpImage } from './utils';
 
 const NEYNAR_API_URL = 'https://api.neynar.com/v2/farcaster/user/bulk-by-address';
@@ -52,8 +52,7 @@ export default async function resolve(address: string): Promise<Buffer | false> 
 
   try {
     const imageUrl = withCache(url);
-    const input = await fetchHttpImage(imageUrl);
-    return await resize(input, max, max);
+    return await fetchHttpImage(imageUrl);
   } catch {
     return false;
   }
