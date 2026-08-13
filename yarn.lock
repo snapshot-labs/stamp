@@ -2870,10 +2870,10 @@
   dependencies:
     "@sentry/node" "^10.52.0"
 
-"@snapshot-labs/snapshot.js@^0.15.1":
-  version "0.15.1"
-  resolved "https://registry.yarnpkg.com/@snapshot-labs/snapshot.js/-/snapshot.js-0.15.1.tgz#2da7e4d5f75d9c9ad476c8b1acb7251cd7bd9f53"
-  integrity sha512-VICLBMgbz5w70w/81SOVEK+R8GbPAEQfWU3nyoquvRTyp6vQlaJ3+MijHJ5nFg40u8H21OltpBuIaE5H9q1gtw==
+"@snapshot-labs/snapshot.js@^0.15.2":
+  version "0.15.2"
+  resolved "https://registry.yarnpkg.com/@snapshot-labs/snapshot.js/-/snapshot.js-0.15.2.tgz#6452f3de47ad18c40d25904667cdaad8556599f6"
+  integrity sha512-ZmcOVGKny1gq90u0XxdYQDZBM1ah+4T3d8K/jK0MR1EYyGT+OAqegY7MVzt5WoojYVALybmSRRemh+S3+mMfLw==
   dependencies:
     "@ethersproject/abi" "^5.6.4"
     "@ethersproject/address" "^5.6.1"
@@ -2890,7 +2890,7 @@
     cross-fetch "^3.1.6"
     json-to-graphql-query "^2.2.4"
     lodash.set "^4.3.2"
-    starknet "^6.11.0"
+    starknet "^6.21.0"
     viem "^2.55.11"
 
 "@stablelib/binary@^1.0.1":
@@ -7245,7 +7245,7 @@ stack-utils@^2.0.3, stack-utils@^2.0.6:
   resolved "https://registry.yarnpkg.com/@starknet-io/types-js/-/types-js-0.7.10.tgz#d21dc973d0cd04d7b6293ce461f2f06a5873c760"
   integrity sha512-1VtCqX4AHWJlRRSYGSn+4X1mqolI1Tdq62IwzoU2vUuEE72S1OlEeGhpvd6XsdqXcfHmVzYfj8k1XtKBQqwo9w==
 
-"starknet@>=6.21.0 <6.21.2", starknet@^6.11.0:
+"starknet@>=6.21.0 <6.21.2", starknet@^6.21.0:
   version "6.21.1"
   resolved "https://registry.yarnpkg.com/starknet/-/starknet-6.21.1.tgz#2cfd9a0e6cfba0a90687d3bf4c30555d3c0b0a0b"
   integrity sha512-bmhGGsF8rAZWzWzkQAtkzHfmzy4Nc9pFRKVQo/i+sd2TQqRiOnVM5kK9suEbpveTGd/Ko9zGHmrjofE49hZOng==
