@@ -1,6 +1,5 @@
 import { getAddress } from '@ethersproject/address';
-import { max } from '../constants.json';
-import { chainIdToName, getBaseAssetIconUrl, resize } from '../utils';
+import { chainIdToName, getBaseAssetIconUrl } from '../utils';
 import { fetchHttpImage } from './utils';
 
 const ETH = [
@@ -16,8 +15,7 @@ export default async function resolve(address, chainId) {
     let url = `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/${networkName}/assets/${checksum}/logo.png`;
     if (ETH.includes(checksum)) url = getBaseAssetIconUrl(chainId);
 
-    const input = await fetchHttpImage(url);
-    return await resize(input, max, max);
+    return await fetchHttpImage(url);
   } catch {
     return false;
   }

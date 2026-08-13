@@ -1,6 +1,5 @@
 import { getAddress, isAddress } from '@ethersproject/address';
-import { max } from '../constants.json';
-import { graphQlCall, resize } from '../utils';
+import { graphQlCall } from '../utils';
 import { fetchHttpImage } from './utils';
 
 const API_URL = 'https://api.lens.xyz';
@@ -52,8 +51,7 @@ export default async function resolve(domainOrAddress: string) {
     const img_url = normalizeImageUrl(account?.metadata?.picture);
     if (!img_url) return false;
 
-    const input = await fetchHttpImage(img_url);
-    return await resize(input, max, max);
+    return await fetchHttpImage(img_url);
   } catch {
     return false;
   }

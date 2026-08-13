@@ -1,6 +1,4 @@
 import { getAddress } from '@ethersproject/address';
-import { max } from '../constants.json';
-import { resize } from '../utils';
 import { fetchHttpImage } from './utils';
 
 const API_KEY = process.env.COINGECKO_API_KEY;
@@ -28,8 +26,7 @@ export default async function resolve(address: string, chainId: string) {
     const data = await fetch(url, { headers: { 'x-cg-pro-api-key': API_KEY } }).then(res =>
       res.json()
     );
-    const input = await fetchHttpImage(data?.image?.large);
-    return await resize(input, max, max);
+    return await fetchHttpImage(data?.image?.large);
   } catch {
     return false;
   }
