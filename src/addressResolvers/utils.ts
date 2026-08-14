@@ -9,15 +9,9 @@ export function isEvmAddress(address: Address): boolean {
   return /^0x[a-fA-F0-9]{40}$/.test(address);
 }
 
-// The felt range on its own answers `true` for an EVM address, so both halves are needed.
+// `snapshot.utils.isStarknetAddress` is a felt-range check: `true` for an EVM address too.
 export function isStarknetAddress(address: Address): boolean {
-  return hasStarknetAddressShape(address) && snapshot.utils.isStarknetAddress(address);
-}
-
-// Shape only, and deliberately not named after `snapshot.utils.isStarknetAddress`: that one
-// answers `true` for an EVM address, so it cannot tell the two address formats apart.
-export function hasStarknetAddressShape(address: Address): boolean {
-  return /^0x[a-fA-F0-9]{64}$/.test(address);
+  return /^0x[a-fA-F0-9]{64}$/.test(address) && snapshot.utils.isStarknetAddress(address);
 }
 
 // StarknetID's encoder skips characters outside its alphabet instead of rejecting them, so

@@ -73,9 +73,9 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-// starknet.ts filters on address *shape* only; the felt bound is guarded upstream, in the
-// shared `normalizeAddresses`. This pins the composition the resolver now depends on:
-// name resolution is a single atomic multicall, so one out-of-range felt fails the whole
+// starknet.ts guards the felt bound itself; this pins the other half, the shared
+// `normalizeAddresses` that addressResolvers/index runs before any resolver sees the input.
+// Name resolution is a single atomic multicall, so one out-of-range felt fails the whole
 // batch with a `-32602 ... maximum field value was exceeded` that `isSilencedError` does
 // not silence -- reported as an outage for every address queried alongside it.
 describe('Starknet batch guard', () => {

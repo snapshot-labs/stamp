@@ -16,6 +16,11 @@ const UNPADDED = '0x7ff6b17f07c4d83236e3fc5f94259a19d1ed41bbcf1822397ea17882e9b0
 const MIXED_CASE = '0x7FF6b17F07c4d83236e3FC5f94259a19D1ed41BBcf1822397ea17882e9B038D';
 const ZERO_ADDRESS = `0x${'0'.repeat(64)}`;
 const EVM_ADDRESS = '0xd8da6bf26964af9d7eed9e03e53415d37aa96045';
+// The same 64 hex-digit shape as an address, but past the felt bound: a transaction hash or a
+// proposal id looks exactly like this, and about 97% of them land here.
+const OUT_OF_RANGE = '0x07ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00';
+const OUT_OF_RANGE_FELT =
+  '3618502788666131106986593281521497120414687020801267626233049500247285300992';
 // The felt `checkpoint.stark` encodes to, as returned live by address_to_domain.
 const CHECKPOINT_FELT = '0xb5b47279a7f0c';
 // The same felt in the decimal form `CallData.compile` emits into the calldata.
@@ -246,6 +251,21 @@ describe('Starknet address resolver', () => {
     it('ignores non-starknet addresses', async () => {
       await expect(lookupAddresses([EVM_ADDRESS])).resolves.toEqual({});
       expect(mockCallContract).not.toHaveBeenCalled();
+    });
+
+    // `addressResolvers/index` filters this out upstream too, but the resolver is exported: a
+    // direct caller passing one poisons the single atomic multicall with a `-32602` that
+    // `isSilencedError` does not silence, losing every address batched alongside it.
+    it('ignores a 64 hex-digit value past the felt range', async () => {
+      mockDomains([CHECKPOINT_FELT]);
+
+      await expect(lookupAddresses([PADDED, OUT_OF_RANGE])).resolves.toEqual({
+        [PADDED]: 'checkpoint.stark'
+      });
+
+      const { calldata } = mockCallContract.mock.calls[0][0];
+      expect(calldata).toContain(PADDED_AS_FELT);
+      expect(calldata).not.toContain(OUT_OF_RANGE_FELT);
     });
   });
 });
