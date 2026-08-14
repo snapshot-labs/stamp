@@ -24,8 +24,15 @@ export function isStarknetAddress(address: Address): boolean {
 // `'a'.repeat(47) + 'b'` resolves and `'a'.repeat(48)` is over-prime, both 48 characters. One
 // over-prime label fails the *whole* multicall with a `-32602` that `isSilencedError` does not
 // silence, taking down every name batched alongside it.
+//
+// The 48 character cap keeps nothing out that the felt bound would have let in -- the smallest
+// felt a 49 character label can encode to is 38^48, already past the prime -- but it stops a
+// multi-megabyte label from reaching `useEncoded`, whose BigInt loop grows worse than
+// quadratically and runs before the first await. `resolve_names` caps the array at 5 entries
+// and never the strings, so without it one unauthenticated request blocks the event loop for
+// minutes.
 export function isStarkDomain(domain: Handle): boolean {
-  if (!/^[a-z0-9-这来]+(\.[a-z0-9-这来]+)*\.stark$/.test(domain)) return false;
+  if (!/^[a-z0-9-这来]{1,48}(\.[a-z0-9-这来]{1,48})*\.stark$/.test(domain)) return false;
 
   return starkDomainLabels(domain).every(label => starknetId.useEncoded(label) < constants.PRIME);
 }
