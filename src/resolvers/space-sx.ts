@@ -40,7 +40,6 @@ function createPropertyResolver(property: 'avatar' | 'cover') {
       );
 
       const url = getUrl(value);
-
       return await fetchHttpImage(url);
     } catch {
       return false;

@@ -1,3 +1,4 @@
+import { capture } from '@snapshot-labs/snapshot-sentry';
 import { max } from '../constants.json';
 import { resize } from '../utils';
 import basename from './basename';
@@ -21,8 +22,10 @@ import trustwallet from './trustwallet';
 
 // Normalizing to a max x max webp is pipeline work, not resolver work: a
 // resolver finds the bytes, the map normalizes them. The resize keeps the catch
-// it had inside each resolver, so hostile bytes still answer false rather than
-// throwing into the unguarded image route in api.ts.
+// it had inside each wrapped resolver, so hostile bytes from those entries
+// answer false rather than throwing into the unguarded image route in api.ts.
+// The cover/logo entries below skip this wrapper and remain exposed to that
+// same gap (pre-existing, tracked in #495).
 function withResize<T extends unknown[]>(
   resolve: (...args: T) => Promise<Buffer | false>
 ): (...args: T) => Promise<Buffer | false> {
@@ -32,7 +35,8 @@ function withResize<T extends unknown[]>(
 
     try {
       return await resize(input, max, max);
-    } catch {
+    } catch (err) {
+      capture(err);
       return false;
     }
   };
@@ -40,10 +44,15 @@ function withResize<T extends unknown[]>(
 
 // Two groups of entries deliberately opt out of the resize:
 //   - covers and logos ('user-cover', 'space-cover', 'space-logo',
-//     'space-cover-sx') are served at their upstream dimensions. resize() passes
+//     'space-cover-sx') skip the shared resize so the base cache keeps its
+//     upstream aspect ratio; api.ts still resizes every response to the
+//     request's w x h (default 64x64) before serving it. resize() passes
 //     no options, so sharp falls back to fit: 'cover', which would center-crop a
-//     1500x500 banner into a 500x500 square; parseQuery gives those types their
-//     own, larger ceiling (constants.maxCover) for the same reason.
+//     1500x500 banner into a 500x500 square; parseQuery gives the '-cover'
+//     types (user-cover, space-cover, space-cover-sx) their own, larger
+//     ceiling (constants.maxCover) for the same reason. space-logo keeps the
+//     default constants.max ceiling but is still excluded here so its aspect
+//     ratio isn't force-cropped to a square.
 //   - blockie and jazzicon are the fallbacks api.ts feeds straight into resize(),
 //     so they stay out of the false-on-failure contract and resize themselves.
 export default {
