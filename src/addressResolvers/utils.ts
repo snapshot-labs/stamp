@@ -27,10 +27,14 @@ export function isStarknetAddress(address: Address): boolean {
 export function isStarkDomain(domain: Handle): boolean {
   if (!/^[a-z0-9-这来]+(\.[a-z0-9-这来]+)*\.stark$/.test(domain)) return false;
 
-  return domain
-    .replace(/\.stark$/, '')
-    .split('.')
-    .every(label => starknetId.useEncoded(label) < constants.PRIME);
+  return starkDomainLabels(domain).every(label => starknetId.useEncoded(label) < constants.PRIME);
+}
+
+// Shared with `domainToAddressCalldata` in addressResolvers/starknet.ts: this decomposition
+// picks the labels `isStarkDomain` validates, and the same labels are what later reach the
+// contract, so the two must not drift apart.
+export function starkDomainLabels(domain: Handle): string[] {
+  return domain.replace(/\.stark$/, '').split('.');
 }
 
 export function provider(
