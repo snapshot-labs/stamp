@@ -16,7 +16,6 @@ import {
 import { resolveAvatar as sxResolveAvatar, resolveCover as sxResolveCover } from './space-sx';
 import starknet from './starknet';
 import trustwallet from './trustwallet';
-import zapper from './zapper';
 
 export default {
   blockie,
@@ -34,7 +33,6 @@ export default {
   'space-cover-sx': sxResolveCover,
   selfid,
   lens,
-  zapper,
   starknet,
   farcaster
 };
