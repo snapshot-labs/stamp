@@ -18,13 +18,13 @@ testAddressResolver({
 });
 
 describe('ENS address resolver: CCIP-Read fallback', () => {
-  // avsa.eth's primary name is set via an off-chain resolver that the batch
+  // jesse.base.eth's primary name is set via an off-chain resolver that the batch
   // getNames contract doesn't follow, so the fallback to provider.lookupAddress
   // is required.
   it('resolves names that the batch contract misses', async () => {
-    const address = '0x809FA673fe2ab515FaA168259cB14E2BeDeBF68e';
+    const address = '0x2211d1D0020DAEA8039E46Cf1367962070d77DA9';
     await expect(lookupAddresses([address])).resolves.toEqual({
-      [address]: 'avsa.eth'
+      [address]: 'jesse.base.eth'
     });
   }, 15e3);
 
