@@ -130,7 +130,6 @@ function createPropertyResolver(entity: Entity, property: Property) {
       if (!value) return false;
 
       const url = getUrl(value);
-
       return await fetchHttpImage(url);
     } catch {
       return false;
