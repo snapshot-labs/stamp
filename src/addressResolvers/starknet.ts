@@ -2,8 +2,8 @@ import snapshot from '@snapshot-labs/snapshot.js';
 import { CallData, constants, starknetId, validateAndParseAddress } from 'starknet';
 import {
   provider as getProvider,
-  hasStarknetAddressShape,
   isStarkDomain,
+  isStarknetAddress,
   withoutEmptyValues
 } from './utils';
 import { Address, Handle } from '../utils';
@@ -37,12 +37,13 @@ const NAMING_ABI = [
   }
 ];
 
-// Shape only. The felt bound is guarded upstream, in the shared `normalizeAddresses` that
-// addressResolvers/index runs before any resolver sees the input; what is left here is the
-// part that guard does not do, rejecting EVM addresses, which are valid felts themselves.
-// The composition is pinned by test/unit/addressResolvers/starknet-batch-guard.test.ts.
+// Shape and felt range both. `addressResolvers/index` already applies the same guard upstream,
+// but resolution is one atomic multicall, so a single out-of-range 64 hex-digit value -- a
+// transaction hash, a proposal id -- would take down every name batched alongside it with a
+// `-32602` that `isSilencedError` does not silence. Cheap enough to not depend on the caller.
+// The upstream composition stays pinned by test/unit/addressResolvers/starknet-batch-guard.test.ts.
 function normalizeAddresses(addresses: Address[]): Address[] {
-  return addresses.filter(hasStarknetAddressShape);
+  return addresses.filter(isStarknetAddress);
 }
 
 function normalizeHandles(handles: Handle[]): Handle[] {
