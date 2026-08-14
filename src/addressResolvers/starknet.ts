@@ -4,6 +4,7 @@ import {
   provider as getProvider,
   isStarkDomain,
   isStarknetAddress,
+  starkDomainLabels,
   withoutEmptyValues
 } from './utils';
 import { Address, Handle } from '../utils';
@@ -55,10 +56,7 @@ function addressToDomainCalldata(address: Address): string[] {
 }
 
 function domainToAddressCalldata(handle: Handle): string[] {
-  const domain = handle
-    .replace(/\.stark$/, '')
-    .split('.')
-    .map(label => starknetId.useEncoded(label));
+  const domain = starkDomainLabels(handle).map(label => starknetId.useEncoded(label));
 
   return CallData.compile({ domain, hint: [] });
 }
