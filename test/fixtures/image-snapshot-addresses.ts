@@ -49,8 +49,6 @@ export const remoteSnapshotInputs = {
   spaceSxArbitrum: '0xFd36252770642Ac48FC3A06d7A1D00be8946dd18',
   // trustwallet: a token logo from the trustwallet/assets repo (very stable).
   trustwallet: { address: '0xcf0C122c6b73ff809C693DB761e7BaeBe62b6a2E' },
-  // zapper: a token icon served by zapper's CDN.
-  zapper: { address: '0xc18360217d8f7ab5e7c516566761ea12ce7f9d72' },
   // coingecko: token metadata image (needs COINGECKO_API_KEY).
   coingecko: { address: '0xc18360217d8f7ab5e7c516566761ea12ce7f9d72', chainId: '1' },
   // farcaster: address with a Farcaster pfp (needs NEYNAR_API_KEY).
@@ -70,9 +68,9 @@ export const remoteSnapshotOptions: MatchImageSnapshotOptions = {
 // no-avatar path.
 //
 // IMPORTANT: this is a NORMAL, non-special address. The zero address is the
-// WRONG input for a no-avatar test: trustwallet and zapper special-case the
-// native/ETH sentinels (the zero address and 0xEeee...EEeE are in their `ETH`
-// list) and return the base-asset (ETH) icon for them, so the zero address does
+// WRONG input for a no-avatar test: trustwallet special-cases the native/ETH
+// sentinels (the zero address and 0xEeee...EEeE are in its `ETH` list) and
+// returns the base-asset (ETH) icon for them, so the zero address does
 // NOT exercise the genuine no-avatar path. NO_AVATAR_ADDRESS below is a valid
 // but empty mainnet address with no token logo / token entry / profile on any
 // of these upstreams, so it exercises the real no-avatar behavior (every one of
