@@ -38,11 +38,10 @@ const NAMING_ABI = [
   }
 ];
 
-// Shape and felt range both. `addressResolvers/index` already applies the same guard upstream,
-// but resolution is one atomic multicall, so a single out-of-range 64 hex-digit value -- a
-// transaction hash, a proposal id -- would take down every name batched alongside it with a
-// `-32602` that `isSilencedError` does not silence. Cheap enough to not depend on the caller.
-// The upstream composition stays pinned by test/unit/addressResolvers/starknet-batch-guard.test.ts.
+// Shape and felt range both. `addressResolvers/index` guards the same bound upstream, but this
+// resolver is exported and its batch is atomic: one out-of-range 64 hex-digit value -- a
+// transaction hash, a proposal id -- takes down every name alongside it with a `-32602` that
+// `isSilencedError` does not silence. Too cheap to be worth depending on the caller for.
 function normalizeAddresses(addresses: Address[]): Address[] {
   return addresses.filter(isStarknetAddress);
 }
