@@ -32,7 +32,7 @@ const MIXED_CASE = '0x7FF6b17F07c4d83236e3FC5f94259a19D1ed41BBcf1822397ea17882e9
 const ZERO_ADDRESS = `0x${'0'.repeat(64)}`;
 const EVM_ADDRESS = '0xd8da6bf26964af9d7eed9e03e53415d37aa96045';
 // The same 64 hex-digit shape as an address, but past the felt bound: a transaction hash or a
-// proposal id looks exactly like this, and about 97% of them land here.
+// proposal id looks exactly like this.
 const OUT_OF_RANGE = '0x07ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00';
 const OUT_OF_RANGE_FELT =
   '3618502788666131106986593281521497120414687020801267626233049500247285300992';
@@ -196,9 +196,8 @@ describe('Starknet address resolver', () => {
         expect(mockCallContract).not.toHaveBeenCalled();
       });
 
-      // The felt check would reject this too, but only after paying the encoder, whose BigInt
-      // loop is worse than quadratic. `OVER_PRIME_49` above does not pin that: it is short
-      // enough to be cheap either way.
+      // `OVER_PRIME_49` above does not pin this: it is short enough that the felt check rejects
+      // it cheaply either way. Here, reaching the encoder at all is the failure.
       it('drops an oversized label without encoding it', async () => {
         await expect(resolveNames([`${'a'.repeat(100_000)}.stark`])).resolves.toEqual({});
 
@@ -279,9 +278,8 @@ describe('Starknet address resolver', () => {
       expect(mockCallContract).not.toHaveBeenCalled();
     });
 
-    // `addressResolvers/index` filters this out upstream too, but the resolver is exported: a
-    // direct caller passing one poisons the single atomic multicall with a `-32602` that
-    // `isSilencedError` does not silence, losing every address batched alongside it.
+    // The hub guard drops this upstream as well, so only a direct caller of the export reaches
+    // it -- which is exactly the regression starknet-batch-guard.test.ts cannot catch.
     it('ignores a 64 hex-digit value past the felt range', async () => {
       mockDomains([CHECKPOINT_FELT]);
 
