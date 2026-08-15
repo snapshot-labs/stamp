@@ -8,13 +8,13 @@ import unstoppableDomains, {
   DEFAULT_CHAIN_ID as UNSTOPPABLE_DOMAINS_DEFAULT_CHAIN_ID
 } from './unstoppableDomains';
 
-const RESOLVERS = [ens, shibarium, unstoppableDomains];
-
-const DEFAULT_CHAIN_IDS = [
-  ENS_DEFAULT_CHAIN_ID,
-  SHIBARIUM_DEFAULT_CHAIN_ID,
-  UNSTOPPABLE_DOMAINS_DEFAULT_CHAIN_ID
+const PROVIDERS = [
+  { lookup: ens, defaultChainId: ENS_DEFAULT_CHAIN_ID },
+  { lookup: shibarium, defaultChainId: SHIBARIUM_DEFAULT_CHAIN_ID },
+  { lookup: unstoppableDomains, defaultChainId: UNSTOPPABLE_DOMAINS_DEFAULT_CHAIN_ID }
 ];
+
+const DEFAULT_CHAIN_IDS = PROVIDERS.map(provider => provider.defaultChainId);
 
 export default async function lookupDomains(
   address: Address,
@@ -26,10 +26,10 @@ export default async function lookupDomains(
 
   if (!isAddress(address)) return [];
 
-  RESOLVERS.forEach(resolver => {
+  PROVIDERS.forEach(({ lookup }) => {
     chainIds.forEach(chainId => {
       promises.push(
-        resolver(address, chainId).catch(err => {
+        lookup(address, chainId).catch(err => {
           if (!isSilencedError(err)) capture(err, { input: { address, chainId } });
           return [];
         })
