@@ -1,6 +1,4 @@
-import { capture } from '@snapshot-labs/snapshot-sentry';
 import fetch from 'node-fetch';
-import { isSilencedError } from '../addressResolvers/utils';
 import constants from '../constants.json';
 import { Address, Handle } from '../utils';
 
@@ -27,57 +25,45 @@ export default async function lookupDomains(
   let skip = 0;
   let hasMore = true;
 
-  try {
-    while (hasMore) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), TIMEOUT);
+  while (hasMore) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT);
 
-      try {
-        const response = await fetch(
-          `${constants.d3[chainId].apiUrl}/v1/partner/tokens/EVM/${address}?limit=${PAGE_SIZE}&skip=${skip}`,
-          {
-            headers: { 'Content-Type': 'application/json', 'Api-Key': API_KEYS[chainId] },
-            signal: controller.signal
-          }
-        );
-
-        if (response.status === 404) {
-          break;
+    try {
+      const response = await fetch(
+        `${constants.d3[chainId].apiUrl}/v1/partner/tokens/EVM/${address}?limit=${PAGE_SIZE}&skip=${skip}`,
+        {
+          headers: { 'Content-Type': 'application/json', 'Api-Key': API_KEYS[chainId] },
+          signal: controller.signal
         }
+      );
 
-        if (!response.ok) {
-          throw Object.assign(new Error(`HTTP ${response.status}: ${response.statusText}`), {
-            status: response.status
-          });
-        }
-
-        let data: { pageItems?: Array<{ sld: string; tld: string }> };
-        try {
-          data = await response.json();
-        } catch (err) {
-          throw new Error(`Invalid JSON response: ${(err as any).message}`);
-        }
-
-        const domains = data.pageItems?.map(item => `${item.sld}.${item.tld}`) || [];
-        allDomains.push(...domains);
-
-        hasMore = domains.length === PAGE_SIZE;
-        skip += PAGE_SIZE;
-      } catch (err) {
-        if (!isSilencedError(err)) {
-          capture(err, { input: { address, chainId, skip } });
-        }
+      if (response.status === 404) {
         break;
-      } finally {
-        clearTimeout(timeoutId);
       }
-    }
 
-    return allDomains;
-  } catch (err) {
-    if (!isSilencedError(err)) {
-      capture(err);
+      if (!response.ok) {
+        throw Object.assign(new Error(`HTTP ${response.status}: ${response.statusText}`), {
+          status: response.status
+        });
+      }
+
+      let data: { pageItems?: Array<{ sld: string; tld: string }> };
+      try {
+        data = await response.json();
+      } catch (err) {
+        throw new Error(`Invalid JSON response: ${(err as any).message}`);
+      }
+
+      const domains = data.pageItems?.map(item => `${item.sld}.${item.tld}`) || [];
+      allDomains.push(...domains);
+
+      hasMore = domains.length === PAGE_SIZE;
+      skip += PAGE_SIZE;
+    } finally {
+      clearTimeout(timeoutId);
     }
-    return allDomains;
   }
+
+  return allDomains;
 }

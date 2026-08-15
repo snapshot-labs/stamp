@@ -15,6 +15,23 @@ const PAGE_SIZE = 25;
 const mockedFetch = fetch as unknown as jest.Mock;
 
 let lookupDomains: (address: Address, chainId?: string) => Promise<Handle[]>;
+let lookupDomainsThroughIndex: (address: Address, chains?: string | string[]) => Promise<Handle[]>;
+
+const apiKey = process.env.D3_API_KEY_MAINNET;
+
+beforeAll(async () => {
+  process.env.D3_API_KEY_MAINNET = 'test-key';
+  lookupDomains = (await import('../../../src/lookupDomains/shibarium')).default;
+  lookupDomainsThroughIndex = (await import('../../../src/lookupDomains')).default;
+});
+
+afterAll(() => {
+  if (apiKey === undefined) {
+    delete process.env.D3_API_KEY_MAINNET;
+  } else {
+    process.env.D3_API_KEY_MAINNET = apiKey;
+  }
+});
 
 function httpResponse(status: number, statusText: string, body: any = {}) {
   return {
@@ -32,76 +49,40 @@ function page(count: number) {
 }
 
 describe('lookupDomains/shibarium', () => {
-  const apiKey = process.env.D3_API_KEY_MAINNET;
+  it.each([
+    [429, 'Too Many Requests'],
+    [504, 'Gateway Timeout'],
+    [401, 'Unauthorized'],
+    [500, 'Internal Server Error']
+  ])('throws an error carrying the HTTP status on a %i', async (status, statusText) => {
+    mockedFetch.mockResolvedValue(httpResponse(status as number, statusText as string));
 
-  beforeAll(async () => {
-    process.env.D3_API_KEY_MAINNET = 'test-key';
-    lookupDomains = (await import('../../../src/lookupDomains/shibarium')).default;
-  });
-
-  afterAll(() => {
-    if (apiKey === undefined) {
-      delete process.env.D3_API_KEY_MAINNET;
-    } else {
-      process.env.D3_API_KEY_MAINNET = apiKey;
-    }
-  });
-
-  it('does not report a rate limit to Sentry', async () => {
-    mockedFetch.mockResolvedValue(httpResponse(429, 'Too Many Requests'));
-
-    await expect(lookupDomains(ADDRESS, CHAIN_ID)).resolves.toEqual([]);
+    await expect(lookupDomains(ADDRESS, CHAIN_ID)).rejects.toMatchObject({
+      message: `HTTP ${status}: ${statusText}`,
+      status
+    });
     expect(capture).not.toHaveBeenCalled();
   });
 
-  it('does not report a gateway timeout to Sentry', async () => {
-    mockedFetch.mockResolvedValue(httpResponse(504, 'Gateway Timeout'));
-
-    await expect(lookupDomains(ADDRESS, CHAIN_ID)).resolves.toEqual([]);
-    expect(capture).not.toHaveBeenCalled();
-  });
-
-  it('reports the HTTP status when the API rejects the credentials', async () => {
-    mockedFetch.mockResolvedValue(httpResponse(401, 'Unauthorized'));
-
-    await expect(lookupDomains(ADDRESS, CHAIN_ID)).resolves.toEqual([]);
-    expect(capture).toHaveBeenCalledWith(
-      expect.objectContaining({ message: 'HTTP 401: Unauthorized', status: 401 }),
-      { input: { address: ADDRESS, chainId: CHAIN_ID, skip: 0 } }
-    );
-  });
-
-  it('reports a server error to Sentry', async () => {
-    mockedFetch.mockResolvedValue(httpResponse(500, 'Internal Server Error'));
-
-    await expect(lookupDomains(ADDRESS, CHAIN_ID)).resolves.toEqual([]);
-    expect(capture).toHaveBeenCalledWith(
-      expect.objectContaining({ message: 'HTTP 500: Internal Server Error', status: 500 }),
-      { input: { address: ADDRESS, chainId: CHAIN_ID, skip: 0 } }
-    );
-  });
-
-  it('reports a failure that carries no HTTP status', async () => {
+  it('throws a failure that carries no HTTP status', async () => {
     mockedFetch.mockRejectedValue(
       Object.assign(new Error('getaddrinfo ENOTFOUND api-public.interstellar.xyz'), {
         code: 'ENOTFOUND'
       })
     );
 
-    await expect(lookupDomains(ADDRESS, CHAIN_ID)).resolves.toEqual([]);
-    expect(capture).toHaveBeenCalledWith(
-      expect.objectContaining({ message: 'getaddrinfo ENOTFOUND api-public.interstellar.xyz' }),
-      { input: { address: ADDRESS, chainId: CHAIN_ID, skip: 0 } }
+    await expect(lookupDomains(ADDRESS, CHAIN_ID)).rejects.toThrow(
+      'getaddrinfo ENOTFOUND api-public.interstellar.xyz'
     );
+    expect(capture).not.toHaveBeenCalled();
   });
 
-  it('keeps the domains collected before a rate limit interrupts pagination', async () => {
+  it('throws when a later page fails, instead of returning the pages already collected', async () => {
     mockedFetch
       .mockResolvedValueOnce(httpResponse(200, 'OK', page(PAGE_SIZE)))
       .mockResolvedValueOnce(httpResponse(429, 'Too Many Requests'));
 
-    await expect(lookupDomains(ADDRESS, CHAIN_ID)).resolves.toHaveLength(PAGE_SIZE);
-    expect(capture).not.toHaveBeenCalled();
+    await expect(lookupDomains(ADDRESS, CHAIN_ID)).rejects.toMatchObject({ status: 429 });
   });
 
   it('returns the domains on a successful response', async () => {
@@ -117,5 +98,34 @@ describe('lookupDomains/shibarium', () => {
     await expect(lookupDomains(ADDRESS, '1')).resolves.toEqual([]);
     expect(mockedFetch).not.toHaveBeenCalled();
     expect(capture).not.toHaveBeenCalled();
+  });
+});
+
+describe('lookupDomains/shibarium through the shared handler', () => {
+  it('reports a shibarium failure with the address and chain as context', async () => {
+    mockedFetch.mockResolvedValue(httpResponse(500, 'Internal Server Error'));
+
+    await expect(lookupDomainsThroughIndex(ADDRESS, CHAIN_ID)).resolves.toEqual([]);
+    expect(capture).toHaveBeenCalledTimes(1);
+    expect(capture).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'HTTP 500: Internal Server Error', status: 500 }),
+      { input: { address: ADDRESS, chainId: CHAIN_ID } }
+    );
+  });
+
+  it('still silences a rate limit', async () => {
+    mockedFetch.mockResolvedValue(httpResponse(429, 'Too Many Requests'));
+
+    await expect(lookupDomainsThroughIndex(ADDRESS, CHAIN_ID)).resolves.toEqual([]);
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('drops the pages already collected when a later page fails', async () => {
+    mockedFetch
+      .mockResolvedValueOnce(httpResponse(200, 'OK', page(PAGE_SIZE)))
+      .mockResolvedValueOnce(httpResponse(500, 'Internal Server Error'));
+
+    await expect(lookupDomainsThroughIndex(ADDRESS, CHAIN_ID)).resolves.toEqual([]);
+    expect(capture).toHaveBeenCalledTimes(1);
   });
 });
