@@ -188,44 +188,22 @@ export type GraphQlResponse<T = any> = {
   errors?: { message?: string }[];
 };
 
-/**
- * Builds the error a failed GraphQL envelope describes.
- *
- * The HTTP status goes *on* the error, at both `status` and `response.status`,
- * because those are the two places isSilencedError() reads. A status
- * interpolated into the message string is unreachable to it, so a rate limit or
- * a gateway timeout would stay noisy where the equivalent axios error is
- * silenced (STAMP-6X).
- */
 function graphQlEnvelopeError(url: string, status: number, message: string) {
   let source = url;
   try {
     source = new URL(url).host;
   } catch {
-    // A non-absolute url is unexpected; naming it in full still beats no source.
+    // Not an absolute url; keep the whole string as the source.
   }
 
+  // Both locations are load-bearing: isSilencedError reads `status` and
+  // `response.status`, and a status only in the message string is unreachable to it.
   return Object.assign(new Error(`[${source}] ${message}`), {
     status,
     response: { status }
   });
 }
 
-/**
- * POSTs a GraphQL query and validates the response envelope.
- *
- * A GraphQL upstream reports its own failures inside an HTTP 200 body, so axios
- * does not throw. Unchecked, the caller's `data.data.X` destructure then raises
- * a TypeError that names the field we wanted and carries none of the upstream's
- * evidence — STAMP-6W (`data: {users: null}`), STAMP-49 (no `data` key at all)
- * and STAMP-19 are all that same failure.
- *
- * Throws when the body carries `errors`, or when the `data` envelope is absent,
- * so every caller can destructure `data.data.X` on the strength of this check.
- * Note that a *field* resolving to null (`data.account === null`) is a
- * legitimate "no record" answer, not an envelope failure, and is left to the
- * caller to handle.
- */
 export async function graphQlCall<T = any>(
   url: string,
   query: string,
