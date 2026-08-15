@@ -122,12 +122,14 @@ describe('graphQlCall callers surface an envelope failure', () => {
   });
 
   describe('src/resolvers/lens.ts - account', () => {
+    // Unlike the two above, lens no longer answers false for itself: its catch
+    // moved to the resolver map, which is where that answer is now given.
     it('does not use a payload the upstream flagged as an error', async () => {
       respondWith(
         upstreamFailure('Rate limit exceeded', { account: { metadata: { picture: IMAGE_URL } } })
       );
 
-      await expect(lensResolve(ADDRESS)).resolves.toBe(false);
+      await expect(lensResolve(ADDRESS)).rejects.toThrow('[api.lens.xyz] Rate limit exceeded');
       expect(fetchHttpImage).not.toHaveBeenCalled();
     });
   });

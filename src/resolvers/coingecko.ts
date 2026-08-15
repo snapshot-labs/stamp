@@ -15,19 +15,15 @@ const COINGECKO_ASSET_PLATFORMS = {
 export default async function resolve(address: string, chainId: string) {
   if (!API_KEY) return false;
 
-  try {
-    const assetPlatformId = COINGECKO_ASSET_PLATFORMS[chainId];
+  const assetPlatformId = COINGECKO_ASSET_PLATFORMS[chainId];
 
-    if (!assetPlatformId) return false;
+  if (!assetPlatformId) return false;
 
-    const checksum = getAddress(address);
-    const url = `https://pro-api.coingecko.com/api/v3/coins/${assetPlatformId}/contract/${checksum}`;
+  const checksum = getAddress(address);
+  const url = `https://pro-api.coingecko.com/api/v3/coins/${assetPlatformId}/contract/${checksum}`;
 
-    const data = await fetch(url, { headers: { 'x-cg-pro-api-key': API_KEY } }).then(res =>
-      res.json()
-    );
-    return await fetchHttpImage(data?.image?.large);
-  } catch {
-    return false;
-  }
+  const data = await fetch(url, { headers: { 'x-cg-pro-api-key': API_KEY } }).then(res =>
+    res.json()
+  );
+  return await fetchHttpImage(data?.image?.large);
 }
