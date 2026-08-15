@@ -10,18 +10,21 @@ jest.mock('@snapshot-labs/snapshot-sentry', () => ({
 
 jest.mock('../../src/lookupDomains/ens', () => ({
   __esModule: true,
+  NAME: 'Ens',
   DEFAULT_CHAIN_ID: '1',
   CHAIN_IDS: ['1', '11155111'],
   default: jest.fn()
 }));
 jest.mock('../../src/lookupDomains/shibarium', () => ({
   __esModule: true,
+  NAME: 'Shibarium',
   DEFAULT_CHAIN_ID: '109',
   CHAIN_IDS: ['109', '157'],
   default: jest.fn()
 }));
 jest.mock('../../src/lookupDomains/unstoppableDomains', () => ({
   __esModule: true,
+  NAME: 'Unstoppable Domains',
   DEFAULT_CHAIN_ID: '146',
   CHAIN_IDS: ['146'],
   default: jest.fn()
@@ -103,7 +106,8 @@ describe('lookupDomains - error reporting', () => {
     await expect(lookupDomains(VALID_ADDRESS, '1')).resolves.toEqual([]);
     expect(capture).toHaveBeenCalledTimes(1);
     expect(capture).toHaveBeenCalledWith(error, {
-      input: { address: VALID_ADDRESS, chainId: '1' }
+      tags: { provider: 'Ens' },
+      contexts: { input: { address: VALID_ADDRESS, chainId: '1' } }
     });
   });
 
@@ -118,6 +122,27 @@ describe('lookupDomains - error reporting', () => {
     expect(capture).not.toHaveBeenCalled();
   });
 
+  it('names the failing provider, each with its own name', async () => {
+    (ens as jest.Mock).mockRejectedValue(new Error('boom'));
+    (shibarium as jest.Mock).mockRejectedValue(new Error('boom'));
+    (unstoppableDomains as jest.Mock).mockRejectedValue(new Error('boom'));
+
+    await expect(lookupDomains(VALID_ADDRESS)).resolves.toEqual([]);
+    expect(capture).toHaveBeenCalledTimes(3);
+    expect(capture).toHaveBeenCalledWith(expect.any(Error), {
+      tags: { provider: 'Ens' },
+      contexts: { input: { address: VALID_ADDRESS, chainId: '1' } }
+    });
+    expect(capture).toHaveBeenCalledWith(expect.any(Error), {
+      tags: { provider: 'Shibarium' },
+      contexts: { input: { address: VALID_ADDRESS, chainId: '109' } }
+    });
+    expect(capture).toHaveBeenCalledWith(expect.any(Error), {
+      tags: { provider: 'Unstoppable Domains' },
+      contexts: { input: { address: VALID_ADDRESS, chainId: '146' } }
+    });
+  });
+
   it('captures one event per failing chain', async () => {
     (ens as jest.Mock).mockRejectedValue(new Error('boom'));
 
@@ -125,7 +150,8 @@ describe('lookupDomains - error reporting', () => {
     expect(capture).toHaveBeenCalledTimes(ENS_CHAINS.length);
     ENS_CHAINS.forEach(chainId => {
       expect(capture).toHaveBeenCalledWith(expect.any(Error), {
-        input: { address: VALID_ADDRESS, chainId }
+        tags: { provider: 'Ens' },
+        contexts: { input: { address: VALID_ADDRESS, chainId } }
       });
     });
   });

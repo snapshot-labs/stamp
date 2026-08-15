@@ -2,21 +2,45 @@ import { isAddress } from '@ethersproject/address';
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import { isSilencedError } from '../addressResolvers/utils';
 import { Address, Handle } from '../utils';
-import ens, { CHAIN_IDS as ENS_CHAIN_IDS, DEFAULT_CHAIN_ID as ENS_DEFAULT_CHAIN_ID } from './ens';
+import ens, {
+  CHAIN_IDS as ENS_CHAIN_IDS,
+  DEFAULT_CHAIN_ID as ENS_DEFAULT_CHAIN_ID,
+  NAME as ENS_NAME
+} from './ens';
 import shibarium, {
   CHAIN_IDS as SHIBARIUM_CHAIN_IDS,
-  DEFAULT_CHAIN_ID as SHIBARIUM_DEFAULT_CHAIN_ID
+  DEFAULT_CHAIN_ID as SHIBARIUM_DEFAULT_CHAIN_ID,
+  NAME as SHIBARIUM_NAME
 } from './shibarium';
 import unstoppableDomains, {
   CHAIN_IDS as UNSTOPPABLE_DOMAINS_CHAIN_IDS,
-  DEFAULT_CHAIN_ID as UNSTOPPABLE_DOMAINS_DEFAULT_CHAIN_ID
+  DEFAULT_CHAIN_ID as UNSTOPPABLE_DOMAINS_DEFAULT_CHAIN_ID,
+  NAME as UNSTOPPABLE_DOMAINS_NAME
 } from './unstoppableDomains';
 
-const PROVIDERS = [
-  { lookup: ens, defaultChainId: ENS_DEFAULT_CHAIN_ID, chainIds: ENS_CHAIN_IDS },
-  { lookup: shibarium, defaultChainId: SHIBARIUM_DEFAULT_CHAIN_ID, chainIds: SHIBARIUM_CHAIN_IDS },
+type Provider = {
+  name: string;
+  fn: (address: Address, chainId: string) => Promise<Handle[]>;
+  defaultChainId: string;
+  chainIds: string[];
+};
+
+const PROVIDERS: Provider[] = [
   {
-    lookup: unstoppableDomains,
+    name: ENS_NAME,
+    fn: ens,
+    defaultChainId: ENS_DEFAULT_CHAIN_ID,
+    chainIds: ENS_CHAIN_IDS
+  },
+  {
+    name: SHIBARIUM_NAME,
+    fn: shibarium,
+    defaultChainId: SHIBARIUM_DEFAULT_CHAIN_ID,
+    chainIds: SHIBARIUM_CHAIN_IDS
+  },
+  {
+    name: UNSTOPPABLE_DOMAINS_NAME,
+    fn: unstoppableDomains,
     defaultChainId: UNSTOPPABLE_DOMAINS_DEFAULT_CHAIN_ID,
     chainIds: UNSTOPPABLE_DOMAINS_CHAIN_IDS
   }
@@ -34,13 +58,18 @@ export default async function lookupDomains(
 
   if (!isAddress(address)) return [];
 
-  PROVIDERS.forEach(({ lookup, chainIds: supportedChainIds }) => {
+  PROVIDERS.forEach(({ name, fn, chainIds: supportedChainIds }) => {
     chainIds
       .filter(chainId => supportedChainIds.includes(chainId))
       .forEach(chainId => {
         promises.push(
-          lookup(address, chainId).catch(err => {
-            if (!isSilencedError(err)) capture(err, { input: { address, chainId } });
+          fn(address, chainId).catch(err => {
+            if (!isSilencedError(err)) {
+              capture(err, {
+                tags: { provider: name },
+                contexts: { input: { address, chainId } }
+              });
+            }
             return [];
           })
         );

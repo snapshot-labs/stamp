@@ -1,6 +1,7 @@
 import constants from '../constants.json';
 import { Address, graphQlCall, Handle } from '../utils';
 
+export const NAME = 'Ens';
 export const DEFAULT_CHAIN_ID = '1';
 export const CHAIN_IDS = Object.keys(constants.ensSubgraph);
 

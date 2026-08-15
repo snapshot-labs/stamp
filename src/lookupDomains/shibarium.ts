@@ -12,6 +12,7 @@ const API_KEYS = {
   [TESTNET]: process.env.D3_API_KEY_TESTNET
 };
 
+export const NAME = 'Shibarium';
 export const DEFAULT_CHAIN_ID = MAINNET;
 export const CHAIN_IDS = Object.keys(constants.d3);
 
