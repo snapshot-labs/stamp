@@ -50,10 +50,5 @@ export default async function resolve(address: string): Promise<Buffer | false> 
   const url = await fetchAddressImageUrl(normalizedAddress);
   if (!url) return false;
 
-  try {
-    const imageUrl = withCache(url);
-    return await fetchHttpImage(imageUrl);
-  } catch {
-    return false;
-  }
+  return await fetchHttpImage(withCache(url));
 }

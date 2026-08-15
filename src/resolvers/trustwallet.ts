@@ -8,15 +8,11 @@ const ETH = [
 ];
 
 export default async function resolve(address, chainId) {
-  try {
-    const networkName = chainIdToName(chainId) || 'ethereum';
-    const checksum = getAddress(address);
+  const networkName = chainIdToName(chainId) || 'ethereum';
+  const checksum = getAddress(address);
 
-    let url = `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/${networkName}/assets/${checksum}/logo.png`;
-    if (ETH.includes(checksum)) url = getBaseAssetIconUrl(chainId);
+  let url = `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/${networkName}/assets/${checksum}/logo.png`;
+  if (ETH.includes(checksum)) url = getBaseAssetIconUrl(chainId);
 
-    return await fetchHttpImage(url);
-  } catch {
-    return false;
-  }
+  return await fetchHttpImage(url);
 }

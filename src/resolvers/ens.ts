@@ -12,23 +12,19 @@ async function castToEnsName(nameOrAddress: string): Promise<string | undefined>
 }
 
 export default async function resolve(nameOrAddress: string) {
-  try {
-    const provider = getProvider(1);
-    const ensName = await castToEnsName(nameOrAddress);
+  const provider = getProvider(1);
+  const ensName = await castToEnsName(nameOrAddress);
 
-    if (!ensName) return false;
+  if (!ensName) return false;
 
-    const ensResolver = await provider.getResolver(ensName);
+  const ensResolver = await provider.getResolver(ensName);
 
-    if (!ensResolver) {
-      return false;
-    }
-
-    let url = await ensResolver.getText('avatar');
-    url = url?.startsWith('http') ? url : `https://metadata.ens.domains/mainnet/avatar/${ensName}`;
-
-    return await fetchHttpImage(url);
-  } catch {
+  if (!ensResolver) {
     return false;
   }
+
+  let url = await ensResolver.getText('avatar');
+  url = url?.startsWith('http') ? url : `https://metadata.ens.domains/mainnet/avatar/${ensName}`;
+
+  return await fetchHttpImage(url);
 }

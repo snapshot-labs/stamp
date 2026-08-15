@@ -43,20 +43,16 @@ async function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: str
 }
 
 export default async function resolve(domainOrAddress: string) {
-  try {
-    const img_url = await getImage(domainOrAddress);
+  const img_url = await getImage(domainOrAddress);
 
-    if (!img_url || img_url === DEFAULT_IMG_URL) return false;
+  if (!img_url || img_url === DEFAULT_IMG_URL) return false;
 
-    const fetched = await fetchImageOrMetadata(getUrl(img_url));
-    const buffer = Buffer.isBuffer(fetched)
-      ? fetched
-      : fetched.image
-        ? await fetchHttpImage(getUrl(fetched.image))
-        : null;
+  const fetched = await fetchImageOrMetadata(getUrl(img_url));
+  const buffer = Buffer.isBuffer(fetched)
+    ? fetched
+    : fetched.image
+      ? await fetchHttpImage(getUrl(fetched.image))
+      : null;
 
-    return buffer ?? false;
-  } catch {
-    return false;
-  }
+  return buffer ?? false;
 }
