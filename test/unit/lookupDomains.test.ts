@@ -27,6 +27,20 @@ jest.mock('../../src/lookupDomains/unstoppableDomains', () => ({
 const VALID_ADDRESS = '0x24F15402C6Bb870554489b2fd2049A85d75B982f';
 const CHAINS = ['1', '109', '146'];
 
+describe('lookupDomains - default chains', () => {
+  it('calls every provider on its own default chain when no chain is given', async () => {
+    (ens as jest.Mock).mockResolvedValue([]);
+    (shibarium as jest.Mock).mockResolvedValue([]);
+    (unstoppableDomains as jest.Mock).mockResolvedValue([]);
+
+    await lookupDomains(VALID_ADDRESS);
+
+    expect(ens).toHaveBeenCalledWith(VALID_ADDRESS, '1');
+    expect(shibarium).toHaveBeenCalledWith(VALID_ADDRESS, '109');
+    expect(unstoppableDomains).toHaveBeenCalledWith(VALID_ADDRESS, '146');
+  });
+});
+
 describe('lookupDomains - resolver failures', () => {
   it('does not propagate a resolver failure and returns the other resolvers results', async () => {
     (ens as jest.Mock).mockRejectedValue(new Error('boom'));
