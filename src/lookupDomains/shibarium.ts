@@ -15,6 +15,7 @@ const API_KEYS = {
 };
 
 export const DEFAULT_CHAIN_ID = MAINNET;
+export const CHAIN_IDS = Object.keys(constants.d3);
 
 export default async function lookupDomains(
   address: Address,

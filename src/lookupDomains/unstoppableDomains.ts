@@ -1,6 +1,7 @@
 import { Address, Handle } from '../utils';
 
 export const DEFAULT_CHAIN_ID = '146';
+export const CHAIN_IDS = [DEFAULT_CHAIN_ID];
 
 const SUPPORTED_TLDS = ['sonic'];
 
