@@ -103,9 +103,6 @@ describe('graphQlCall', () => {
   });
 
   describe('the thrown error', () => {
-    // isSilencedError reads error.status and error.response.status. A status
-    // that lives only in the message string is unreachable to it, which is why
-    // it goes on the object (STAMP-6X).
     it('carries the http status in both places isSilencedError reads', async () => {
       const err = await errorFrom({ errors: [{ message: 'boom' }], data: null }, 429);
 
