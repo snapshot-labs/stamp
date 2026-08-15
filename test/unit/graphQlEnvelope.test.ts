@@ -29,16 +29,15 @@ function respondWith(body: any, status = 200) {
   mockedAxios.mockResolvedValue({ status, data: body });
 }
 
-// An upstream failure served as HTTP 200, so axios resolves and the caller
-// walks straight into it. `data` defaults to null (the STAMP-49 shape); pass a
-// payload to get the STAMP-6W shape, where the upstream reports an error and
+// `errors` is checked before the envelope is, so `data` never decides the outcome
+// here: pass a payload for the STAMP-6W shape, where the upstream flags an error and
 // still sends something that looks usable.
 function upstreamFailure(message: string, data: any = null) {
   return { errors: [{ message }], data };
 }
 
-// One case per graphQlCall caller. Each is written so that removing the
-// envelope check in graphQlCall changes the outcome, not just the wording.
+// Each case is written so that removing the envelope check in graphQlCall changes
+// the outcome, not just the wording.
 describe('graphQlCall callers surface an envelope failure', () => {
   describe('src/addressResolvers/lens.ts - accountsBulk', () => {
     it('rejects with the upstream message', async () => {
@@ -91,9 +90,6 @@ describe('graphQlCall callers surface an envelope failure', () => {
       await expect(ensLookupDomains(ADDRESS)).resolves.toEqual(['[7f3a].eth']);
     });
 
-    // Behaviour change: this used to fall through `data?.` and hand back the
-    // undecoded `[7f3a].eth` as though the label were simply unknown, making a
-    // subgraph outage indistinguishable from a missing label.
     it('rejects rather than returning the undecoded name when the subgraph fails', async () => {
       answerWith(upstreamFailure('bad indexers'));
 
