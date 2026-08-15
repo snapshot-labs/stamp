@@ -109,7 +109,10 @@ describe('lookupDomains/shibarium through the shared handler', () => {
     expect(capture).toHaveBeenCalledTimes(1);
     expect(capture).toHaveBeenCalledWith(
       expect.objectContaining({ message: 'HTTP 500: Internal Server Error', status: 500 }),
-      { input: { address: ADDRESS, chainId: CHAIN_ID } }
+      {
+        tags: { provider: 'Shibarium' },
+        contexts: { input: { address: ADDRESS, chainId: CHAIN_ID } }
+      }
     );
   });
 
