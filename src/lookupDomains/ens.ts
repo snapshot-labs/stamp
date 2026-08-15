@@ -2,6 +2,7 @@ import constants from '../constants.json';
 import { Address, graphQlCall, Handle } from '../utils';
 
 export const DEFAULT_CHAIN_ID = '1';
+export const CHAIN_IDS = Object.keys(constants.ensSubgraph);
 
 type Domain = {
   name: string;

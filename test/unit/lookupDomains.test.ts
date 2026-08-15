@@ -11,21 +11,25 @@ jest.mock('@snapshot-labs/snapshot-sentry', () => ({
 jest.mock('../../src/lookupDomains/ens', () => ({
   __esModule: true,
   DEFAULT_CHAIN_ID: '1',
+  CHAIN_IDS: ['1', '11155111'],
   default: jest.fn()
 }));
 jest.mock('../../src/lookupDomains/shibarium', () => ({
   __esModule: true,
   DEFAULT_CHAIN_ID: '109',
+  CHAIN_IDS: ['109', '157'],
   default: jest.fn()
 }));
 jest.mock('../../src/lookupDomains/unstoppableDomains', () => ({
   __esModule: true,
   DEFAULT_CHAIN_ID: '146',
+  CHAIN_IDS: ['146'],
   default: jest.fn()
 }));
 
 const VALID_ADDRESS = '0x24F15402C6Bb870554489b2fd2049A85d75B982f';
 const CHAINS = ['1', '109', '146'];
+const ENS_CHAINS = ['1', '11155111'];
 
 describe('lookupDomains - default chains', () => {
   it('calls every provider on its own default chain when no chain is given', async () => {
@@ -38,6 +42,33 @@ describe('lookupDomains - default chains', () => {
     expect(ens).toHaveBeenCalledWith(VALID_ADDRESS, '1');
     expect(shibarium).toHaveBeenCalledWith(VALID_ADDRESS, '109');
     expect(unstoppableDomains).toHaveBeenCalledWith(VALID_ADDRESS, '146');
+  });
+});
+
+describe('lookupDomains - chain routing', () => {
+  beforeEach(() => {
+    (ens as jest.Mock).mockResolvedValue([]);
+    (shibarium as jest.Mock).mockResolvedValue([]);
+    (unstoppableDomains as jest.Mock).mockResolvedValue([]);
+  });
+
+  it('does not call a provider for a chain it does not declare', async () => {
+    await lookupDomains(VALID_ADDRESS, CHAINS);
+
+    expect(ens).toHaveBeenCalledTimes(1);
+    expect(ens).toHaveBeenCalledWith(VALID_ADDRESS, '1');
+    expect(shibarium).toHaveBeenCalledTimes(1);
+    expect(shibarium).toHaveBeenCalledWith(VALID_ADDRESS, '109');
+    expect(unstoppableDomains).toHaveBeenCalledTimes(1);
+    expect(unstoppableDomains).toHaveBeenCalledWith(VALID_ADDRESS, '146');
+  });
+
+  it('calls a provider for each declared chain, in the requested order', async () => {
+    await lookupDomains(VALID_ADDRESS, ['11155111', '1']);
+
+    expect((ens as jest.Mock).mock.calls.map(call => call[1])).toEqual(['11155111', '1']);
+    expect(shibarium).not.toHaveBeenCalled();
+    expect(unstoppableDomains).not.toHaveBeenCalled();
   });
 });
 
@@ -90,9 +121,9 @@ describe('lookupDomains - error reporting', () => {
   it('captures one event per failing chain', async () => {
     (ens as jest.Mock).mockRejectedValue(new Error('boom'));
 
-    await expect(lookupDomains(VALID_ADDRESS, CHAINS)).resolves.toEqual([]);
-    expect(capture).toHaveBeenCalledTimes(CHAINS.length);
-    CHAINS.forEach(chainId => {
+    await expect(lookupDomains(VALID_ADDRESS, ENS_CHAINS)).resolves.toEqual([]);
+    expect(capture).toHaveBeenCalledTimes(ENS_CHAINS.length);
+    ENS_CHAINS.forEach(chainId => {
       expect(capture).toHaveBeenCalledWith(expect.any(Error), {
         input: { address: VALID_ADDRESS, chainId }
       });
