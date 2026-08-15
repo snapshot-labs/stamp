@@ -28,9 +28,8 @@ async function fetchDomainData(domain: Domain, chainId: string): Promise<Domain>
     }`,
     { id: `0x${hash}` }
   );
-  // Not `data?.`: a missing envelope must not fall through to the raw `[hash]`
-  // label and make a subgraph outage look like an unindexed name. A `registration`
-  // that is genuinely null still does fall through, to the unchanged name.
+  // Not `data?.`: swallowing a missing envelope here serves the raw `[hash]`
+  // label as though the subgraph had simply not indexed it.
   const labelName = data.registration?.domain?.labelName;
 
   return {

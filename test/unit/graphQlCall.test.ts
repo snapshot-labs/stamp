@@ -41,8 +41,6 @@ describe('graphQlCall', () => {
     });
 
     it('does not throw on a field that resolved to null', async () => {
-      // A null field is the upstream saying "no record", not "I failed". It is
-      // the caller's to handle, and must not be turned into an error here.
       respondWith({ data: { account: null } });
 
       const { data } = await graphQlCall(URL, QUERY);
@@ -53,7 +51,6 @@ describe('graphQlCall', () => {
 
   describe('when the body carries errors', () => {
     it('throws the upstream message, attributed to the upstream', async () => {
-      // The exact STAMP-6W body: HTTP 200, so axios does not throw.
       const err = await errorFrom({
         errors: [{ message: 'Invalid addresses in id' }],
         data: { users: null }

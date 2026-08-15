@@ -13,8 +13,6 @@ jest.mock('axios', () => {
   return { __esModule: true, default: mock };
 });
 
-// resolveNames falls back to the provider for anything the subgraph did not
-// answer. Stub it so the test never leaves the process.
 jest.mock('../../../src/addressResolvers/utils', () => ({
   ...jest.requireActual('../../../src/addressResolvers/utils'),
   provider: jest.fn(() => ({

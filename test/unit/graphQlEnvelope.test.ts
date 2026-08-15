@@ -29,15 +29,10 @@ function respondWith(body: any, status = 200) {
   mockedAxios.mockResolvedValue({ status, data: body });
 }
 
-// `errors` is checked before the envelope is, so `data` never decides the outcome
-// here: pass a payload for the STAMP-6W shape, where the upstream flags an error and
-// still sends something that looks usable.
 function upstreamFailure(message: string, data: any = null) {
   return { errors: [{ message }], data };
 }
 
-// Each case is written so that removing the envelope check in graphQlCall changes
-// the outcome, not just the wording.
 describe('graphQlCall callers surface an envelope failure', () => {
   describe('src/addressResolvers/lens.ts - accountsBulk', () => {
     it('rejects with the upstream message', async () => {
@@ -64,8 +59,6 @@ describe('graphQlCall callers surface an envelope failure', () => {
   });
 
   describe('src/lookupDomains/ens.ts - registration', () => {
-    // A domain whose label the subgraph has not indexed comes back hashed, and
-    // a second query decodes it.
     const hashedDomain = {
       data: {
         account: { domains: [{ name: '[7f3a].eth' }], wrappedDomains: [] }
