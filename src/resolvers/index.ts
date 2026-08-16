@@ -59,9 +59,10 @@ function withResize(name: string, resolve: ResolverFn): ResolverFn {
 // aspect ratio: resize() passes no fit option, so sharp center-crops, and a
 // banner cached as a square can never be served wide again (api.ts resizes
 // every response to the requested w x h regardless).
-// blockie and jazzicon take failureContract: false because api.ts hands the
-// fallback's result straight to resize(), which throws on a false.
-const RESOLVERS = [
+// blockie and jazzicon take resize: false because they already call resize()
+// themselves, and failureContract: false because api.ts hands the fallback's
+// result straight to resize(), which throws on a false.
+export const RESOLVERS = [
   { name: 'blockie', fn: blockie, resize: false, failureContract: false },
   { name: 'jazzicon', fn: jazzicon, resize: false, failureContract: false },
   { name: 'ens', fn: ens, resize: true, failureContract: true },
