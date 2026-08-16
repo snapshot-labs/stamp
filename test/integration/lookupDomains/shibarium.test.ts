@@ -50,13 +50,13 @@ function page(count: number) {
 }
 
 describe('lookupDomains/shibarium', () => {
-  it.each([
+  it.each<[number, string]>([
     [429, 'Too Many Requests'],
     [504, 'Gateway Timeout'],
     [401, 'Unauthorized'],
     [500, 'Internal Server Error']
   ])('throws an error carrying the HTTP status on a %i', async (status, statusText) => {
-    mockedFetch.mockResolvedValue(httpResponse(status as number, statusText as string));
+    mockedFetch.mockResolvedValue(httpResponse(status, statusText));
 
     await expect(lookupDomains(ADDRESS, CHAIN_ID)).rejects.toMatchObject({
       message: `HTTP ${status}: ${statusText}`,
