@@ -1,4 +1,4 @@
-export const UPSTREAM_TIMEOUT = 10000;
+const UPSTREAM_TIMEOUT = 10000;
 
 // `isSilencedError` reads the error name, and the two ways to abort raise
 // different ones: `AbortController` gives `AbortError`, `AbortSignal.timeout`
