@@ -1,7 +1,7 @@
 import { getAddress } from '@ethersproject/address';
 import snapshot from '@snapshot-labs/snapshot.js';
 import { constants, starknetId } from 'starknet';
-import { Address, EMPTY_ADDRESS, Handle } from '../../utils';
+import { Address, EMPTY_ADDRESS, Handle } from '../utils';
 
 const broviderUrl = process.env.BROVIDER_URL || 'https://rpc.snapshot.org';
 

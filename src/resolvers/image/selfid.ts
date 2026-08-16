@@ -1,6 +1,6 @@
 import { getAddress } from '@ethersproject/address';
 import { Core } from '@self.id/core';
-import { fetchHttpImage } from './utils';
+import { fetchHttpImage } from '../../helpers/image';
 import { getUrl } from '../../utils';
 
 const core = new Core({ ceramic: 'https://gateway.ceramic.network' });

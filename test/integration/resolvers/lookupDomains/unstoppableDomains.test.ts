@@ -37,7 +37,7 @@ async function recordedFor(provider: string) {
 // lookupDomains/index.ts decides whether to capture it. What matters here is
 // that the thrown error carries the HTTP status as data, since isSilencedError
 // reads the status off the error and never out of the message text. Which
-// statuses get silenced is covered in resolvers/address/utils.test.ts.
+// statuses get silenced is covered in helpers/address.test.ts.
 describe('lookupDomains/unstoppableDomains', () => {
   const apiKey = process.env.UNSTOPPABLE_DOMAINS_API_KEY;
 

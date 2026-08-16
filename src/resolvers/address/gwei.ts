@@ -2,7 +2,7 @@ import { getAddress } from '@ethersproject/address';
 import { concat } from '@ethersproject/bytes';
 import { keccak256 } from '@ethersproject/keccak256';
 import { toUtf8Bytes } from '@ethersproject/strings';
-import { provider as getProvider, isEvmAddress } from './utils';
+import { provider as getProvider, isEvmAddress } from '../../helpers/address';
 import { Address, batchContractCalls, EMPTY_ADDRESS, Handle } from '../../utils';
 
 // Gwei Name Service: an ENS-compatible .gwei namespace on Ethereum. https://gwei.domains

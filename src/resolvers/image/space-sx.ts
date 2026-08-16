@@ -1,7 +1,7 @@
 import { getAddress } from '@ethersproject/address';
-import { fetchHttpImage } from './utils';
+import { isStarknetAddress } from '../../helpers/address';
+import { fetchHttpImage } from '../../helpers/image';
 import { getUrl, graphQlCall } from '../../utils';
-import { isStarknetAddress } from '../address/utils';
 
 const SUBGRAPH_URLS = ['https://api.snapshot.box', 'https://testnet-api.snapshot.box'];
 

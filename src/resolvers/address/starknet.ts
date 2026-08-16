@@ -6,7 +6,7 @@ import {
   isStarknetAddress,
   starkDomainLabels,
   withoutEmptyValues
-} from './utils';
+} from '../../helpers/address';
 import { Address, Handle } from '../../utils';
 
 export const NAME = 'Starknet';

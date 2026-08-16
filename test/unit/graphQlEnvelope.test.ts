@@ -1,9 +1,9 @@
 import axios from 'axios';
+import { fetchHttpImage } from '../../src/helpers/image';
 import { lookupAddresses as lensLookupAddresses } from '../../src/resolvers/address/lens';
 import lensResolve from '../../src/resolvers/image/lens';
 import { resolveSpaceAvatar, resolveUserAvatar } from '../../src/resolvers/image/snapshot';
 import { resolveAvatar as resolveSxSpaceAvatar } from '../../src/resolvers/image/space-sx';
-import { fetchHttpImage } from '../../src/resolvers/image/utils';
 import ensLookupDomains from '../../src/resolvers/lookupDomains/ens';
 
 jest.mock('axios', () => {
@@ -13,8 +13,8 @@ jest.mock('axios', () => {
   return { __esModule: true, default: mock };
 });
 
-jest.mock('../../src/resolvers/image/utils', () => ({
-  ...jest.requireActual('../../src/resolvers/image/utils'),
+jest.mock('../../src/helpers/image', () => ({
+  ...jest.requireActual('../../src/helpers/image'),
   fetchHttpImage: jest.fn()
 }));
 

@@ -16,7 +16,7 @@ import {
   normalizeHandles,
   withoutEmptyAddress,
   withoutEmptyValues
-} from './utils';
+} from '../../helpers/address';
 import { timeAddressResolverResponse as timeResponse } from '../../helpers/metrics';
 import { Address, Handle } from '../../utils';
 

@@ -2,7 +2,7 @@ import { ens_normalize } from '@adraffy/ens-normalize';
 import { getAddress } from '@ethersproject/address';
 import { namehash } from '@ethersproject/hash';
 import snapshot from '@snapshot-labs/snapshot.js';
-import { provider as getProvider, isEvmAddress } from './utils';
+import { provider as getProvider, isEvmAddress } from '../../helpers/address';
 import { Address, EMPTY_ADDRESS, getUrl, Handle } from '../../utils';
 
 export const NAME = 'Basename';
