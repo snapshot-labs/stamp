@@ -1,5 +1,6 @@
 import { isEvmAddress } from '../../helpers/address';
-import { Address, graphQlCall, Handle } from '../../utils';
+import { graphQlCall } from '../../helpers/graphql';
+import { Address, Handle } from '../../helpers/types';
 
 export const NAME = 'Lens';
 const API_URL = 'https://api.lens.xyz/graphql';

@@ -1,8 +1,9 @@
 import constants from '../../constants.json';
 import { isEvmAddress } from '../../helpers/address';
+import { untilAborted, withDeadline } from '../../helpers/deadline';
 import { dnsConnect } from '../../helpers/dns';
 import { withoutEmptyValues } from '../../helpers/object';
-import { Address, Handle, untilAborted, withDeadline } from '../../utils';
+import { Address, Handle } from '../../helpers/types';
 
 export const NAME = 'Shibarium';
 const CHAIN_ID = '109';

@@ -1,6 +1,6 @@
 import sharp from 'sharp';
 import { max } from '../../constants.json';
-import { resize } from '../../utils';
+import { resize } from '../../helpers/image';
 
 // Xorshift PRNG, color and grid logic ported verbatim from @download/blockies
 // (src/blockies.mjs) so the generated identicons stay visually identical to the

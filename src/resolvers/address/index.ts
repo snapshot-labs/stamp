@@ -18,7 +18,7 @@ import {
 import { isSilencedError } from '../../helpers/errors';
 import { timeAddressResolverResponse as timeResponse } from '../../helpers/metrics';
 import { withoutEmptyValues } from '../../helpers/object';
-import { Address, Handle } from '../../utils';
+import { Address, Handle } from '../../helpers/types';
 
 // A resolver may export MUTED_ERRORS, a list of extra error messages this
 // resolver never wants reported (e.g. a flaky public API's own 5xx).

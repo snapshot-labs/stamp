@@ -1,6 +1,6 @@
 import { getAddress } from '@ethersproject/address';
+import { chainIdToName, getBaseAssetIconUrl } from '../../helpers/chains';
 import { fetchHttpImage } from '../../helpers/http';
-import { chainIdToName, getBaseAssetIconUrl } from '../../utils';
 
 const ETH = [
   '0x0000000000000000000000000000000000000000',

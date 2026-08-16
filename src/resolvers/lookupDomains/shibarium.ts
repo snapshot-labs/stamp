@@ -1,6 +1,7 @@
 import fetch from 'node-fetch';
 import constants from '../../constants.json';
-import { Address, Handle, withDeadline } from '../../utils';
+import { withDeadline } from '../../helpers/deadline';
+import { Address, Handle } from '../../helpers/types';
 
 const MAINNET = '109';
 const TESTNET = '157';

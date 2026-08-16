@@ -2,9 +2,10 @@ import { ens_normalize } from '@adraffy/ens-normalize';
 import { getAddress } from '@ethersproject/address';
 import { namehash } from '@ethersproject/hash';
 import snapshot from '@snapshot-labs/snapshot.js';
-import { isEvmAddress } from '../../helpers/address';
+import { EMPTY_ADDRESS, isEvmAddress } from '../../helpers/address';
+import { getUrl } from '../../helpers/http';
 import { provider as getProvider } from '../../helpers/provider';
-import { Address, EMPTY_ADDRESS, getUrl, Handle } from '../../utils';
+import { Address, Handle } from '../../helpers/types';
 
 export const NAME = 'Basename';
 const NETWORK = '8453';

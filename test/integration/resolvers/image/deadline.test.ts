@@ -1,6 +1,6 @@
 import http from 'http';
 import { AddressInfo, Socket } from 'net';
-import { Address } from '../../../../src/utils';
+import { Address } from '../../../../src/helpers/types';
 
 const ADDRESS = '0x91fd2c8d24767db4ece7069aa27832ffaf8590f3';
 

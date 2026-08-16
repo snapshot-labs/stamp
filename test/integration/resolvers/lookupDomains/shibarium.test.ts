@@ -1,7 +1,7 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import fetch from 'node-fetch';
 import { timeLookupDomainsResponse } from '../../../../src/helpers/metrics';
-import { Address, Handle } from '../../../../src/utils';
+import { Address, Handle } from '../../../../src/helpers/types';
 
 jest.mock('@snapshot-labs/snapshot-sentry', () => ({
   capture: jest.fn()

@@ -1,6 +1,8 @@
 import constants from '../../constants.json';
+import { EMPTY_ADDRESS } from '../../helpers/address';
+import { untilAborted, withDeadline } from '../../helpers/deadline';
 import { dnsConnect } from '../../helpers/dns';
-import { Address, EMPTY_ADDRESS, Handle, untilAborted, withDeadline } from '../../utils';
+import { Address, Handle } from '../../helpers/types';
 
 const MAINNET = '109';
 const TESTNET = '157';

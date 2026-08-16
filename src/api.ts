@@ -3,13 +3,15 @@ import express from 'express';
 import { z } from 'zod';
 import { clear, get, set, streamToBuffer } from './aws';
 import constants from './constants.json';
+import { getCacheKey, parseQuery, setHeader } from './helpers/api';
+import { resize } from './helpers/image';
 import { rpcError, rpcInvalidParams, rpcSuccess } from './helpers/rpc';
+import { ResolverType } from './helpers/types';
 import { formatZodError, schemas } from './helpers/validation';
 import { clearCache, lookupAddresses, resolveNames } from './resolvers/address';
 import getOwner from './resolvers/getOwner';
 import resolvers from './resolvers/image';
 import lookupDomains from './resolvers/lookupDomains';
-import { getCacheKey, parseQuery, resize, ResolverType, setHeader } from './utils';
 
 const router = express.Router();
 const TYPE_CONSTRAINTS = [...Object.keys(constants.resolvers), 'address', 'name'].join('|');

@@ -1,5 +1,5 @@
-import { fetchHttpImage, spaceIds } from '../../helpers/http';
-import { getUrl, graphQlCall } from '../../utils';
+import { graphQlCall } from '../../helpers/graphql';
+import { fetchHttpImage, getUrl, spaceIds } from '../../helpers/http';
 
 const SUBGRAPH_URLS = ['https://api.snapshot.box', 'https://testnet-api.snapshot.box'];
 

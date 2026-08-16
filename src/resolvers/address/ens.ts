@@ -5,8 +5,9 @@ import snapshot from '@snapshot-labs/snapshot.js';
 import constants from '../../constants.json';
 import { isEvmAddress } from '../../helpers/address';
 import { isSilencedError } from '../../helpers/errors';
+import { graphQlCall } from '../../helpers/graphql';
 import { provider as getProvider } from '../../helpers/provider';
-import { Address, graphQlCall, Handle } from '../../utils';
+import { Address, Handle } from '../../helpers/types';
 
 export const NAME = 'Ens';
 const NETWORK = '1';

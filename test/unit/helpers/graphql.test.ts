@@ -1,6 +1,6 @@
 import axios from 'axios';
-import { isSilencedError } from '../../src/helpers/errors';
-import { graphQlCall } from '../../src/utils';
+import { isSilencedError } from '../../../src/helpers/errors';
+import { graphQlCall } from '../../../src/helpers/graphql';
 
 jest.mock('axios', () => {
   const mock: any = jest.fn();

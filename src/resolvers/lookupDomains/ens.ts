@@ -1,5 +1,6 @@
 import constants from '../../constants.json';
-import { Address, graphQlCall, Handle } from '../../utils';
+import { graphQlCall } from '../../helpers/graphql';
+import { Address, Handle } from '../../helpers/types';
 
 export const NAME = 'Ens';
 export const DEFAULT_CHAIN_ID = '1';

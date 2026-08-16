@@ -3,7 +3,7 @@ import { CallData, constants, starknetId, validateAndParseAddress } from 'starkn
 import { isStarkDomain, isStarknetAddress, starkDomainLabels } from '../../helpers/address';
 import { withoutEmptyValues } from '../../helpers/object';
 import { provider as getProvider } from '../../helpers/provider';
-import { Address, Handle } from '../../utils';
+import { Address, Handle } from '../../helpers/types';
 
 export const NAME = 'Starknet';
 const NETWORK = constants.StarknetChainId.SN_MAIN;

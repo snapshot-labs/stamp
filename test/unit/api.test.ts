@@ -1,15 +1,15 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import request from 'supertest';
+import { graphQlCall } from '../../src/helpers/graphql';
 import getOwner from '../../src/resolvers/getOwner';
-import { graphQlCall } from '../../src/utils';
 import { createTestApp } from '../helpers/testServer';
 
 jest.mock('@snapshot-labs/snapshot-sentry', () => ({
   capture: jest.fn()
 }));
 
-jest.mock('../../src/utils', () => ({
-  ...jest.requireActual('../../src/utils'),
+jest.mock('../../src/helpers/graphql', () => ({
+  ...jest.requireActual('../../src/helpers/graphql'),
   graphQlCall: jest.fn()
 }));
 

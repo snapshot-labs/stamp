@@ -2,7 +2,9 @@ import { getAddress } from '@ethersproject/address';
 import snapshot from '@snapshot-labs/snapshot.js';
 import { constants, starknetId } from 'starknet';
 import { withoutEmptyValues } from './object';
-import { Address, EMPTY_ADDRESS, Handle } from '../utils';
+import { Address, Handle } from './types';
+
+export const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 export function isEvmAddress(address: Address): boolean {
   return /^0x[a-fA-F0-9]{40}$/.test(address);

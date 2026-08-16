@@ -1,4 +1,5 @@
-import { Address, Handle, withDeadline } from '../../utils';
+import { withDeadline } from '../../helpers/deadline';
+import { Address, Handle } from '../../helpers/types';
 
 export const NAME = 'Unstoppable Domains';
 export const DEFAULT_CHAIN_ID = '146';
