@@ -1,5 +1,6 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import fetch from 'node-fetch';
+import { timeLookupDomainsResponse } from '../../../src/helpers/metrics';
 import { Address, Handle } from '../../../src/utils';
 
 jest.mock('@snapshot-labs/snapshot-sentry', () => ({
@@ -98,6 +99,69 @@ describe('lookupDomains/shibarium', () => {
     await expect(lookupDomains(ADDRESS, '1')).resolves.toEqual([]);
     expect(mockedFetch).not.toHaveBeenCalled();
     expect(capture).not.toHaveBeenCalled();
+  });
+});
+
+function abortError() {
+  return Object.assign(new Error('The user aborted a request.'), {
+    name: 'AbortError',
+    type: 'aborted'
+  });
+}
+
+async function recordedFor(provider: string) {
+  const metric: any = await timeLookupDomainsResponse.get();
+
+  return metric.values
+    .filter((v: any) => String(v.metricName).endsWith('_count') && v.labels.provider === provider)
+    .map((v: any) => ({ chainId: v.labels.chainId, status: v.labels.status, count: v.value }));
+}
+
+describe('lookupDomains/shibarium deadline', () => {
+  it('still aborts the request once the deadline passes', async () => {
+    const timers = jest.spyOn(global, 'setTimeout');
+    const signals: AbortSignal[] = [];
+    mockedFetch.mockImplementation(
+      (_url: string, options: any) =>
+        new Promise((_resolve, reject) => {
+          signals.push(options.signal);
+          options.signal.addEventListener('abort', () => reject(abortError()));
+        })
+    );
+
+    const result = lookupDomains(ADDRESS, CHAIN_ID);
+    await Promise.resolve();
+
+    expect(signals).toHaveLength(1);
+    expect(signals[0].aborted).toBe(false);
+
+    const deadline = timers.mock.calls.find(call => call[1] === 10000);
+    expect(deadline).toBeDefined();
+    (deadline as unknown as [() => void])[0]();
+
+    await expect(result).rejects.toThrow('The user aborted a request.');
+    expect(signals[0].aborted).toBe(true);
+    timers.mockRestore();
+  });
+
+  it('does not report an abort, and still records it in the metric', async () => {
+    timeLookupDomainsResponse.reset();
+    mockedFetch.mockRejectedValue(abortError());
+
+    await expect(lookupDomainsThroughIndex(ADDRESS, CHAIN_ID)).resolves.toEqual([]);
+    expect(mockedFetch).toHaveBeenCalledTimes(1);
+    expect(capture).not.toHaveBeenCalled();
+    expect(await recordedFor('Shibarium')).toEqual([{ chainId: CHAIN_ID, status: 0, count: 1 }]);
+  });
+
+  it('records a success as status 1', async () => {
+    timeLookupDomainsResponse.reset();
+    mockedFetch.mockResolvedValue(
+      httpResponse(200, 'OK', { pageItems: [{ sld: 'boorger', tld: 'shib' }] })
+    );
+
+    await expect(lookupDomainsThroughIndex(ADDRESS, CHAIN_ID)).resolves.toEqual(['boorger.shib']);
+    expect(await recordedFor('Shibarium')).toEqual([{ chainId: CHAIN_ID, status: 1, count: 1 }]);
   });
 });
 
