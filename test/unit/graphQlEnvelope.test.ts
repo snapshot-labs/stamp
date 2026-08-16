@@ -1,10 +1,10 @@
 import axios from 'axios';
-import { lookupAddresses as lensLookupAddresses } from '../../src/addressResolvers/lens';
-import ensLookupDomains from '../../src/lookupDomains/ens';
-import lensResolve from '../../src/resolvers/lens';
-import { resolveSpaceAvatar, resolveUserAvatar } from '../../src/resolvers/snapshot';
-import { resolveAvatar as resolveSxSpaceAvatar } from '../../src/resolvers/space-sx';
-import { fetchHttpImage } from '../../src/resolvers/utils';
+import { lookupAddresses as lensLookupAddresses } from '../../src/resolvers/address/lens';
+import lensResolve from '../../src/resolvers/image/lens';
+import { resolveSpaceAvatar, resolveUserAvatar } from '../../src/resolvers/image/snapshot';
+import { resolveAvatar as resolveSxSpaceAvatar } from '../../src/resolvers/image/space-sx';
+import { fetchHttpImage } from '../../src/resolvers/image/utils';
+import ensLookupDomains from '../../src/resolvers/lookupDomains/ens';
 
 jest.mock('axios', () => {
   const mock: any = jest.fn();
@@ -13,8 +13,8 @@ jest.mock('axios', () => {
   return { __esModule: true, default: mock };
 });
 
-jest.mock('../../src/resolvers/utils', () => ({
-  ...jest.requireActual('../../src/resolvers/utils'),
+jest.mock('../../src/resolvers/image/utils', () => ({
+  ...jest.requireActual('../../src/resolvers/image/utils'),
   fetchHttpImage: jest.fn()
 }));
 
@@ -34,7 +34,7 @@ function upstreamFailure(message: string, data: any = null) {
 }
 
 describe('graphQlCall callers surface an envelope failure', () => {
-  describe('src/addressResolvers/lens.ts - accountsBulk', () => {
+  describe('src/resolvers/address/lens.ts - accountsBulk', () => {
     it('rejects with the upstream message', async () => {
       respondWith(upstreamFailure('Rate limit exceeded'));
 
@@ -44,7 +44,7 @@ describe('graphQlCall callers surface an envelope failure', () => {
     });
   });
 
-  describe('src/lookupDomains/ens.ts - account', () => {
+  describe('src/resolvers/lookupDomains/ens.ts - account', () => {
     it('rejects with the upstream message', async () => {
       respondWith(upstreamFailure('bad indexers'));
 
@@ -58,7 +58,7 @@ describe('graphQlCall callers surface an envelope failure', () => {
     });
   });
 
-  describe('src/lookupDomains/ens.ts - registration', () => {
+  describe('src/resolvers/lookupDomains/ens.ts - registration', () => {
     const hashedDomain = {
       data: {
         account: { domains: [{ name: '[7f3a].eth' }], wrappedDomains: [] }
@@ -90,7 +90,7 @@ describe('graphQlCall callers surface an envelope failure', () => {
     });
   });
 
-  describe('src/resolvers/snapshot.ts - entry', () => {
+  describe('src/resolvers/image/snapshot.ts - entry', () => {
     it('does not use a payload the upstream flagged as an error', async () => {
       respondWith(upstreamFailure('hub is down', { entry: { avatar: IMAGE_URL } }));
 
@@ -99,7 +99,7 @@ describe('graphQlCall callers surface an envelope failure', () => {
     });
   });
 
-  describe('src/resolvers/snapshot.ts - spaces', () => {
+  describe('src/resolvers/image/snapshot.ts - spaces', () => {
     it('does not use a payload the upstream flagged as an error', async () => {
       respondWith(
         upstreamFailure('subgraph is down', { spaces: [{ metadata: { avatar: IMAGE_URL } }] })
@@ -112,7 +112,7 @@ describe('graphQlCall callers surface an envelope failure', () => {
     });
   });
 
-  describe('src/resolvers/space-sx.ts - spaces', () => {
+  describe('src/resolvers/image/space-sx.ts - spaces', () => {
     it('does not use a payload the upstream flagged as an error', async () => {
       respondWith(
         upstreamFailure('subgraph is down', { spaces: [{ metadata: { avatar: IMAGE_URL } }] })
@@ -127,7 +127,7 @@ describe('graphQlCall callers surface an envelope failure', () => {
     });
   });
 
-  describe('src/resolvers/lens.ts - account', () => {
+  describe('src/resolvers/image/lens.ts - account', () => {
     it('does not use a payload the upstream flagged as an error', async () => {
       respondWith(
         upstreamFailure('Rate limit exceeded', { account: { metadata: { picture: IMAGE_URL } } })

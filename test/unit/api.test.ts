@@ -1,6 +1,6 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import request from 'supertest';
-import getOwner from '../../src/getOwner';
+import getOwner from '../../src/resolvers/getOwner';
 import { graphQlCall } from '../../src/utils';
 import { createTestApp } from '../helpers/testServer';
 
@@ -13,7 +13,7 @@ jest.mock('../../src/utils', () => ({
   graphQlCall: jest.fn()
 }));
 
-jest.mock('../../src/getOwner', () => ({
+jest.mock('../../src/resolvers/getOwner', () => ({
   __esModule: true,
   default: jest.fn()
 }));

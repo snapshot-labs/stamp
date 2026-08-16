@@ -1,6 +1,6 @@
 import request from 'supertest';
-import { KEY_PREFIX } from '../../src/addressResolvers/cache';
 import redis from '../../src/helpers/redis';
+import { KEY_PREFIX } from '../../src/resolvers/address/cache';
 import { createTestApp } from '../helpers/testServer';
 
 const app = createTestApp();

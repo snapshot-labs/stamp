@@ -1,5 +1,5 @@
 import { z, ZodError } from 'zod';
-import { MAX_LOOKUP_ADDRESSES, MAX_RESOLVE_NAMES } from '../addressResolvers';
+import { MAX_LOOKUP_ADDRESSES, MAX_RESOLVE_NAMES } from '../resolvers/address';
 
 export const schemas = {
   lookup_domains: z.string(),
