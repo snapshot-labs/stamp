@@ -94,7 +94,7 @@ describe('graphQlCall callers surface an envelope failure', () => {
     it('does not use a payload the upstream flagged as an error', async () => {
       respondWith(upstreamFailure('hub is down', { entry: { avatar: IMAGE_URL } }));
 
-      await expect(resolveUserAvatar(ADDRESS)).resolves.toBe(false);
+      await expect(resolveUserAvatar(ADDRESS)).rejects.toThrow('hub is down');
       expect(fetchHttpImage).not.toHaveBeenCalled();
     });
   });
@@ -105,7 +105,9 @@ describe('graphQlCall callers surface an envelope failure', () => {
         upstreamFailure('subgraph is down', { spaces: [{ metadata: { avatar: IMAGE_URL } }] })
       );
 
-      await expect(resolveSpaceAvatar(ADDRESS, 1, 'eth')).resolves.toBe(false);
+      await expect(resolveSpaceAvatar(ADDRESS, 1, 'eth')).rejects.toThrow(
+        '[api.snapshot.box] subgraph is down'
+      );
       expect(fetchHttpImage).not.toHaveBeenCalled();
     });
   });
@@ -116,14 +118,18 @@ describe('graphQlCall callers surface an envelope failure', () => {
         upstreamFailure('subgraph is down', { spaces: [{ metadata: { avatar: IMAGE_URL } }] })
       );
 
-      await expect(resolveSxSpaceAvatar(ADDRESS)).resolves.toBe(false);
+      // Promise.any reports both APIs failing as one AggregateError, so the
+      // upstream message is in `errors` rather than in the message.
+      await expect(resolveSxSpaceAvatar(ADDRESS)).rejects.toMatchObject({
+        errors: expect.arrayContaining([
+          expect.objectContaining({ message: '[api.snapshot.box] subgraph is down' })
+        ])
+      });
       expect(fetchHttpImage).not.toHaveBeenCalled();
     });
   });
 
   describe('src/resolvers/lens.ts - account', () => {
-    // Unlike the two above, lens no longer answers false for itself: its catch
-    // moved to the resolver map, which is where that answer is now given.
     it('does not use a payload the upstream flagged as an error', async () => {
       respondWith(
         upstreamFailure('Rate limit exceeded', { account: { metadata: { picture: IMAGE_URL } } })

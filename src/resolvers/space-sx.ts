@@ -34,16 +34,10 @@ async function getSpaceProperty(key: string, url: string, property: 'avatar' | '
 
 function createPropertyResolver(property: 'avatar' | 'cover') {
   return async key => {
-    try {
-      const value = await Promise.any(
-        SUBGRAPH_URLS.map(url => getSpaceProperty(key, url, property))
-      );
+    const value = await Promise.any(SUBGRAPH_URLS.map(url => getSpaceProperty(key, url, property)));
 
-      const url = getUrl(value);
-      return await fetchHttpImage(url);
-    } catch {
-      return false;
-    }
+    const url = getUrl(value);
+    return await fetchHttpImage(url);
   };
 }
 

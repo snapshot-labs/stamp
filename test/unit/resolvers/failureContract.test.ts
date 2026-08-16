@@ -4,6 +4,12 @@ import basename from '../../../src/resolvers/basename';
 import blockie from '../../../src/resolvers/blockie';
 import ens from '../../../src/resolvers/ens';
 import lens from '../../../src/resolvers/lens';
+import {
+  resolveSpaceCover,
+  resolveSpaceLogo,
+  resolveUserCover
+} from '../../../src/resolvers/snapshot';
+import { resolveCover } from '../../../src/resolvers/space-sx';
 import starknet from '../../../src/resolvers/starknet';
 
 jest.mock('@snapshot-labs/snapshot-sentry', () => ({ capture: jest.fn() }));
@@ -12,6 +18,19 @@ jest.mock('../../../src/resolvers/basename', () => ({ __esModule: true, default:
 jest.mock('../../../src/resolvers/lens', () => ({ __esModule: true, default: jest.fn() }));
 jest.mock('../../../src/resolvers/starknet', () => ({ __esModule: true, default: jest.fn() }));
 jest.mock('../../../src/resolvers/blockie', () => ({ __esModule: true, default: jest.fn() }));
+jest.mock('../../../src/resolvers/snapshot', () => ({
+  __esModule: true,
+  resolveUserAvatar: jest.fn(),
+  resolveUserCover: jest.fn(),
+  resolveSpaceAvatar: jest.fn(),
+  resolveSpaceCover: jest.fn(),
+  resolveSpaceLogo: jest.fn()
+}));
+jest.mock('../../../src/resolvers/space-sx', () => ({
+  __esModule: true,
+  resolveAvatar: jest.fn(),
+  resolveCover: jest.fn()
+}));
 
 const ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
 
@@ -20,6 +39,13 @@ const WRAPPED = [
   ['basename', basename],
   ['lens', lens],
   ['starknet', starknet]
+] as const;
+
+const UNRESIZED = [
+  ['user-cover', resolveUserCover],
+  ['space-cover', resolveSpaceCover],
+  ['space-logo', resolveSpaceLogo],
+  ['space-cover-sx', resolveCover]
 ] as const;
 
 describe('resolvers - failure contract', () => {
@@ -46,6 +72,20 @@ describe('resolvers - failure contract', () => {
       tags: { provider: name },
       contexts: { input: { args: [ADDRESS] } }
     });
+  });
+
+  it.each(UNRESIZED)('answers false when %s throws', async (name, fn) => {
+    (fn as jest.Mock).mockRejectedValue(new Error('boom'));
+
+    await expect(resolvers[name](ADDRESS)).resolves.toBe(false);
+  });
+
+  it.each(UNRESIZED)('serves %s at the size the upstream sent', async (name, fn) => {
+    const bytes = Buffer.from('not an image');
+    (fn as jest.Mock).mockResolvedValue(bytes);
+
+    await expect(resolvers[name](ADDRESS)).resolves.toBe(bytes);
+    expect(capture).not.toHaveBeenCalled();
   });
 
   // A fallback answering false makes sharp throw on the image route, which has

@@ -26,19 +26,23 @@ type Resolver = {
   name: string;
   fn: ResolverFn;
   resize: boolean;
+  failureContract: boolean;
 };
 
-function withResize(name: string, resolve: ResolverFn): ResolverFn {
+function withFailureContract(resolve: ResolverFn): ResolverFn {
   return async (...args) => {
-    let input: Buffer | false;
-
     try {
-      input = await resolve(...args);
+      return await resolve(...args);
     } catch {
       // Silent on purpose: capturing here reports every routine upstream 404.
       return false;
     }
+  };
+}
 
+function withResize(name: string, resolve: ResolverFn): ResolverFn {
+  return async (...args) => {
+    const input = await resolve(...args);
     if (!input) return false;
 
     try {
@@ -55,27 +59,26 @@ function withResize(name: string, resolve: ResolverFn): ResolverFn {
 // aspect ratio: resize() passes no fit option, so sharp center-crops, and a
 // banner cached as a square can never be served wide again (api.ts resizes
 // every response to the requested w x h regardless).
-// blockie and jazzicon take it for a different reason: api.ts feeds their
-// result straight into resize(), so they resize themselves and must never
-// answer false.
+// blockie and jazzicon take failureContract: false because api.ts hands the
+// fallback's result straight to resize(), which throws on a false.
 const RESOLVERS = [
-  { name: 'blockie', fn: blockie, resize: false },
-  { name: 'jazzicon', fn: jazzicon, resize: false },
-  { name: 'ens', fn: ens, resize: true },
-  { name: 'basename', fn: basename, resize: true },
-  { name: 'trustwallet', fn: trustwallet, resize: true },
-  { name: 'coingecko', fn: coingecko, resize: true },
-  { name: 'snapshot', fn: sResolveUserAvatar, resize: true },
-  { name: 'user-cover', fn: sResolveUserCover, resize: false },
-  { name: 'space', fn: sResolveSpaceAvatar, resize: true },
-  { name: 'space-cover', fn: sResolveSpaceCover, resize: false },
-  { name: 'space-logo', fn: sResolveSpaceLogo, resize: false },
-  { name: 'space-sx', fn: sxResolveAvatar, resize: true },
-  { name: 'space-cover-sx', fn: sxResolveCover, resize: false },
-  { name: 'selfid', fn: selfid, resize: true },
-  { name: 'lens', fn: lens, resize: true },
-  { name: 'starknet', fn: starknet, resize: true },
-  { name: 'farcaster', fn: farcaster, resize: true }
+  { name: 'blockie', fn: blockie, resize: false, failureContract: false },
+  { name: 'jazzicon', fn: jazzicon, resize: false, failureContract: false },
+  { name: 'ens', fn: ens, resize: true, failureContract: true },
+  { name: 'basename', fn: basename, resize: true, failureContract: true },
+  { name: 'trustwallet', fn: trustwallet, resize: true, failureContract: true },
+  { name: 'coingecko', fn: coingecko, resize: true, failureContract: true },
+  { name: 'snapshot', fn: sResolveUserAvatar, resize: true, failureContract: true },
+  { name: 'user-cover', fn: sResolveUserCover, resize: false, failureContract: true },
+  { name: 'space', fn: sResolveSpaceAvatar, resize: true, failureContract: true },
+  { name: 'space-cover', fn: sResolveSpaceCover, resize: false, failureContract: true },
+  { name: 'space-logo', fn: sResolveSpaceLogo, resize: false, failureContract: true },
+  { name: 'space-sx', fn: sxResolveAvatar, resize: true, failureContract: true },
+  { name: 'space-cover-sx', fn: sxResolveCover, resize: false, failureContract: true },
+  { name: 'selfid', fn: selfid, resize: true, failureContract: true },
+  { name: 'lens', fn: lens, resize: true, failureContract: true },
+  { name: 'starknet', fn: starknet, resize: true, failureContract: true },
+  { name: 'farcaster', fn: farcaster, resize: true, failureContract: true }
 ] as const satisfies readonly Resolver[];
 
 // Returning E['fn'] here lets a caller treat a wrapped resolver as one that
@@ -88,5 +91,9 @@ type ResolverMap = {
 
 // Without the cast Object.fromEntries widens the keys to string.
 export default Object.fromEntries(
-  RESOLVERS.map(entry => [entry.name, entry.resize ? withResize(entry.name, entry.fn) : entry.fn])
+  RESOLVERS.map(entry => {
+    const resolve = entry.resize ? withResize(entry.name, entry.fn) : entry.fn;
+
+    return [entry.name, entry.failureContract ? withFailureContract(resolve) : resolve];
+  })
 ) as ResolverMap;
