@@ -34,7 +34,7 @@ jest.mock('../../../src/resolvers/space-sx', () => ({
 
 const ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
 
-const WRAPPED = [
+const RESIZED = [
   ['ens', ens],
   ['basename', basename],
   ['lens', lens],
@@ -63,7 +63,7 @@ describe('resolvers - failure contract', () => {
     expect(capture).not.toHaveBeenCalled();
   });
 
-  it.each(WRAPPED)('attributes %s bytes sharp cannot process to itself', async (name, fn) => {
+  it.each(RESIZED)('attributes %s bytes sharp cannot process to itself', async (name, fn) => {
     (fn as jest.Mock).mockResolvedValue(Buffer.from('not an image'));
 
     await expect(resolvers[name](ADDRESS)).resolves.toBe(false);
