@@ -3,6 +3,7 @@ import https from 'https';
 import { getAddress } from '@ethersproject/address';
 import axios from 'axios';
 import { isStarknetAddress } from './address';
+import { withDeadline } from '../utils';
 
 export const axiosDefaultParams = {
   httpAgent: new http.Agent({ keepAlive: true }),
@@ -23,14 +24,26 @@ export function spaceIds(id: string): string[] | null {
   }
 }
 
+// The deadline covers the whole call, not just the request: the axios timeout is
+// an idle timeout on the socket, so an upstream that keeps sending, however
+// slowly, resets it and never trips it.
 export async function fetchHttpImage(url: string): Promise<Buffer> {
-  return (
-    await axios({
-      url,
-      ...{
-        responseType: 'arraybuffer',
-        ...axiosDefaultParams
-      }
-    })
-  ).data;
+  return withDeadline(async signal => {
+    try {
+      return (
+        await axios({
+          url,
+          responseType: 'arraybuffer',
+          ...axiosDefaultParams,
+          signal
+        })
+      ).data;
+    } catch (err) {
+      // axios answers an abort with a Cancel of its own, which carries neither
+      // the name isSilencedError reads nor an Error prototype.
+      if (axios.isCancel(err)) throw signal.reason;
+
+      throw err;
+    }
+  });
 }
