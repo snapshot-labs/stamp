@@ -1,6 +1,6 @@
 import http from 'http';
 import { AddressInfo, Socket } from 'net';
-import { Address } from '../../../src/utils';
+import { Address } from '../../../../src/utils';
 
 const ADDRESS = '0x91fd2c8d24767db4ece7069aa27832ffaf8590f3';
 
@@ -44,8 +44,8 @@ beforeAll(async () => {
   jest.spyOn(global, 'fetch').mockImplementation((_url, init) => realFetch(mockHangingUrl, init));
 
   process.env.COINGECKO_API_KEY = 'test-key';
-  coingecko = (await import('../../../src/resolvers/coingecko')).default;
-  farcaster = (await import('../../../src/resolvers/farcaster')).default;
+  coingecko = (await import('../../../../src/resolvers/image/coingecko')).default;
+  farcaster = (await import('../../../../src/resolvers/image/farcaster')).default;
 });
 
 afterAll(async () => {
@@ -71,7 +71,7 @@ describe('resolvers, against an upstream that never finishes answering', () => {
       await expect(farcaster(ADDRESS)).resolves.toBe(false);
     });
 
-    it('coingecko raises the abort, which its withResize wrapper turns into false', async () => {
+    it('coingecko raises the abort, which withFailureContract turns into false', async () => {
       stall = 'headers';
 
       await expect(coingecko(ADDRESS, '1')).rejects.toMatchObject({ name: 'AbortError' });
