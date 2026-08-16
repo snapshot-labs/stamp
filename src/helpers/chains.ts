@@ -20,12 +20,15 @@ export function chainIdToName(chainId: string): string | null {
 export const getBaseAssetIconUrl = (chainId: string) => {
   if (chainId === '100')
     return 'https://ipfs.snapshot.box/ipfs/bafkreie4u6cq3o6sarxti5r6riekkimr33fjnu4bw6vhnqcsijvzpxjesm';
+  // Matic
   if (chainId === '137')
     return 'https://github-production-user-asset-6210df.s3.amazonaws.com/1968722/269347324-fc34c3a3-01e8-424a-80f6-0910374ea6de.svg';
   if (chainId === '5000')
     return 'https://ipfs.snapshot.box/ipfs/bafkreidkucwfn4mzo2gtydrt2wogk3je5xpugom67vhi4h4comaxxjzoz4';
+  // Apechain & Curtis
   if (chainId === '33139' || chainId === '33111')
     return 'https://ipfs.snapshot.box/ipfs/bafybeifjxd2q2znrqdsl5y2oplp6yothjfpzaosxs3kcvnxcacox6wfl5u';
+  // Celo
   if (chainId === '42220')
     return 'https://ipfs.snapshot.box/ipfs/bafkreidvcofeczigbjr7ddapgdugwso6v2l4iolfxys7qg6kfvu2uduyva';
   return 'https://static.cdnlogo.com/logos/e/81/ethereum-eth.svg';
