@@ -9,8 +9,8 @@ jest.mock('../../../../src/resolvers/address/cache', () => ({
   clear: jest.fn()
 }));
 
-jest.mock('../../../../src/helpers/address', () => {
-  const actual = jest.requireActual('../../../../src/helpers/address');
+jest.mock('../../../../src/helpers/provider', () => {
+  const actual = jest.requireActual('../../../../src/helpers/provider');
 
   return { ...actual, provider: () => ({ callContract: mockCallContract }) };
 });

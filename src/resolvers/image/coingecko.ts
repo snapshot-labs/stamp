@@ -1,5 +1,5 @@
 import { getAddress } from '@ethersproject/address';
-import { fetchHttpImage } from '../../helpers/image';
+import { fetchHttpImage } from '../../helpers/http';
 
 const API_KEY = process.env.COINGECKO_API_KEY;
 

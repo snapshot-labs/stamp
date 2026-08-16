@@ -1,12 +1,10 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import snapshot from '@snapshot-labs/snapshot.js';
 import Resolution, { NamingServiceName } from '@unstoppabledomains/resolution';
-import {
-  provider as getProvider,
-  isEvmAddress,
-  isSilencedError,
-  withoutEmptyValues
-} from '../../helpers/address';
+import { isEvmAddress } from '../../helpers/address';
+import { isSilencedError } from '../../helpers/errors';
+import { withoutEmptyValues } from '../../helpers/object';
+import { provider as getProvider } from '../../helpers/provider';
 import { Address, batchContractCalls, Handle } from '../../utils';
 
 export const NAME = 'Unstoppable Domains';

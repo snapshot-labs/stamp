@@ -3,7 +3,9 @@ import { getAddress } from '@ethersproject/address';
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import snapshot from '@snapshot-labs/snapshot.js';
 import constants from '../../constants.json';
-import { provider as getProvider, isEvmAddress, isSilencedError } from '../../helpers/address';
+import { isEvmAddress } from '../../helpers/address';
+import { isSilencedError } from '../../helpers/errors';
+import { provider as getProvider } from '../../helpers/provider';
 import { Address, graphQlCall, Handle } from '../../utils';
 
 export const NAME = 'Ens';

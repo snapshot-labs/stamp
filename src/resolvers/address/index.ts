@@ -10,14 +10,14 @@ import * as spaceIdResolver from './spaceId';
 import * as starknetResolver from './starknet';
 import * as unstoppableDomainResolver from './unstoppableDomains';
 import {
-  isSilencedError,
   mapOriginalInput,
   normalizeAddresses,
   normalizeHandles,
-  withoutEmptyAddress,
-  withoutEmptyValues
+  withoutEmptyAddress
 } from '../../helpers/address';
+import { isSilencedError } from '../../helpers/errors';
 import { timeAddressResolverResponse as timeResponse } from '../../helpers/metrics';
+import { withoutEmptyValues } from '../../helpers/object';
 import { Address, Handle } from '../../utils';
 
 // A resolver may export MUTED_ERRORS, a list of extra error messages this

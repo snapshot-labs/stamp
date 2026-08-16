@@ -1,7 +1,7 @@
 import { getAddress } from '@ethersproject/address';
 import fetch from 'node-fetch';
 import { max } from '../../constants.json';
-import { fetchHttpImage } from '../../helpers/image';
+import { fetchHttpImage } from '../../helpers/http';
 import { Address } from '../../utils';
 
 const NEYNAR_API_URL = 'https://api.neynar.com/v2/farcaster/user/bulk-by-address';

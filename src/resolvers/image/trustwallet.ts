@@ -1,5 +1,5 @@
 import { getAddress } from '@ethersproject/address';
-import { fetchHttpImage } from '../../helpers/image';
+import { fetchHttpImage } from '../../helpers/http';
 import { chainIdToName, getBaseAssetIconUrl } from '../../utils';
 
 const ETH = [

@@ -1,7 +1,7 @@
 import { getAddress } from '@ethersproject/address';
 import { defaultOffchainNetwork, offchainNetworks } from '../../constants.json';
 import { isStarknetAddress } from '../../helpers/address';
-import { fetchHttpImage } from '../../helpers/image';
+import { fetchHttpImage } from '../../helpers/http';
 import { getUrl, graphQlCall } from '../../utils';
 
 const UNIFIED_API_URL = 'https://api.snapshot.box';

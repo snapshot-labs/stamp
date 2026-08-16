@@ -1,4 +1,4 @@
-import { fetchHttpImage } from '../../helpers/image';
+import { fetchHttpImage } from '../../helpers/http';
 import { getAvatar } from '../address/basename';
 
 export default async function resolve(nameOrAddress: string) {
