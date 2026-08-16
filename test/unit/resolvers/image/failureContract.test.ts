@@ -66,13 +66,12 @@ async function recordedFor(provider: string) {
     .map((v: any) => ({ status: v.labels.status, count: v.value }));
 }
 
-const ROUTINE_MISSES = [
-  [
-    'an upstream 404',
-    Object.assign(new Error('Request failed with status code 404'), {
-      response: { status: 404 }
-    })
-  ],
+const UPSTREAM_404 = Object.assign(new Error('Request failed with status code 404'), {
+  response: { status: 404 }
+});
+
+const NOT_REPORTED = [
+  ['an upstream 404', UPSTREAM_404],
   [
     'a 404 carried on the error itself',
     Object.assign(new Error('[trustwallet] Not Found'), {
@@ -83,6 +82,12 @@ const ROUTINE_MISSES = [
     'an id the route never validated',
     Object.assign(new Error('invalid address'), {
       code: 'INVALID_ARGUMENT'
+    })
+  ],
+  [
+    'what the shared classifier silences',
+    Object.assign(new Error('aborted'), {
+      name: 'AbortError'
     })
   ]
 ] as const;
@@ -107,17 +112,8 @@ describe('resolvers - failure contract', () => {
     });
   });
 
-  it.each(ROUTINE_MISSES)('does not report %s', async (_label, error) => {
+  it.each(NOT_REPORTED)('does not report %s', async (_label, error) => {
     (ens as jest.Mock).mockRejectedValue(error);
-
-    await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
-    expect(capture).not.toHaveBeenCalled();
-  });
-
-  it('does not report what the shared classifier silences', async () => {
-    (ens as jest.Mock).mockRejectedValue(
-      Object.assign(new Error('aborted'), { name: 'AbortError' })
-    );
 
     await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
     expect(capture).not.toHaveBeenCalled();
@@ -125,9 +121,7 @@ describe('resolvers - failure contract', () => {
 
   it('counts a failure it does not report', async () => {
     timeImageResolverResponse.reset();
-    (ens as jest.Mock).mockRejectedValue(
-      Object.assign(new Error('Request failed with status code 404'), { response: { status: 404 } })
-    );
+    (ens as jest.Mock).mockRejectedValue(UPSTREAM_404);
 
     await resolvers.ens(ADDRESS);
 
