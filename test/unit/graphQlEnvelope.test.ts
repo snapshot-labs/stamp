@@ -118,8 +118,6 @@ describe('graphQlCall callers surface an envelope failure', () => {
         upstreamFailure('subgraph is down', { spaces: [{ metadata: { avatar: IMAGE_URL } }] })
       );
 
-      // Promise.any reports both APIs failing as one AggregateError, so the
-      // upstream message is in `errors` rather than in the message.
       await expect(resolveSxSpaceAvatar(ADDRESS)).rejects.toMatchObject({
         errors: expect.arrayContaining([
           expect.objectContaining({ message: '[api.snapshot.box] subgraph is down' })
