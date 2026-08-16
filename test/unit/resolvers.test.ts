@@ -1,7 +1,6 @@
 import constants from '../../src/constants.json';
 import resolvers, { RESOLVERS } from '../../src/resolvers';
 
-// The only two values api.ts can pass as `fallback` (src/utils.ts).
 const FALLBACKS = ['blockie', 'jazzicon'];
 
 const NAMES = [
@@ -41,9 +40,6 @@ describe('resolvers', () => {
     expect(Object.keys(resolvers)).toEqual([...NAMES]);
   });
 
-  // Nothing else stops a chained entry being registered with
-  // failureContract: false, and the throw it would then let out reaches the
-  // image route, which has no guard of its own.
   it('puts every resolver a chain can reach under the failure contract', () => {
     const chained = new Set<string>(Object.values(constants.resolvers).flat());
     const contracted = new Set<string>(

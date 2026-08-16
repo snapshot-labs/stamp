@@ -88,8 +88,6 @@ describe('resolvers - failure contract', () => {
     expect(capture).not.toHaveBeenCalled();
   });
 
-  // A fallback answering false makes sharp throw on the image route, which has
-  // no guard of its own.
   it('leaves the fallback resolvers throwing rather than answering false', async () => {
     const error = new Error('boom');
     (blockie as jest.Mock).mockRejectedValue(error);
