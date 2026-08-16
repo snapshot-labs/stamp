@@ -1,6 +1,6 @@
 import { getAddress } from '@ethersproject/address';
 import { fetchHttpImage } from '../../helpers/http';
-import { httpError } from '../../utils';
+import { httpError, withDeadline } from '../../utils';
 
 const API_KEY = process.env.COINGECKO_API_KEY;
 
@@ -23,11 +23,18 @@ export default async function resolve(address: string, chainId: string) {
   const checksum = getAddress(address);
   const url = `https://pro-api.coingecko.com/api/v3/coins/${assetPlatformId}/contract/${checksum}`;
 
-  const response = await fetch(url, { headers: { 'x-cg-pro-api-key': API_KEY } });
-  if (response.status === 404) return false;
-  if (!response.ok) throw httpError('coingecko', response.status, response.statusText);
+  // The body read is inside the deadline, not just the request: the response
+  // settles as soon as the headers land, so a budget ending at the request would
+  // leave a stalled body unbounded.
+  const data = await withDeadline(async signal => {
+    const response = await fetch(url, { headers: { 'x-cg-pro-api-key': API_KEY }, signal });
 
-  const data = await response.json();
+    if (response.status === 404) return null;
+    if (!response.ok) throw httpError('coingecko', response.status, response.statusText);
+
+    return await response.json();
+  });
+
   if (!data?.image?.large) return false;
 
   return await fetchHttpImage(data.image.large);

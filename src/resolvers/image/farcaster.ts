@@ -2,7 +2,7 @@ import { getAddress } from '@ethersproject/address';
 import fetch from 'node-fetch';
 import { max } from '../../constants.json';
 import { fetchHttpImage } from '../../helpers/http';
-import { Address, httpError } from '../../utils';
+import { Address, httpError, withDeadline } from '../../utils';
 
 const NEYNAR_API_URL = 'https://api.neynar.com/v2/farcaster/user/bulk-by-address';
 const API_KEY = process.env.NEYNAR_API_KEY ?? '';
@@ -25,19 +25,25 @@ function normalizeAddress(address: Address): Address | null {
   }
 }
 
+// The body read is inside the deadline, not just the request: node-fetch hands
+// back a response as soon as the headers land, so a budget ending at the request
+// would leave a stalled body unbounded.
 async function fetchAddressImageUrl(normalizedAddress: string): Promise<string | null> {
-  const response = await fetch(`${NEYNAR_API_URL}?addresses=${normalizedAddress}`, {
-    headers: { Accept: 'application/json', api_key: API_KEY }
+  return withDeadline(async signal => {
+    const response = await fetch(`${NEYNAR_API_URL}?addresses=${normalizedAddress}`, {
+      headers: { Accept: 'application/json', api_key: API_KEY },
+      signal
+    });
+
+    // Neynar answers 404 for an address with no Farcaster account, which is the
+    // routine no-avatar case rather than a failure.
+    if (response.status === 404) return null;
+    if (!response.ok) throw httpError('farcaster', response.status, response.statusText);
+
+    const data: Record<Address, UserDetails[]> = await response.json();
+
+    return data[normalizedAddress.toLowerCase()]?.[0]?.pfp_url ?? null;
   });
-
-  // Neynar answers 404 for an address with no Farcaster account, which is the
-  // routine no-avatar case rather than a failure.
-  if (response.status === 404) return null;
-  if (!response.ok) throw httpError('farcaster', response.status, response.statusText);
-
-  const data: Record<Address, UserDetails[]> = await response.json();
-
-  return data[normalizedAddress.toLowerCase()]?.[0]?.pfp_url ?? null;
 }
 
 export default async function resolve(address: string): Promise<Buffer | false> {
