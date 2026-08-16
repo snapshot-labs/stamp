@@ -1,8 +1,8 @@
 import { getAddress } from '@ethersproject/address';
-import { fetchHttpImage } from './utils';
 import { defaultOffchainNetwork, offchainNetworks } from '../../constants.json';
+import { isStarknetAddress } from '../../helpers/address';
+import { fetchHttpImage } from '../../helpers/image';
 import { getUrl, graphQlCall } from '../../utils';
-import { isStarknetAddress } from '../address/utils';
 
 const UNIFIED_API_URL = 'https://api.snapshot.box';
 const UNIFIED_API_TESTNET_URL = 'https://testnet-api.snapshot.box';

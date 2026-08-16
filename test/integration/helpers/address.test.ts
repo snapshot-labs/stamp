@@ -4,7 +4,7 @@ import {
   normalizeAddresses,
   normalizeHandles,
   withoutEmptyAddress
-} from '../../../../src/resolvers/address/utils';
+} from '../../../src/helpers/address';
 
 // A Starknet address is a felt, strictly below 2^251 - 256. See STAMP-6W.
 const HIGHEST_VALID = '0x07fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffeff';

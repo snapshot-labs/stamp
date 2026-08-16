@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { isSilencedError } from '../../src/resolvers/address/utils';
+import { isSilencedError } from '../../src/helpers/address';
 import { graphQlCall } from '../../src/utils';
 
 jest.mock('axios', () => {

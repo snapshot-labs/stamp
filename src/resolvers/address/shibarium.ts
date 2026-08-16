@@ -1,6 +1,6 @@
 import { DNSConnect } from '@webinterop/dns-connect';
-import { isEvmAddress, withoutEmptyValues } from './utils';
 import constants from '../../constants.json';
+import { isEvmAddress, withoutEmptyValues } from '../../helpers/address';
 import { Address, Handle, untilAborted, withDeadline } from '../../utils';
 
 export const NAME = 'Shibarium';

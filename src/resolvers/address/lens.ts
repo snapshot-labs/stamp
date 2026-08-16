@@ -1,4 +1,4 @@
-import { isEvmAddress } from './utils';
+import { isEvmAddress } from '../../helpers/address';
 import { Address, graphQlCall, Handle } from '../../utils';
 
 export const NAME = 'Lens';

@@ -1,5 +1,5 @@
 import { getAddress, isAddress } from '@ethersproject/address';
-import { fetchHttpImage } from './utils';
+import { fetchHttpImage } from '../../helpers/image';
 import { graphQlCall } from '../../utils';
 
 const API_URL = 'https://api.lens.xyz';

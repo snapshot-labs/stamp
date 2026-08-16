@@ -1,6 +1,6 @@
 import http from 'http';
 import nodeFetch from 'node-fetch';
-import { isSilencedError } from '../../src/resolvers/address/utils';
+import { isSilencedError } from '../../src/helpers/address';
 
 let server: http.Server;
 let url: string;

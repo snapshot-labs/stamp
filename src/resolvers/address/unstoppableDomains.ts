@@ -6,7 +6,7 @@ import {
   isEvmAddress,
   isSilencedError,
   withoutEmptyValues
-} from './utils';
+} from '../../helpers/address';
 import { Address, batchContractCalls, Handle } from '../../utils';
 
 export const NAME = 'Unstoppable Domains';

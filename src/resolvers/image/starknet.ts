@@ -1,7 +1,7 @@
 import axios from 'axios';
-import { axiosDefaultParams, fetchHttpImage } from './utils';
+import { provider as getProvider, isStarkDomain } from '../../helpers/address';
+import { axiosDefaultParams, fetchHttpImage } from '../../helpers/image';
 import { getUrl } from '../../utils';
-import { provider as getProvider, isStarkDomain } from '../address/utils';
 
 const DEFAULT_IMG_URL = 'https://starknet.id/api/identicons/0';
 const provider = getProvider('0x534e5f4d41494e');
