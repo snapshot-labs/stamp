@@ -1,11 +1,10 @@
 import fetch from 'node-fetch';
 import constants from '../constants.json';
-import { Address, Handle } from '../utils';
+import { Address, Handle, withDeadline } from '../utils';
 
 const MAINNET = '109';
 const TESTNET = '157';
 const PAGE_SIZE = 25;
-const TIMEOUT = 10000;
 
 const API_KEYS = {
   [MAINNET]: process.env.D3_API_KEY_MAINNET,
@@ -22,20 +21,17 @@ export default async function lookupDomains(
 ): Promise<Handle[]> {
   if (!constants.d3[chainId]?.apiUrl || !API_KEYS[chainId]) return [];
 
-  const allDomains: Handle[] = [];
-  let skip = 0;
-  let hasMore = true;
+  return withDeadline(async signal => {
+    const allDomains: Handle[] = [];
+    let skip = 0;
+    let hasMore = true;
 
-  while (hasMore) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT);
-
-    try {
+    while (hasMore) {
       const response = await fetch(
         `${constants.d3[chainId].apiUrl}/v1/partner/tokens/EVM/${address}?limit=${PAGE_SIZE}&skip=${skip}`,
         {
           headers: { 'Content-Type': 'application/json', 'Api-Key': API_KEYS[chainId] },
-          signal: controller.signal
+          signal
         }
       );
 
@@ -61,10 +57,8 @@ export default async function lookupDomains(
 
       hasMore = domains.length === PAGE_SIZE;
       skip += PAGE_SIZE;
-    } finally {
-      clearTimeout(timeoutId);
     }
-  }
 
-  return allDomains;
+    return allDomains;
+  });
 }
