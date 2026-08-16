@@ -1,4 +1,5 @@
 import http from 'http';
+import { AddressInfo, Socket } from 'net';
 import { Address } from '../../../src/utils';
 
 const TIMEOUT = 10000;
@@ -14,10 +15,8 @@ jest.mock('node-fetch', () => {
   return jest.fn((_url: string, init: unknown) => actual(mockHangingUrl, init));
 });
 
-const realFetch = global.fetch;
-
 let server: http.Server;
-const sockets = new Set<any>();
+const sockets = new Set<Socket>();
 let reachedUpstream: () => void;
 let atUpstream: Promise<void>;
 
@@ -28,12 +27,12 @@ const apiKey = process.env.COINGECKO_API_KEY;
 
 beforeAll(async () => {
   server = http.createServer(() => reachedUpstream());
-  server.on('connection', socket => {
-    sockets.add(socket);
-    socket.on('close', () => sockets.delete(socket));
-  });
+  server.on('connection', socket => sockets.add(socket));
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', () => resolve()));
-  mockHangingUrl = `http://127.0.0.1:${(server.address() as any).port}/`;
+  mockHangingUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}/`;
+
+  const realFetch = global.fetch;
+  jest.spyOn(global, 'fetch').mockImplementation((_url, init) => realFetch(mockHangingUrl, init));
 
   process.env.COINGECKO_API_KEY = 'test-key';
   coingecko = (await import('../../../src/resolvers/coingecko')).default;
@@ -53,7 +52,6 @@ afterAll(async () => {
 
 beforeEach(() => {
   atUpstream = new Promise<void>(resolve => (reachedUpstream = resolve));
-  jest.spyOn(global, 'fetch').mockImplementation((_url, init) => realFetch(mockHangingUrl, init));
 });
 
 // Fires the deadline as soon as the request is in flight, rather than waiting
@@ -67,7 +65,7 @@ async function callAndExpire<T>(call: () => Promise<T>): Promise<T> {
 
     const deadlines = timers.mock.calls.filter(timer => timer[1] === TIMEOUT);
     expect(deadlines).toHaveLength(1);
-    (deadlines[0] as unknown as [() => void])[0]();
+    (deadlines[0][0] as () => void)();
 
     return await result;
   } finally {
@@ -80,7 +78,7 @@ describe('resolvers, against an upstream that accepts and never answers', () => 
     await expect(callAndExpire(() => farcaster(ADDRESS))).resolves.toBe(false);
   });
 
-  it('coingecko raises the abort at the deadline', async () => {
+  it('coingecko raises the abort, which its withResize wrapper turns into false', async () => {
     await expect(callAndExpire(() => coingecko(ADDRESS, '1'))).rejects.toMatchObject({
       name: 'AbortError'
     });
