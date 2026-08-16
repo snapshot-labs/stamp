@@ -63,33 +63,27 @@ afterAll(async () => {
 // Reaching into the timer would abort the signal even where the code under test
 // had already cleared it, which is exactly the case these need to be able to
 // fail on.
+// Both raise the abort rather than answering: neither discards its own errors,
+// and withFailureContract in the resolver map is what turns it into a false for
+// the caller.
+//
+// The body case is the one that needs the deadline to cover more than the
+// request: both transports hand back a response as soon as the headers land, so
+// a 200 whose body then stops is the shape that outlives a budget ending at the
+// request.
 describe('resolvers, against an upstream that never finishes answering', () => {
-  describe('when it sends no headers at all', () => {
-    it('farcaster answers false, as it does for any other failure', async () => {
-      stall = 'headers';
+  describe.each([
+    ['no headers at all', 'headers'],
+    ['headers and then nothing more', 'body']
+  ] as const)('when it sends %s', (_, at) => {
+    it('farcaster raises the abort', async () => {
+      stall = at;
 
-      await expect(farcaster(ADDRESS)).resolves.toBe(false);
-    });
-
-    it('coingecko raises the abort, which withFailureContract turns into false', async () => {
-      stall = 'headers';
-
-      await expect(coingecko(ADDRESS, '1')).rejects.toMatchObject({ name: 'AbortError' });
-    });
-  });
-
-  // The deadline has to cover the body read and not just the request: both
-  // transports hand back a response as soon as the headers land, so a 200 whose
-  // body then stops is the shape that outlives a budget ending at the request.
-  describe('when it sends headers and then stops mid-body', () => {
-    it('farcaster answers false', async () => {
-      stall = 'body';
-
-      await expect(farcaster(ADDRESS)).resolves.toBe(false);
+      await expect(farcaster(ADDRESS)).rejects.toMatchObject({ name: 'AbortError' });
     });
 
     it('coingecko raises the abort', async () => {
-      stall = 'body';
+      stall = at;
 
       await expect(coingecko(ADDRESS, '1')).rejects.toMatchObject({ name: 'AbortError' });
     });
