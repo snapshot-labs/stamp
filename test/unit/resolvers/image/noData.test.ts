@@ -1,6 +1,8 @@
 import axios from 'axios';
 import nodeFetch from 'node-fetch';
+import ens from '../../../../src/resolvers/image/ens';
 import farcaster from '../../../../src/resolvers/image/farcaster';
+import lens from '../../../../src/resolvers/image/lens';
 import {
   resolveSpaceAvatar,
   resolveSpaceLogo,
@@ -8,6 +10,8 @@ import {
 } from '../../../../src/resolvers/image/snapshot';
 import { resolveAvatar as resolveSxAvatar } from '../../../../src/resolvers/image/space-sx';
 import starknet from '../../../../src/resolvers/image/starknet';
+import { fetchHttpImage } from '../../../../src/helpers/http';
+import { getProvider } from '../../../../src/helpers/provider';
 
 jest.mock('axios', () => ({ __esModule: true, default: jest.fn() }));
 jest.mock('node-fetch', () => ({ __esModule: true, default: jest.fn() }));
@@ -17,8 +21,20 @@ jest.mock('../../../../src/helpers/http', () => ({
   fetchHttpImage: jest.fn()
 }));
 
+jest.mock('../../../../src/helpers/provider', () => ({
+  ...jest.requireActual('../../../../src/helpers/provider'),
+  getProvider: jest.fn()
+}));
+
 const mockedAxios = axios as unknown as jest.Mock;
 const mockedFetch = nodeFetch as unknown as jest.Mock;
+const mockedGetProvider = getProvider as jest.Mock;
+const mockedFetchHttpImage = fetchHttpImage as jest.Mock;
+
+function ensProviderWhoseTextRead(rejectsWith: any) {
+  const getText = jest.fn().mockRejectedValue(rejectsWith);
+  mockedGetProvider.mockReturnValue({ getResolver: jest.fn().mockResolvedValue({ getText }) });
+}
 
 // coingecko reads its key at module load and answers false without one, so the
 // module has to be loaded with the key already set to reach the response at all.
@@ -130,6 +146,36 @@ describe('resolvers answer false rather than throwing when there is no data', ()
 
       await expect(resolveUserAvatar(STARKNET_ADDRESS)).resolves.toBe(false);
       expect(mockedAxios).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('ens', () => {
+    it('answers false for a name namehash cannot take, without asking', async () => {
+      await expect(ens('.cb.id')).resolves.toBe(false);
+      expect(mockedGetProvider).not.toHaveBeenCalled();
+    });
+
+    it('reads a record an offchain resolver will not serve as no record', async () => {
+      ensProviderWhoseTextRead(Object.assign(new Error('CCIP fetch'), { code: 'SERVER_ERROR' }));
+      mockedFetchHttpImage.mockResolvedValue(Buffer.from('an image'));
+
+      await expect(ens('greg.cb.id')).resolves.toEqual(Buffer.from('an image'));
+      expect(mockedFetchHttpImage).toHaveBeenCalledWith(
+        'https://metadata.ens.domains/mainnet/avatar/greg.cb.id'
+      );
+    });
+
+    it('rejects when the record read fails for any other reason', async () => {
+      ensProviderWhoseTextRead(Object.assign(new Error('the node is down'), { code: 'TIMEOUT' }));
+
+      await expect(ens('greg.cb.id')).rejects.toThrow('the node is down');
+    });
+  });
+
+  describe('lens', () => {
+    it('answers false for an empty local name, without asking', async () => {
+      await expect(lens('.lens')).resolves.toBe(false);
+      expect(mockedAxios).not.toHaveBeenCalled();
     });
   });
 
