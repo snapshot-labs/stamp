@@ -102,6 +102,22 @@ describe('addressResolvers - resolver failures', () => {
     });
   });
 
+  it.each(RESOLVERS.map(resolver => [resolver.NAME, resolver] as const))(
+    'attributes a %s failure to itself',
+    async (name, resolver) => {
+      const error = new Error('boom');
+      jest.spyOn(resolver, 'lookupAddresses').mockRejectedValue(error);
+
+      await lookupAddresses([ADDRESS]);
+
+      expect(capture).toHaveBeenCalledTimes(1);
+      expect(capture).toHaveBeenCalledWith(error, {
+        tags: { provider: name },
+        contexts: { input: { lookupAddresses: [ADDRESS] } }
+      });
+    }
+  );
+
   it('keeps the other resolvers results when one fails', async () => {
     jest.spyOn(ens, 'lookupAddresses').mockRejectedValue(new Error('boom'));
     jest.spyOn(shibarium, 'lookupAddresses').mockResolvedValue({ [ADDRESS]: 'boorger.shib' });
