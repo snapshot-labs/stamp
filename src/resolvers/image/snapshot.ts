@@ -1,7 +1,6 @@
 import { getAddress } from '@ethersproject/address';
 import { defaultOffchainNetwork, offchainNetworks } from '../../constants.json';
-import { isStarknetAddress } from '../../helpers/address';
-import { fetchHttpImage } from '../../helpers/http';
+import { fetchHttpImage, spaceIds } from '../../helpers/http';
 import { getUrl, graphQlCall } from '../../utils';
 
 const UNIFIED_API_URL = 'https://api.snapshot.box';
@@ -76,10 +75,12 @@ async function getOnchainProperty(
   entity: Entity,
   property: Property
 ) {
-  const ids = [id];
-  if (!isStarknetAddress(id)) {
-    ids.push(getAddress(id));
-  }
+  // The onchain API's SpaceMetadataItem carries no logo field, so asking for
+  // one is a guaranteed validation error rather than a miss.
+  if (property === 'logo') return null;
+
+  const ids = spaceIds(id);
+  if (!ids) return null;
 
   const {
     data: {

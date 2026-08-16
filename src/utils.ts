@@ -287,6 +287,15 @@ export type GraphQlResponse<T = any> = {
   errors?: { message?: string }[];
 };
 
+// Both locations are load-bearing: isSilencedError reads `status` and
+// `response.status`, and a status only in the message string is unreachable to it.
+export function httpError(source: string, status: number, message: string) {
+  return Object.assign(new Error(`[${source}] ${message}`), {
+    status,
+    response: { status }
+  });
+}
+
 function graphQlEnvelopeError(url: string, status: number, message: string) {
   let source = url;
   try {
@@ -295,12 +304,7 @@ function graphQlEnvelopeError(url: string, status: number, message: string) {
     // Not an absolute url; keep the whole string as the source.
   }
 
-  // Both locations are load-bearing: isSilencedError reads `status` and
-  // `response.status`, and a status only in the message string is unreachable to it.
-  return Object.assign(new Error(`[${source}] ${message}`), {
-    status,
-    response: { status }
-  });
+  return httpError(source, status, message);
 }
 
 export async function graphQlCall<T = any>(

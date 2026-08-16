@@ -7,10 +7,8 @@ import { getUrl } from '../../utils';
 const DEFAULT_IMG_URL = 'https://starknet.id/api/identicons/0';
 const provider = getProvider('0x534e5f4d41494e');
 
-function normalizeAddress(address: string): string {
-  if (!address.match(/^(0x)?[0-9a-fA-F]{64}$/)) throw new Error('Invalid starknet address');
-
-  return address;
+function normalizeAddress(address: string): string | null {
+  return /^(0x)?[0-9a-fA-F]{64}$/.test(address) ? address : null;
 }
 
 async function getStarknetAddress(domain: string): Promise<string | null> {
