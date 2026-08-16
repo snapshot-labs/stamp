@@ -67,7 +67,10 @@ describe('addressResolvers - resolver failures', () => {
 
     await expect(lookupAddresses([ADDRESS])).resolves.toEqual({});
     expect(capture).toHaveBeenCalledTimes(1);
-    expect(capture).toHaveBeenCalledWith(error, { input: { lookupAddresses: [ADDRESS] } });
+    expect(capture).toHaveBeenCalledWith(error, {
+      tags: { provider: 'Ens' },
+      contexts: { input: { lookupAddresses: [ADDRESS] } }
+    });
   });
 
   it('does not capture a silenced error', async () => {
@@ -93,7 +96,10 @@ describe('addressResolvers - resolver failures', () => {
     jest.spyOn(ens, 'lookupAddresses').mockRejectedValue(error);
 
     await expect(lookupAddresses([ADDRESS])).resolves.toEqual({});
-    expect(capture).toHaveBeenCalledWith(error, { input: { lookupAddresses: [ADDRESS] } });
+    expect(capture).toHaveBeenCalledWith(error, {
+      tags: { provider: 'Ens' },
+      contexts: { input: { lookupAddresses: [ADDRESS] } }
+    });
   });
 
   it('keeps the other resolvers results when one fails', async () => {

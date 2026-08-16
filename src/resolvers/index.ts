@@ -28,23 +28,14 @@ type Resolver = {
   resize: boolean;
 };
 
-// Two failures, two policies, deliberately different.
-// A resolver throwing answers false and is not reported. That is the contract
-// each resolver used to implement for itself; it stays silent because the
-// no-data answers are not normalized yet (#511), and reporting before they are
-// would page on every routine upstream 404.
-// Sharp refusing the bytes is reported, because bytes we fetched but cannot
-// process are our problem rather than the upstream's.
-// Either way the wrapper answers false rather than throwing into the image
-// route, which has no guard of its own (#495). Entries with resize: false are
-// not wrapped and keep whatever contract their own module implements.
-function withResize(resolve: ResolverFn): ResolverFn {
+function withResize(name: string, resolve: ResolverFn): ResolverFn {
   return async (...args) => {
     let input: Buffer | false;
 
     try {
       input = await resolve(...args);
     } catch {
+      // Silent on purpose: capturing here reports every routine upstream 404.
       return false;
     }
 
@@ -53,7 +44,8 @@ function withResize(resolve: ResolverFn): ResolverFn {
     try {
       return await resize(input, max, max);
     } catch (err) {
-      capture(err);
+      // A top-level `input` beside `tags` is dropped rather than wrapped.
+      capture(err, { tags: { provider: name }, contexts: { input: { args } } });
       return false;
     }
   };
@@ -96,5 +88,5 @@ type ResolverMap = {
 
 // Without the cast Object.fromEntries widens the keys to string.
 export default Object.fromEntries(
-  RESOLVERS.map(entry => [entry.name, entry.resize ? withResize(entry.fn) : entry.fn])
+  RESOLVERS.map(entry => [entry.name, entry.resize ? withResize(entry.name, entry.fn) : entry.fn])
 ) as ResolverMap;
