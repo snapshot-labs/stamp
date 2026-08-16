@@ -3,51 +3,21 @@ import { capture } from '@snapshot-labs/snapshot-sentry';
 import { isSilencedError } from '../addressResolvers/utils';
 import { timeLookupDomainsResponse as timeResponse } from '../helpers/metrics';
 import { Address, Handle } from '../utils';
-import ens, {
-  CHAIN_IDS as ENS_CHAIN_IDS,
-  DEFAULT_CHAIN_ID as ENS_DEFAULT_CHAIN_ID,
-  NAME as ENS_NAME
-} from './ens';
-import shibarium, {
-  CHAIN_IDS as SHIBARIUM_CHAIN_IDS,
-  DEFAULT_CHAIN_ID as SHIBARIUM_DEFAULT_CHAIN_ID,
-  NAME as SHIBARIUM_NAME
-} from './shibarium';
-import unstoppableDomains, {
-  CHAIN_IDS as UNSTOPPABLE_DOMAINS_CHAIN_IDS,
-  DEFAULT_CHAIN_ID as UNSTOPPABLE_DOMAINS_DEFAULT_CHAIN_ID,
-  NAME as UNSTOPPABLE_DOMAINS_NAME
-} from './unstoppableDomains';
+import * as ens from './ens';
+import * as shibarium from './shibarium';
+import * as unstoppableDomains from './unstoppableDomains';
 
 type Provider = {
-  name: string;
-  fn: (address: Address, chainId: string) => Promise<Handle[]>;
-  defaultChainId: string;
-  chainIds: string[];
+  NAME: string;
+  DEFAULT_CHAIN_ID: string;
+  CHAIN_IDS: string[];
+  default: (address: Address, chainId: string) => Promise<Handle[]>;
 };
 
-const PROVIDERS: Provider[] = [
-  {
-    name: ENS_NAME,
-    fn: ens,
-    defaultChainId: ENS_DEFAULT_CHAIN_ID,
-    chainIds: ENS_CHAIN_IDS
-  },
-  {
-    name: SHIBARIUM_NAME,
-    fn: shibarium,
-    defaultChainId: SHIBARIUM_DEFAULT_CHAIN_ID,
-    chainIds: SHIBARIUM_CHAIN_IDS
-  },
-  {
-    name: UNSTOPPABLE_DOMAINS_NAME,
-    fn: unstoppableDomains,
-    defaultChainId: UNSTOPPABLE_DOMAINS_DEFAULT_CHAIN_ID,
-    chainIds: UNSTOPPABLE_DOMAINS_CHAIN_IDS
-  }
-];
+// Without the annotation a provider missing NAME still compiles.
+const PROVIDERS: Provider[] = [ens, shibarium, unstoppableDomains];
 
-const DEFAULT_CHAIN_IDS = PROVIDERS.map(provider => provider.defaultChainId);
+const DEFAULT_CHAIN_IDS = PROVIDERS.map(provider => provider.DEFAULT_CHAIN_ID);
 
 export default async function lookupDomains(
   address: Address,
@@ -59,13 +29,13 @@ export default async function lookupDomains(
 
   if (!isAddress(address)) return [];
 
-  PROVIDERS.forEach(({ name, fn, chainIds: supportedChainIds }) => {
+  PROVIDERS.forEach(({ NAME, default: fn, CHAIN_IDS }) => {
     chainIds
-      .filter(chainId => supportedChainIds.includes(chainId))
+      .filter(chainId => CHAIN_IDS.includes(chainId))
       .forEach(chainId => {
         promises.push(
           (async () => {
-            const end = timeResponse.startTimer({ provider: name, chainId });
+            const end = timeResponse.startTimer({ provider: NAME, chainId });
             let status = 0;
 
             try {
@@ -75,7 +45,7 @@ export default async function lookupDomains(
             } catch (err) {
               if (!isSilencedError(err)) {
                 capture(err, {
-                  tags: { provider: name },
+                  tags: { provider: NAME },
                   contexts: { input: { address, chainId } }
                 });
               }
