@@ -70,7 +70,11 @@ async function _call(fnName: string, input: string[], maxInputLength: number) {
               status = 1;
             } catch (err) {
               if (!isSilencedError(err, r.MUTED_ERRORS)) {
-                capture(err, { input: { [fnName]: _input } });
+                // A top-level `input` beside `tags` is dropped rather than wrapped.
+                capture(err, {
+                  tags: { provider: r.NAME },
+                  contexts: { input: { [fnName]: _input } }
+                });
               }
             }
             end({ status });

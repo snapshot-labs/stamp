@@ -29,12 +29,14 @@ describe('resolvers - failure contract', () => {
 
     await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
     expect(capture).toHaveBeenCalledTimes(1);
+    expect(capture).toHaveBeenCalledWith(expect.any(Error), {
+      tags: { provider: 'ens' },
+      contexts: { input: { args: [ADDRESS] } }
+    });
   });
 
-  // api.ts hands the fallback resolver's result straight to resize() with no
-  // guard of its own, so a fallback answering false would make sharp throw into
-  // the unguarded image route (#495). Until that route is fixed the fallbacks
-  // have to stay outside the false-on-failure contract.
+  // A fallback answering false makes sharp throw on the image route, which has
+  // no guard of its own.
   it('leaves the fallback resolvers throwing rather than answering false', async () => {
     const error = new Error('boom');
     (blockie as jest.Mock).mockRejectedValue(error);
