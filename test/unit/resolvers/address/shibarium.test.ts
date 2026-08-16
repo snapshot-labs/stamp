@@ -1,5 +1,5 @@
 import { DNSConnect } from '@webinterop/dns-connect';
-import { isSilencedError } from '../../../../src/helpers/address';
+import { isSilencedError } from '../../../../src/helpers/errors';
 import { lookupAddresses, resolveNames } from '../../../../src/resolvers/address/shibarium';
 
 jest.mock('@webinterop/dns-connect', () => ({

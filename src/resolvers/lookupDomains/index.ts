@@ -3,7 +3,7 @@ import { capture } from '@snapshot-labs/snapshot-sentry';
 import * as ens from './ens';
 import * as shibarium from './shibarium';
 import * as unstoppableDomains from './unstoppableDomains';
-import { isSilencedError } from '../../helpers/address';
+import { isSilencedError } from '../../helpers/errors';
 import { timeLookupDomainsResponse as timeResponse } from '../../helpers/metrics';
 import { Address, Handle } from '../../utils';
 

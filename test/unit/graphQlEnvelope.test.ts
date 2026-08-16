@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { fetchHttpImage } from '../../src/helpers/image';
+import { fetchHttpImage } from '../../src/helpers/http';
 import { lookupAddresses as lensLookupAddresses } from '../../src/resolvers/address/lens';
 import lensResolve from '../../src/resolvers/image/lens';
 import { resolveSpaceAvatar, resolveUserAvatar } from '../../src/resolvers/image/snapshot';
@@ -13,8 +13,8 @@ jest.mock('axios', () => {
   return { __esModule: true, default: mock };
 });
 
-jest.mock('../../src/helpers/image', () => ({
-  ...jest.requireActual('../../src/helpers/image'),
+jest.mock('../../src/helpers/http', () => ({
+  ...jest.requireActual('../../src/helpers/http'),
   fetchHttpImage: jest.fn()
 }));
 

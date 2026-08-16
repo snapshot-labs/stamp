@@ -3,7 +3,7 @@ import express from 'express';
 import { z } from 'zod';
 import { clear, get, set, streamToBuffer } from './aws';
 import constants from './constants.json';
-import { rpcError, rpcInvalidParams, rpcSuccess } from './helpers/utils';
+import { rpcError, rpcInvalidParams, rpcSuccess } from './helpers/rpc';
 import { formatZodError, schemas } from './helpers/validation';
 import { clearCache, lookupAddresses, resolveNames } from './resolvers/address';
 import getOwner from './resolvers/getOwner';

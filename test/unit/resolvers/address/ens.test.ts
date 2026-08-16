@@ -13,8 +13,8 @@ jest.mock('axios', () => {
   return { __esModule: true, default: mock };
 });
 
-jest.mock('../../../../src/helpers/address', () => ({
-  ...jest.requireActual('../../../../src/helpers/address'),
+jest.mock('../../../../src/helpers/provider', () => ({
+  ...jest.requireActual('../../../../src/helpers/provider'),
   provider: jest.fn(() => ({
     resolveName: jest.fn().mockResolvedValue(null),
     lookupAddress: jest.fn().mockResolvedValue(null)

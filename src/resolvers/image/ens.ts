@@ -1,5 +1,5 @@
 import { isAddress } from '@ethersproject/address';
-import { fetchHttpImage } from '../../helpers/image';
+import { fetchHttpImage } from '../../helpers/http';
 import { getProvider } from '../../utils';
 import { lookupAddresses } from '../address';
 

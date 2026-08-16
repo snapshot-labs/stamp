@@ -12,8 +12,8 @@ jest.mock('starknet', () => {
   };
 });
 
-jest.mock('../../../../src/helpers/address', () => {
-  const actual = jest.requireActual('../../../../src/helpers/address');
+jest.mock('../../../../src/helpers/provider', () => {
+  const actual = jest.requireActual('../../../../src/helpers/provider');
 
   return {
     ...actual,

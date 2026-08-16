@@ -1,12 +1,8 @@
 import snapshot from '@snapshot-labs/snapshot.js';
 import { CallData, constants, starknetId, validateAndParseAddress } from 'starknet';
-import {
-  provider as getProvider,
-  isStarkDomain,
-  isStarknetAddress,
-  starkDomainLabels,
-  withoutEmptyValues
-} from '../../helpers/address';
+import { isStarkDomain, isStarknetAddress, starkDomainLabels } from '../../helpers/address';
+import { withoutEmptyValues } from '../../helpers/object';
+import { provider as getProvider } from '../../helpers/provider';
 import { Address, Handle } from '../../utils';
 
 export const NAME = 'Starknet';

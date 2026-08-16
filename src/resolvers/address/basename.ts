@@ -2,7 +2,8 @@ import { ens_normalize } from '@adraffy/ens-normalize';
 import { getAddress } from '@ethersproject/address';
 import { namehash } from '@ethersproject/hash';
 import snapshot from '@snapshot-labs/snapshot.js';
-import { provider as getProvider, isEvmAddress } from '../../helpers/address';
+import { isEvmAddress } from '../../helpers/address';
+import { provider as getProvider } from '../../helpers/provider';
 import { Address, EMPTY_ADDRESS, getUrl, Handle } from '../../utils';
 
 export const NAME = 'Basename';
