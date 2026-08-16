@@ -111,6 +111,15 @@ describe('lookupDomains - error reporting', () => {
     });
   });
 
+  // `capture` reads `.error` off whatever it is handed, so a falsy one throws
+  // from inside the catch block and takes the whole fan-out down with it.
+  it.each([null, undefined])('does not hand capture a rejection carrying %p', async value => {
+    (ens as jest.Mock).mockRejectedValue(value);
+
+    await expect(lookupDomains(VALID_ADDRESS, '1')).resolves.toEqual([]);
+    expect(capture).not.toHaveBeenCalled();
+  });
+
   it('does not capture a silenced error', async () => {
     (ens as jest.Mock).mockRejectedValue(
       Object.assign(new Error('Unstoppable Domains API error: HTTP 429 Too Many Requests'), {
