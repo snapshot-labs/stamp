@@ -6,7 +6,9 @@ export function graphQlEnvelopeError(url: string, status: number, message: strin
   let source = url;
   try {
     source = new URL(url).host;
-  } catch {}
+  } catch {
+    // Not an absolute url; keep the whole string as the source.
+  }
 
   return httpError(source, status, message);
 }

@@ -21,6 +21,16 @@ export function getProvider(network: number): StaticJsonRpcProvider {
   return providers[`_${network}`];
 }
 
+/**
+ * Executes batch contract calls using multicall pattern
+ * @param network - The network identifier
+ * @param rpcProvider - The blockchain provider instance
+ * @param abi - The contract ABI as an array of strings
+ * @param args - Array of arguments to pass to the function calls
+ * @param addresses - Array of contract addresses to call
+ * @param fnName - The name of the function to call on each contract
+ * @returns Promise that resolves to the results of all contract calls
+ */
 export async function batchContractCalls(
   network: string,
   rpcProvider: StaticJsonRpcProvider,
