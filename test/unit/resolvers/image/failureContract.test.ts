@@ -1,4 +1,5 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
+import { timeImageResolverResponse } from '../../../../src/helpers/metrics';
 import resolvers from '../../../../src/resolvers/image';
 import basename from '../../../../src/resolvers/image/basename';
 import blockie from '../../../../src/resolvers/image/blockie';
@@ -57,6 +58,35 @@ const UNRESIZED = [
   ['space-cover-sx', resolveCover]
 ] as const;
 
+async function recordedFor(provider: string) {
+  const metric: any = await timeImageResolverResponse.get();
+
+  return metric.values
+    .filter((v: any) => String(v.metricName).endsWith('_count') && v.labels.provider === provider)
+    .map((v: any) => ({ status: v.labels.status, count: v.value }));
+}
+
+const ROUTINE_MISSES = [
+  [
+    'an upstream 404',
+    Object.assign(new Error('Request failed with status code 404'), {
+      response: { status: 404 }
+    })
+  ],
+  [
+    'a 404 carried on the error itself',
+    Object.assign(new Error('[trustwallet] Not Found'), {
+      status: 404
+    })
+  ],
+  [
+    'an id the route never validated',
+    Object.assign(new Error('invalid address'), {
+      code: 'INVALID_ARGUMENT'
+    })
+  ]
+] as const;
+
 describe('resolvers - failure contract', () => {
   it('answers false when a wrapped resolver throws', async () => {
     (ens as jest.Mock).mockRejectedValue(new Error('boom'));
@@ -64,12 +94,53 @@ describe('resolvers - failure contract', () => {
     await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
   });
 
-  it('does not report a resolver failure', async () => {
-    (ens as jest.Mock).mockRejectedValue(new Error('boom'));
+  it('reports a resolver failure, with the resolver named and its arguments', async () => {
+    const error = new Error('boom');
+    (ens as jest.Mock).mockRejectedValue(error);
+
+    await resolvers.ens(ADDRESS);
+
+    expect(capture).toHaveBeenCalledTimes(1);
+    expect(capture).toHaveBeenCalledWith(error, {
+      tags: { provider: 'ens' },
+      contexts: { input: { args: [ADDRESS] } }
+    });
+  });
+
+  it.each(ROUTINE_MISSES)('does not report %s', async (_label, error) => {
+    (ens as jest.Mock).mockRejectedValue(error);
+
+    await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('does not report what the shared classifier silences', async () => {
+    (ens as jest.Mock).mockRejectedValue(
+      Object.assign(new Error('aborted'), { name: 'AbortError' })
+    );
+
+    await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('counts a failure it does not report', async () => {
+    timeImageResolverResponse.reset();
+    (ens as jest.Mock).mockRejectedValue(
+      Object.assign(new Error('Request failed with status code 404'), { response: { status: 404 } })
+    );
 
     await resolvers.ens(ADDRESS);
 
     expect(capture).not.toHaveBeenCalled();
+    expect(await recordedFor('ens')).toEqual([{ status: 0, count: 1 }]);
+  });
+
+  it('counts an answer as status 1', async () => {
+    timeImageResolverResponse.reset();
+    (basename as jest.Mock).mockResolvedValue(false);
+
+    await expect(resolvers.basename(ADDRESS)).resolves.toBe(false);
+    expect(await recordedFor('basename')).toEqual([{ status: 1, count: 1 }]);
   });
 
   it.each(RESIZED)('attributes %s bytes sharp cannot process to itself', async (name, fn) => {
