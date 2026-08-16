@@ -1,5 +1,7 @@
 import axios from 'axios';
 import nodeFetch from 'node-fetch';
+import { fetchHttpImage } from '../../../../src/helpers/http';
+import { getProvider } from '../../../../src/helpers/provider';
 import ens from '../../../../src/resolvers/image/ens';
 import farcaster from '../../../../src/resolvers/image/farcaster';
 import lens from '../../../../src/resolvers/image/lens';
@@ -10,8 +12,6 @@ import {
 } from '../../../../src/resolvers/image/snapshot';
 import { resolveAvatar as resolveSxAvatar } from '../../../../src/resolvers/image/space-sx';
 import starknet from '../../../../src/resolvers/image/starknet';
-import { fetchHttpImage } from '../../../../src/helpers/http';
-import { getProvider } from '../../../../src/helpers/provider';
 
 jest.mock('axios', () => ({ __esModule: true, default: jest.fn() }));
 jest.mock('node-fetch', () => ({ __esModule: true, default: jest.fn() }));
