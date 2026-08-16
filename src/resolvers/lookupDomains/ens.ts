@@ -1,0 +1,85 @@
+import constants from '../../constants.json';
+import { Address, graphQlCall, Handle } from '../../utils';
+
+export const NAME = 'Ens';
+export const DEFAULT_CHAIN_ID = '1';
+export const CHAIN_IDS = Object.keys(constants.ensSubgraph);
+
+type Domain = {
+  name: string;
+  labelName?: string;
+  expiryDate?: number;
+};
+
+async function fetchDomainData(domain: Domain, chainId: string): Promise<Domain> {
+  const hash = domain.name.match(/\[(.*?)\]/)?.[1];
+
+  if (!hash) return domain;
+
+  const {
+    data: { data }
+  } = await graphQlCall(
+    constants.ensSubgraph[chainId],
+    `query Registration($id: String!) {
+      registration(id: $id) {
+        domain {
+          name
+          labelName
+        }
+      }
+    }`,
+    { id: `0x${hash}` }
+  );
+  // Not `data?.`: swallowing a missing envelope here serves the raw `[hash]`
+  // label as though the subgraph had simply not indexed it.
+  const labelName = data.registration?.domain?.labelName;
+
+  return {
+    ...domain,
+    name: labelName ? domain.name.replace(`[${hash}]`, labelName) : domain.name
+  };
+}
+
+export default async function lookupDomains(
+  address: Address,
+  chainId = DEFAULT_CHAIN_ID
+): Promise<Handle[]> {
+  if (!constants.ensSubgraph[chainId]) return [];
+
+  const {
+    data: {
+      data: { account }
+    }
+  } = await graphQlCall(
+    constants.ensSubgraph[chainId],
+    `query Domain($id: String!) {
+      account(id: $id) {
+        domains {
+          name
+          expiryDate
+        }
+        wrappedDomains {
+          name
+          expiryDate
+        }
+      }
+    }`,
+    { id: address.toLowerCase() }
+  );
+
+  const now = (Date.now() / 1000).toFixed(0);
+  const domains: Domain[] = [
+    ...(account?.domains || []),
+    ...(account?.wrappedDomains || [])
+  ].filter(
+    domain =>
+      (!domain.expiryDate || domain.expiryDate === '0' || domain.expiryDate > now) &&
+      !domain.name.endsWith('.addr.reverse')
+  );
+
+  return (
+    (await Promise.all(domains.map(domain => fetchDomainData(domain, chainId)))).map(
+      domain => domain.name
+    ) || []
+  );
+}

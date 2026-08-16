@@ -1,14 +1,14 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import express from 'express';
 import { z } from 'zod';
-import { clearCache, lookupAddresses, resolveNames } from './addressResolvers';
 import { clear, get, set, streamToBuffer } from './aws';
 import constants from './constants.json';
-import getOwner from './getOwner';
 import { rpcError, rpcInvalidParams, rpcSuccess } from './helpers/utils';
 import { formatZodError, schemas } from './helpers/validation';
-import lookupDomains from './lookupDomains';
-import resolvers from './resolvers';
+import { clearCache, lookupAddresses, resolveNames } from './resolvers/address';
+import getOwner from './resolvers/getOwner';
+import resolvers from './resolvers/image';
+import lookupDomains from './resolvers/lookupDomains';
 import { getCacheKey, parseQuery, resize, ResolverType, setHeader } from './utils';
 
 const router = express.Router();
