@@ -25,6 +25,10 @@ describe('isSilencedError', () => {
     expect(isSilencedError(wrapped)).toBe(true);
   });
 
+  it.each([null, undefined, false])('silences a rejection carrying %p', value => {
+    expect(isSilencedError(value)).toBe(true);
+  });
+
   it('silences an axios 504 (status on error.response)', () => {
     // Shape observed from Sentry STAMP-7: axios throws with the HTTP status
     // on error.response.status, while error.code is 'ERR_BAD_RESPONSE'.

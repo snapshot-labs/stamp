@@ -1,4 +1,9 @@
 export function isSilencedError(error: any, additionalMessages?: string[]): boolean {
+  // A rejection carries whatever it was given, null included. There is nothing
+  // in one to classify, and reporting it is not an option either: `capture`
+  // dereferences it and throws, from inside the catch block that called this.
+  if (!error) return true;
+
   // An abort is always one of our own deadlines, and each transport words it differently.
   if (error.name === 'AbortError') return true;
 
