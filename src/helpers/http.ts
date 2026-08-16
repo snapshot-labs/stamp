@@ -30,14 +30,14 @@ export function spaceIds(id: string): string[] | null {
 export async function fetchHttpImage(url: string): Promise<Buffer> {
   return withDeadline(async signal => {
     try {
-      return (
-        await axios({
-          url,
-          responseType: 'arraybuffer',
-          ...axiosDefaultParams,
-          signal
-        })
-      ).data;
+      const { data } = await axios({
+        url,
+        responseType: 'arraybuffer',
+        ...axiosDefaultParams,
+        signal
+      });
+
+      return data;
     } catch (err) {
       // axios answers an abort with a Cancel of its own, which carries neither
       // the name isSilencedError reads nor an Error prototype.
