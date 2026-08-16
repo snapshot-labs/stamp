@@ -42,6 +42,21 @@ export function getProvider(network: number): StaticJsonRpcProvider {
   return providers[`_${network}`];
 }
 
+const UPSTREAM_TIMEOUT = 10000;
+
+// Not `AbortSignal.timeout`: it names its error `TimeoutError`, which
+// `isSilencedError` does not match, so every deadline would be reported.
+export async function withDeadline<T>(fn: (signal: AbortSignal) => Promise<T>): Promise<T> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT);
+
+  try {
+    return await fn(controller.signal);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export function sha256(str) {
   return createHash('sha256').update(str).digest('hex');
 }

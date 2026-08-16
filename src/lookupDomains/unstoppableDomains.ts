@@ -1,4 +1,4 @@
-import { Address, Handle } from '../utils';
+import { Address, Handle, withDeadline } from '../utils';
 
 export const NAME = 'Unstoppable Domains';
 export const DEFAULT_CHAIN_ID = '146';
@@ -12,14 +12,16 @@ function normalizeHandles(handles: Handle[]): Handle[] {
 
 async function fetchDomains(
   address: string,
-  cursor: string
+  cursor: string,
+  signal: AbortSignal
 ): Promise<Record<'data' | 'next', any>> {
   const response = await fetch(
     `https://api.unstoppabledomains.com/resolve/owners/${address}/domains?cursor=${cursor}`,
     {
       headers: {
         Authorization: `Bearer ${process.env.UNSTOPPABLE_DOMAINS_API_KEY || ''}`
-      }
+      },
+      signal
     }
   );
 
@@ -46,14 +48,16 @@ export default async function lookupDomains(address: Address, chainId: string): 
     return [];
   }
 
-  const domains: string[] = [];
-  let cursor = '0';
+  return withDeadline(async signal => {
+    const domains: string[] = [];
+    let cursor = '0';
 
-  while (cursor !== null) {
-    const data = await fetchDomains(address, cursor);
-    cursor = data.next?.split('cursor=').pop() || null;
-    domains.push(...data.data.map((domain: any) => domain.meta.domain));
-  }
+    while (cursor !== null) {
+      const data = await fetchDomains(address, cursor, signal);
+      cursor = data.next?.split('cursor=').pop() || null;
+      domains.push(...data.data.map((domain: any) => domain.meta.domain));
+    }
 
-  return normalizeHandles(domains);
+    return normalizeHandles(domains);
+  });
 }
