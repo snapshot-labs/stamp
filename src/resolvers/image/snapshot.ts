@@ -1,6 +1,7 @@
 import { getAddress } from '@ethersproject/address';
 import snapshot from '@snapshot-labs/snapshot.js';
 import { defaultOffchainNetwork, offchainNetworks } from '../../constants.json';
+import { isEvmAddress, isStarknetAddress } from '../../helpers/address';
 import { graphQlCall } from '../../helpers/graphql';
 import { fetchHttpImage, getUrl, spaceIds } from '../../helpers/http';
 
@@ -50,6 +51,10 @@ async function getOffchainProperty(
   entity: Entity,
   property: Property
 ) {
+  // The hub answers `user(id:)` with a validation error rather than a miss for an
+  // id that is not an address, and the avatar route serves names too.
+  if (entity === 'user' && !isEvmAddress(id) && !isStarknetAddress(id)) return null;
+
   const {
     data: {
       data: { entry }

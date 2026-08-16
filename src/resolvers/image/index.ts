@@ -18,7 +18,9 @@ import { resolveAvatar as sxResolveAvatar, resolveCover as sxResolveCover } from
 import starknet from './starknet';
 import trustwallet from './trustwallet';
 import { max } from '../../constants.json';
+import { isSilencedError } from '../../helpers/errors';
 import { resize } from '../../helpers/image';
+import { timeImageResolverResponse as timeResponse } from '../../helpers/metrics';
 
 type ResolverFn = (...args: any[]) => Promise<Buffer | false>;
 
@@ -29,13 +31,30 @@ type Resolver = {
   failureContract: boolean;
 };
 
-function withFailureContract(resolve: ResolverFn): ResolverFn {
+// Deleting either rule turns a routine miss into a report: a 404 is the image
+// not being there, and the route hands the resolvers an id it never validated.
+function isRoutineMiss(error: any): boolean {
+  return (
+    error?.status === 404 || error?.response?.status === 404 || error?.code === 'INVALID_ARGUMENT'
+  );
+}
+
+function withFailureContract(name: string, resolve: ResolverFn): ResolverFn {
   return async (...args) => {
+    const end = timeResponse.startTimer({ provider: name });
+    let status = 0;
+
     try {
-      return await resolve(...args);
-    } catch {
-      // Silent on purpose: capturing here reports every routine upstream 404.
+      const image = await resolve(...args);
+      status = 1;
+      return image;
+    } catch (err) {
+      if (!isSilencedError(err) && !isRoutineMiss(err)) {
+        capture(err, { tags: { provider: name }, contexts: { input: { args } } });
+      }
       return false;
+    } finally {
+      end({ status });
     }
   };
 }
@@ -89,6 +108,6 @@ export default Object.fromEntries(
   RESOLVERS.map(entry => {
     const resolve = entry.resize ? withResize(entry.name, entry.fn) : entry.fn;
 
-    return [entry.name, entry.failureContract ? withFailureContract(resolve) : resolve];
+    return [entry.name, entry.failureContract ? withFailureContract(entry.name, resolve) : resolve];
   })
 ) as ResolverMap;

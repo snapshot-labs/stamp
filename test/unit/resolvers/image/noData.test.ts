@@ -37,6 +37,7 @@ const ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
 const STARKNET_ADDRESS = '0x07ff6b17f07c4d83236e3fc5f94259a19d1ed41bbcf1822397ea17882e9b038d';
 const UNPADDED_STARKNET_ADDRESS = `0x${STARKNET_ADDRESS.slice(3)}`;
 const NOT_AN_ADDRESS = '0x00006ba9855965EeEc09B5D43B113944c27F45aD3Ce';
+const STARKNET_ADDRESS = '0x0546a9a0d1a5b6cbb3a1c1c9d0e5d5a3c8a2f5c9d5b6cbb3a1c1c9d0e5d5a3c8';
 
 const entry = (found: any) => ({ status: 200, data: { data: { entry: found } } });
 const spaces = (found: any[]) => ({ status: 200, data: { data: { spaces: found } } });
@@ -117,6 +118,18 @@ describe('resolvers answer false rather than throwing when there is no data', ()
     it('answers false for an onchain logo instead of asking for a field that is not there', async () => {
       await expect(resolveSpaceLogo(ADDRESS, 1, 'eth')).resolves.toBe(false);
       expect(mockedAxios).not.toHaveBeenCalled();
+    });
+
+    it('answers false for a user id that is not an address, without asking', async () => {
+      await expect(resolveUserAvatar('vitalik.eth')).resolves.toBe(false);
+      expect(mockedAxios).not.toHaveBeenCalled();
+    });
+
+    it('still asks for a starknet user id', async () => {
+      mockedAxios.mockResolvedValue({ status: 200, data: { data: { entry: null } } });
+
+      await expect(resolveUserAvatar(STARKNET_ADDRESS)).resolves.toBe(false);
+      expect(mockedAxios).toHaveBeenCalledTimes(1);
     });
   });
 
