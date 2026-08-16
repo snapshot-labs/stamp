@@ -1,6 +1,7 @@
 import { isAddress } from '@ethersproject/address';
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import { isSilencedError } from '../addressResolvers/utils';
+import { timeLookupDomainsResponse as timeResponse } from '../helpers/metrics';
 import { Address, Handle } from '../utils';
 import ens, {
   CHAIN_IDS as ENS_CHAIN_IDS,
@@ -63,15 +64,26 @@ export default async function lookupDomains(
       .filter(chainId => supportedChainIds.includes(chainId))
       .forEach(chainId => {
         promises.push(
-          fn(address, chainId).catch(err => {
-            if (!isSilencedError(err)) {
-              capture(err, {
-                tags: { provider: name },
-                contexts: { input: { address, chainId } }
-              });
+          (async () => {
+            const end = timeResponse.startTimer({ provider: name, chainId });
+            let status = 0;
+
+            try {
+              const domains = await fn(address, chainId);
+              status = 1;
+              return domains;
+            } catch (err) {
+              if (!isSilencedError(err)) {
+                capture(err, {
+                  tags: { provider: name },
+                  contexts: { input: { address, chainId } }
+                });
+              }
+              return [];
+            } finally {
+              end({ status });
             }
-            return [];
-          })
+          })()
         );
       });
   });

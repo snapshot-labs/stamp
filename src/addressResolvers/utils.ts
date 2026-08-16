@@ -72,6 +72,9 @@ export function normalizeHandles(handles: Handle[]): Handle[] {
 }
 
 export function isSilencedError(error: any, additionalMessages?: string[]): boolean {
+  // An abort is always one of our own deadlines, and each transport words it differently.
+  if (error.name === 'AbortError') return true;
+
   const messages = [
     'invalid token ID',
     'is not supported',
