@@ -80,7 +80,7 @@ describe('resolvers, against an upstream that accepts and never answers', () => 
     await expect(callAndExpire(() => farcaster(ADDRESS))).resolves.toBe(false);
   });
 
-  it('coingecko raises the abort, which isSilencedError matches by name', async () => {
+  it('coingecko raises the abort at the deadline', async () => {
     await expect(callAndExpire(() => coingecko(ADDRESS, '1'))).rejects.toMatchObject({
       name: 'AbortError'
     });
