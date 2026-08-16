@@ -115,25 +115,21 @@ function createPropertyResolver(entity: Entity, property: Property) {
 
     if (!Object.keys(API_URLS).includes(networkId)) return false;
 
-    try {
-      if (offchainNetworks.includes(networkId) || entity === 'user') {
-        value = await getOffchainProperty(
-          offchainNetworks.includes(networkId) ? networkId : defaultOffchainNetwork,
-          normalizeEvmAddress(address),
-          entity,
-          property
-        );
-      } else {
-        value = await getOnchainProperty(networkId, address, entity, property);
-      }
-
-      if (!value) return false;
-
-      const url = getUrl(value);
-      return await fetchHttpImage(url);
-    } catch {
-      return false;
+    if (offchainNetworks.includes(networkId) || entity === 'user') {
+      value = await getOffchainProperty(
+        offchainNetworks.includes(networkId) ? networkId : defaultOffchainNetwork,
+        normalizeEvmAddress(address),
+        entity,
+        property
+      );
+    } else {
+      value = await getOnchainProperty(networkId, address, entity, property);
     }
+
+    if (!value) return false;
+
+    const url = getUrl(value);
+    return await fetchHttpImage(url);
   };
 }
 
