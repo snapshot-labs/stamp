@@ -2,7 +2,7 @@ import axios, { AxiosResponse } from 'axios';
 import { httpError } from './errors';
 import { GraphQlResponse } from './types';
 
-export function graphQlEnvelopeError(url: string, status: number, message: string) {
+function graphQlEnvelopeError(url: string, status: number, message: string) {
   let source = url;
   try {
     source = new URL(url).host;
