@@ -58,6 +58,19 @@ export async function withDeadline<T>(fn: (signal: AbortSignal) => Promise<T>): 
   }
 }
 
+// For a callee that takes no signal of its own. This bounds the wait rather
+// than the request: the work already started keeps running, capped only by
+// whatever timeout its own client has.
+export function untilAborted<T>(signal: AbortSignal, work: Promise<T>): Promise<T> {
+  const aborted = new Promise<never>((_, reject) => {
+    if (signal.aborted) return reject(signal.reason);
+
+    signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+  });
+
+  return Promise.race([work, aborted]);
+}
+
 export function sha256(str) {
   return createHash('sha256').update(str).digest('hex');
 }
