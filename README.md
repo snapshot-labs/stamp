@@ -52,27 +52,27 @@ cdn.stamp.fyi/avatar/0xeF8305E140ac520225DAf050e2f71d5fBcC543e7?**cb=1**
 
 ### Resolvers
 
-#### [ENS avatar](/src/resolvers/ens.ts)
+#### [ENS avatar](/src/resolvers/image/ens.ts)
 
-#### [Basename](/src/resolvers/basename.ts)
+#### [Basename](/src/resolvers/image/basename.ts)
 
 Resolves the avatar of a [Basename](https://www.base.org/names) (`*.base.eth`) by name or by address, reading the avatar text record from the Basenames L2 resolver on Base.
 
-#### [Lens](/src/resolvers/lens.ts)
+#### [Lens](/src/resolvers/image/lens.ts)
 
-#### [Self.ID](/src/resolvers/selfid.ts)
+#### [Self.ID](/src/resolvers/image/selfid.ts)
 
-#### [Snapshot](/src/resolvers/snapshot.ts)
+#### [Snapshot](/src/resolvers/image/snapshot.ts)
 
-#### [TrustWallet Assets Info](/src/resolvers/trustwallet.ts)
+#### [TrustWallet Assets Info](/src/resolvers/image/trustwallet.ts)
 
-#### [Blockie](/src/resolvers/blockie.ts)
+#### [Blockie](/src/resolvers/image/blockie.ts)
 
-#### [Jazzicon](/src/resolvers/jazzicon.ts)
+#### [Jazzicon](/src/resolvers/image/jazzicon.ts)
 
-#### [Starknet](/src/resolvers/starknet.ts)
+#### [Starknet](/src/resolvers/image/starknet.ts)
 
-#### [Farcaster](/src/resolvers/farcaster.ts)
+#### [Farcaster](/src/resolvers/image/farcaster.ts)
 
 ### Integrations
 

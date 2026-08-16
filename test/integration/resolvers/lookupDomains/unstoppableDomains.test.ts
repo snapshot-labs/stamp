@@ -34,7 +34,7 @@ async function recordedFor(provider: string) {
 }
 
 // This resolver reports nothing itself: it throws the original error and
-// lookupDomains/index.ts decides whether to capture it. What matters here is
+// resolvers/lookupDomains/index.ts decides whether to capture it. What matters here is
 // that the thrown error carries the HTTP status as data, since isSilencedError
 // reads the status off the error and never out of the message text. Which
 // statuses get silenced is covered in helpers/address.test.ts.
