@@ -1,16 +1,13 @@
-import { getAddress } from '@ethersproject/address';
-import { isStarknetAddress } from '../../helpers/address';
-import { fetchHttpImage } from '../../helpers/http';
+import { fetchHttpImage, spaceIds } from '../../helpers/http';
 import { getUrl, graphQlCall } from '../../utils';
 
 const SUBGRAPH_URLS = ['https://api.snapshot.box', 'https://testnet-api.snapshot.box'];
 
-async function getSpaceProperty(key: string, url: string, property: 'avatar' | 'cover') {
-  const ids = [key];
-  if (!isStarknetAddress(key)) {
-    ids.push(getAddress(key));
-  }
-
+async function getSpaceProperty(
+  ids: string[],
+  url: string,
+  property: 'avatar' | 'cover'
+): Promise<string | null> {
   const {
     data: {
       data: { spaces }
@@ -27,17 +24,29 @@ async function getSpaceProperty(key: string, url: string, property: 'avatar' | '
     { ids }
   );
 
-  const result = spaces?.map(space => space.metadata?.[property]).filter(Boolean)[0];
-
-  return result || Promise.reject(false);
+  return spaces?.map(space => space.metadata?.[property]).filter(Boolean)[0] ?? null;
 }
 
 function createPropertyResolver(property: 'avatar' | 'cover') {
   return async key => {
-    const value = await Promise.any(SUBGRAPH_URLS.map(url => getSpaceProperty(key, url, property)));
+    const ids = spaceIds(key);
+    if (!ids) return false;
 
-    const url = getUrl(value);
-    return await fetchHttpImage(url);
+    const settled = await Promise.allSettled(
+      SUBGRAPH_URLS.map(url => getSpaceProperty(ids, url, property))
+    );
+    const answers = settled.flatMap(result =>
+      result.status === 'fulfilled' ? [result.value] : []
+    );
+
+    // One API down while the other answers "no such space" is still no-data.
+    // Keeping that resilience is why both are asked at all.
+    if (!answers.length) throw (settled[0] as PromiseRejectedResult).reason;
+
+    const value = answers.find(Boolean);
+    if (!value) return false;
+
+    return await fetchHttpImage(getUrl(value));
   };
 }
 
