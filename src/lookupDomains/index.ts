@@ -23,25 +23,24 @@ export default async function lookupDomains(
   address: Address,
   chains: string | string[] = DEFAULT_CHAIN_IDS
 ): Promise<Handle[]> {
-  const promises: Promise<Handle[]>[] = [];
   let chainIds = Array.isArray(chains) ? chains : [chains];
   chainIds = [...new Set(chainIds.map(String))];
 
   if (!isAddress(address)) return [];
 
-  PROVIDERS.forEach(({ NAME, default: fn, CHAIN_IDS }) => {
-    chainIds
-      .filter(chainId => CHAIN_IDS.includes(chainId))
-      .forEach(chainId => {
-        promises.push(
+  const domains = await Promise.all(
+    PROVIDERS.flatMap(({ NAME, default: fn, CHAIN_IDS }) =>
+      chainIds
+        .filter(chainId => CHAIN_IDS.includes(chainId))
+        .map(chainId =>
           (async () => {
             const end = timeResponse.startTimer({ provider: NAME, chainId });
             let status = 0;
 
             try {
-              const domains = await fn(address, chainId);
+              const result = await fn(address, chainId);
               status = 1;
-              return domains;
+              return result;
             } catch (err) {
               if (!isSilencedError(err)) {
                 capture(err, {
@@ -54,11 +53,9 @@ export default async function lookupDomains(
               end({ status });
             }
           })()
-        );
-      });
-  });
-
-  const domains = await Promise.all(promises);
+        )
+    )
+  );
 
   return [...new Set(domains.flat())];
 }
