@@ -1,5 +1,5 @@
 import { DNSConnect } from '@webinterop/dns-connect';
-import { Address, Handle } from '../utils';
+import { Address, Handle, untilAborted, withDeadline } from '../utils';
 import { isEvmAddress, withoutEmptyValues } from './utils';
 import constants from '../constants.json';
 
@@ -18,6 +18,14 @@ function normalizeHandles(handles: Handle[]): Handle[] {
   return handles.filter(handle => handle.endsWith(`.${TLD}`));
 }
 
+// dns-connect's resolver passes no signal to the DNS-over-HTTPS fetches it makes, so this
+// bounds the wait and the requests it started keep running. The budget covers the whole
+// fan-out rather than one query: each entry issues several queries in sequence and the
+// fan-out is as wide as the batch, so a per-query bound would leave the call unbounded.
+function boundedAll<T>(queries: Promise<T>[]): Promise<T[]> {
+  return withDeadline(signal => untilAborted(signal, Promise.all(queries)));
+}
+
 export async function lookupAddresses(addresses: Address[]): Promise<Record<Address, Handle>> {
   const normalizedAddresses = normalizeAddresses(addresses);
 
@@ -27,8 +35,8 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
     dns: { forwarderDomain: constants.d3[CHAIN_ID].forwarder }
   });
 
-  const results = await Promise.all(
-    normalizedAddresses.map(async address => dnsConnect.reverseResolve(address, NETWORK))
+  const results = await boundedAll(
+    normalizedAddresses.map(address => dnsConnect.reverseResolve(address, NETWORK))
   );
 
   return withoutEmptyValues(
@@ -45,8 +53,8 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
     dns: { forwarderDomain: constants.d3[CHAIN_ID].forwarder }
   });
 
-  const results = await Promise.all(
-    normalizedHandles.map(async handle => dnsConnect.resolve(handle, NETWORK))
+  const results = await boundedAll(
+    normalizedHandles.map(handle => dnsConnect.resolve(handle, NETWORK))
   );
 
   return withoutEmptyValues(
