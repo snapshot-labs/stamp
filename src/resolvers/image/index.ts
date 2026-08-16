@@ -20,7 +20,6 @@ import trustwallet from './trustwallet';
 import { max } from '../../constants.json';
 import { isSilencedError } from '../../helpers/errors';
 import { resize } from '../../helpers/image';
-import { timeImageResolverResponse as timeResponse } from '../../helpers/metrics';
 
 type ResolverFn = (...args: any[]) => Promise<Buffer | false>;
 
@@ -41,20 +40,13 @@ function isRoutineMiss(error: any): boolean {
 
 function withFailureContract(name: string, resolve: ResolverFn): ResolverFn {
   return async (...args) => {
-    const end = timeResponse.startTimer({ provider: name });
-    let status = 0;
-
     try {
-      const image = await resolve(...args);
-      status = 1;
-      return image;
+      return await resolve(...args);
     } catch (err) {
       if (!isSilencedError(err) && !isRoutineMiss(err)) {
         capture(err, { tags: { provider: name }, contexts: { input: { args } } });
       }
       return false;
-    } finally {
-      end({ status });
     }
   };
 }

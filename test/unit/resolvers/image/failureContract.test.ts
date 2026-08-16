@@ -1,5 +1,4 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
-import { timeImageResolverResponse } from '../../../../src/helpers/metrics';
 import resolvers from '../../../../src/resolvers/image';
 import basename from '../../../../src/resolvers/image/basename';
 import blockie from '../../../../src/resolvers/image/blockie';
@@ -58,14 +57,6 @@ const UNRESIZED = [
   ['space-cover-sx', resolveCover]
 ] as const;
 
-async function recordedFor(provider: string) {
-  const metric: any = await timeImageResolverResponse.get();
-
-  return metric.values
-    .filter((v: any) => String(v.metricName).endsWith('_count') && v.labels.provider === provider)
-    .map((v: any) => ({ status: v.labels.status, count: v.value }));
-}
-
 const UPSTREAM_404 = Object.assign(new Error('Request failed with status code 404'), {
   response: { status: 404 }
 });
@@ -117,24 +108,6 @@ describe('resolvers - failure contract', () => {
 
     await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
     expect(capture).not.toHaveBeenCalled();
-  });
-
-  it('counts a failure it does not report', async () => {
-    timeImageResolverResponse.reset();
-    (ens as jest.Mock).mockRejectedValue(UPSTREAM_404);
-
-    await resolvers.ens(ADDRESS);
-
-    expect(capture).not.toHaveBeenCalled();
-    expect(await recordedFor('ens')).toEqual([{ status: 0, count: 1 }]);
-  });
-
-  it('counts an answer as status 1', async () => {
-    timeImageResolverResponse.reset();
-    (basename as jest.Mock).mockResolvedValue(false);
-
-    await expect(resolvers.basename(ADDRESS)).resolves.toBe(false);
-    expect(await recordedFor('basename')).toEqual([{ status: 1, count: 1 }]);
   });
 
   it.each(RESIZED)('attributes %s bytes sharp cannot process to itself', async (name, fn) => {
