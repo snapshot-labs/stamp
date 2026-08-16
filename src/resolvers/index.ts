@@ -86,11 +86,15 @@ const RESOLVERS = [
   { name: 'farcaster', fn: farcaster, resize: true }
 ] as const satisfies readonly Resolver[];
 
-type ResolverName = (typeof RESOLVERS)[number]['name'];
+// Returning E['fn'] here lets a caller treat a wrapped resolver as one that
+// never answers false.
+type ResolverMap = {
+  [E in (typeof RESOLVERS)[number] as E['name']]: (
+    ...args: Parameters<E['fn']>
+  ) => Promise<Buffer | false>;
+};
 
-// Object.fromEntries types its result as Record<string, ...>, which compiles
-// everywhere and silently drops the name check that api.ts and the integration
-// helper rely on. The cast is what keeps the keys a literal union.
+// Without the cast Object.fromEntries widens the keys to string.
 export default Object.fromEntries(
   RESOLVERS.map(entry => [entry.name, entry.resize ? withResize(entry.fn) : entry.fn])
-) as Record<ResolverName, ResolverFn>;
+) as ResolverMap;
