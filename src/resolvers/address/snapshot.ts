@@ -1,4 +1,5 @@
-import { Address, graphQlCall, Handle } from '../../utils';
+import { graphQlCall } from '../../helpers/graphql';
+import { Address, Handle } from '../../helpers/types';
 
 const HUB_URL = process.env.HUB_URL ?? 'https://hub.snapshot.org';
 export const NAME = 'Snapshot';

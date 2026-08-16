@@ -18,7 +18,7 @@ import { resolveAvatar as sxResolveAvatar, resolveCover as sxResolveCover } from
 import starknet from './starknet';
 import trustwallet from './trustwallet';
 import { max } from '../../constants.json';
-import { resize } from '../../utils';
+import { resize } from '../../helpers/image';
 
 type ResolverFn = (...args: any[]) => Promise<Buffer | false>;
 

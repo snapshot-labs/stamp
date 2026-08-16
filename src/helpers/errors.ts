@@ -1,3 +1,12 @@
+// Both locations are load-bearing: isSilencedError reads `status` and
+// `response.status`, and a status only in the message string is unreachable to it.
+export function httpError(source: string, status: number, message: string) {
+  return Object.assign(new Error(`[${source}] ${message}`), {
+    status,
+    response: { status }
+  });
+}
+
 export function isSilencedError(error: any, additionalMessages?: string[]): boolean {
   // A rejection carries whatever it was given, null included. There is nothing
   // in one to classify, and reporting it is not an option either: `capture`

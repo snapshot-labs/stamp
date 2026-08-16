@@ -1,11 +1,11 @@
 import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
-import { numericizeHtmlEntities, resize } from '../../src/utils';
+import { numericizeHtmlEntities, resize } from '../../../src/helpers/image';
 
 const MAX = 500;
 
-const AVATAR_FIXTURE = path.resolve(__dirname, '../fixtures/ens-avatar-html-entities.svg');
+const AVATAR_FIXTURE = path.resolve(__dirname, '../../fixtures/ens-avatar-html-entities.svg');
 
 function svg(body: string): Buffer {
   return Buffer.from(

@@ -2,7 +2,7 @@ import jazzicon from '@metamask/jazzicon';
 import { JSDOM } from 'jsdom';
 import sharp from 'sharp';
 import { max } from '../../constants.json';
-import { resize } from '../../utils';
+import { resize } from '../../helpers/image';
 
 const dom = new JSDOM('');
 global['document'] = dom.window.document;

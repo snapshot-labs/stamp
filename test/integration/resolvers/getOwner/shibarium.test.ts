@@ -1,5 +1,5 @@
 import { DNSConnect } from '@webinterop/dns-connect';
-import { Address, Handle } from '../../../../src/utils';
+import { Address, Handle } from '../../../../src/helpers/types';
 
 jest.mock('@webinterop/dns-connect', () => ({
   DNSConnect: jest.fn()

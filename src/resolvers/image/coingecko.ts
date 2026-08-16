@@ -1,6 +1,7 @@
 import { getAddress } from '@ethersproject/address';
+import { withDeadline } from '../../helpers/deadline';
+import { httpError } from '../../helpers/errors';
 import { fetchHttpImage } from '../../helpers/http';
-import { httpError, withDeadline } from '../../utils';
 
 const API_KEY = process.env.COINGECKO_API_KEY;
 

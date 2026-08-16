@@ -5,7 +5,7 @@ import * as shibarium from './shibarium';
 import * as unstoppableDomains from './unstoppableDomains';
 import { isSilencedError } from '../../helpers/errors';
 import { timeLookupDomainsResponse as timeResponse } from '../../helpers/metrics';
-import { Address, Handle } from '../../utils';
+import { Address, Handle } from '../../helpers/types';
 
 type Provider = {
   NAME: string;

@@ -1,8 +1,10 @@
 import http from 'http';
 import https from 'https';
 import { getAddress } from '@ethersproject/address';
+import snapshot from '@snapshot-labs/snapshot.js';
 import { isStarknetAddress } from './address';
-import { httpError, withDeadline } from '../utils';
+import { withDeadline } from './deadline';
+import { httpError } from './errors';
 
 export const axiosDefaultParams = {
   httpAgent: new http.Agent({ keepAlive: true }),
@@ -33,4 +35,9 @@ export async function fetchHttpImage(url: string): Promise<Buffer> {
 
     return Buffer.from(await response.arrayBuffer());
   }, IMAGE_FETCH_BUDGET);
+}
+
+export function getUrl(url) {
+  const gateway: string = process.env.IPFS_GATEWAY || 'cloudflare-ipfs.com';
+  return snapshot.utils.getUrl(url, gateway);
 }

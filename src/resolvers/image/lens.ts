@@ -1,6 +1,6 @@
 import { getAddress, isAddress } from '@ethersproject/address';
+import { graphQlCall } from '../../helpers/graphql';
 import { fetchHttpImage } from '../../helpers/http';
-import { graphQlCall } from '../../utils';
 
 const API_URL = 'https://api.lens.xyz';
 const LENS_IPFS_GATEWAY = 'https://gw.ipfs-lens.dev/ipfs/';

@@ -1,6 +1,6 @@
 import { isAddress } from '@ethersproject/address';
 import { fetchHttpImage } from '../../helpers/http';
-import { getProvider } from '../../utils';
+import { getProvider } from '../../helpers/provider';
 import { lookupAddresses } from '../address';
 
 async function castToEnsName(nameOrAddress: string): Promise<string | undefined> {

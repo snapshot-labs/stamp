@@ -1,7 +1,7 @@
 import { namehash } from '@ethersproject/hash';
-import { isEvmAddress } from '../../helpers/address';
-import { provider as getProvider } from '../../helpers/provider';
-import { Address, batchContractCalls, EMPTY_ADDRESS, Handle } from '../../utils';
+import { EMPTY_ADDRESS, isEvmAddress } from '../../helpers/address';
+import { batchContractCalls, provider as getProvider } from '../../helpers/provider';
+import { Address, Handle } from '../../helpers/types';
 
 // NOTE: Space ID supports multiple networks and TLDs, this file only implements BNB with .bnb TLD
 // https://www.space.id/

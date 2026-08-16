@@ -1,10 +1,10 @@
 import axios from 'axios';
-import { fetchHttpImage } from '../../src/helpers/http';
-import { lookupAddresses as lensLookupAddresses } from '../../src/resolvers/address/lens';
-import lensResolve from '../../src/resolvers/image/lens';
-import { resolveSpaceAvatar, resolveUserAvatar } from '../../src/resolvers/image/snapshot';
-import { resolveAvatar as resolveSxSpaceAvatar } from '../../src/resolvers/image/space-sx';
-import ensLookupDomains from '../../src/resolvers/lookupDomains/ens';
+import { fetchHttpImage } from '../../../src/helpers/http';
+import { lookupAddresses as lensLookupAddresses } from '../../../src/resolvers/address/lens';
+import lensResolve from '../../../src/resolvers/image/lens';
+import { resolveSpaceAvatar, resolveUserAvatar } from '../../../src/resolvers/image/snapshot';
+import { resolveAvatar as resolveSxSpaceAvatar } from '../../../src/resolvers/image/space-sx';
+import ensLookupDomains from '../../../src/resolvers/lookupDomains/ens';
 
 jest.mock('axios', () => {
   const mock: any = jest.fn();
@@ -13,8 +13,8 @@ jest.mock('axios', () => {
   return { __esModule: true, default: mock };
 });
 
-jest.mock('../../src/helpers/http', () => ({
-  ...jest.requireActual('../../src/helpers/http'),
+jest.mock('../../../src/helpers/http', () => ({
+  ...jest.requireActual('../../../src/helpers/http'),
   fetchHttpImage: jest.fn()
 }));
 
