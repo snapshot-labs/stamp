@@ -1,4 +1,5 @@
 import { isAddress } from '@ethersproject/address';
+import { StaticJsonRpcProvider } from '@ethersproject/providers';
 import { fetchHttpImage } from '../../helpers/http';
 import { getProvider } from '../../helpers/provider';
 import { lookupAddresses } from '../address';
@@ -12,7 +13,8 @@ async function castToEnsName(nameOrAddress: string): Promise<string | undefined>
 }
 
 export default async function resolve(nameOrAddress: string) {
-  const provider = getProvider(1);
+  // getProvider returns `any`. Without the annotation the calls below are unchecked.
+  const provider: StaticJsonRpcProvider = getProvider(1);
   const ensName = await castToEnsName(nameOrAddress);
 
   if (!ensName) return false;
