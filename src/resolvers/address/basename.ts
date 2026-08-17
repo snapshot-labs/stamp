@@ -4,7 +4,7 @@ import { namehash } from '@ethersproject/hash';
 import snapshot from '@snapshot-labs/snapshot.js';
 import { EMPTY_ADDRESS, isEvmAddress } from '../../helpers/address';
 import { getUrl } from '../../helpers/http';
-import { provider as getProvider } from '../../helpers/provider';
+import { getProvider } from '../../helpers/provider';
 import { Address, Handle } from '../../helpers/types';
 
 export const NAME = 'Basename';

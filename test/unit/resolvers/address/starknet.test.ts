@@ -17,7 +17,7 @@ jest.mock('../../../../src/helpers/provider', () => {
 
   return {
     ...actual,
-    provider: () => ({ callContract: mockCallContract })
+    getProvider: () => ({ callContract: mockCallContract })
   };
 });
 

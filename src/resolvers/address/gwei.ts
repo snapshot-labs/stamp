@@ -3,7 +3,7 @@ import { concat } from '@ethersproject/bytes';
 import { keccak256 } from '@ethersproject/keccak256';
 import { toUtf8Bytes } from '@ethersproject/strings';
 import { EMPTY_ADDRESS, isEvmAddress } from '../../helpers/address';
-import { batchContractCalls, provider as getProvider } from '../../helpers/provider';
+import { batchContractCalls, getProvider } from '../../helpers/provider';
 import { Address, Handle } from '../../helpers/types';
 
 // Gwei Name Service: an ENS-compatible .gwei namespace on Ethereum. https://gwei.domains

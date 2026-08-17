@@ -12,7 +12,7 @@ jest.mock('../../../../src/resolvers/address/cache', () => ({
 jest.mock('../../../../src/helpers/provider', () => {
   const actual = jest.requireActual('../../../../src/helpers/provider');
 
-  return { ...actual, provider: () => ({ callContract: mockCallContract }) };
+  return { ...actual, getProvider: () => ({ callContract: mockCallContract }) };
 });
 
 import { capture } from '@snapshot-labs/snapshot-sentry';

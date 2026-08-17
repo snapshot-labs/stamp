@@ -15,7 +15,7 @@ jest.mock('axios', () => {
 
 jest.mock('../../../../src/helpers/provider', () => ({
   ...jest.requireActual('../../../../src/helpers/provider'),
-  provider: jest.fn(() => ({
+  getProvider: jest.fn(() => ({
     resolveName: jest.fn().mockResolvedValue(null),
     lookupAddress: jest.fn().mockResolvedValue(null)
   }))
