@@ -164,6 +164,11 @@ describe('resolvers answer false rather than throwing when there is no data', ()
       expect(mockedGetProvider).not.toHaveBeenCalled();
     });
 
+    it('answers false for a label dnsEncode cannot take, without asking', async () => {
+      await expect(ens(`${'a'.repeat(64)}.cb.id`)).resolves.toBe(false);
+      expect(mockedGetProvider).not.toHaveBeenCalled();
+    });
+
     it('reads a record an offchain resolver will not serve as no record', async () => {
       ensProviderWhoseTextRead(CCIP_NO_RECORD);
       mockedFetchHttpImage.mockResolvedValue(Buffer.from('an image'));
@@ -192,6 +197,7 @@ describe('resolvers answer false rather than throwing when there is no data', ()
       await expect(lens('.lens')).resolves.toBe(false);
       expect(mockedAxios).not.toHaveBeenCalled();
     });
+
   });
 
   describe('coingecko', () => {
