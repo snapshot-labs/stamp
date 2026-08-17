@@ -30,8 +30,6 @@ type Resolver = {
   failureContract: boolean;
 };
 
-// Deleting either rule turns a routine miss into a report: a 404 is the image
-// not being there, and the route hands the resolvers an id it never validated.
 function isRoutineMiss(error: any): boolean {
   return (
     error?.status === 404 || error?.response?.status === 404 || error?.code === 'INVALID_ARGUMENT'
