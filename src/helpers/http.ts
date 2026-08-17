@@ -23,19 +23,12 @@ export function spaceIds(id: string): string[] | null {
   }
 }
 
-// Shorter than the shared budget because this covers a single transfer, where
-// the other call sites cover a chain of them.
 const IMAGE_FETCH_BUDGET = 5e3;
 
-// The budget covers the whole call, not just the request: fetch settles as soon
-// as the headers land, so a body that opens and never ends outlives a budget
-// measured per request. Redirects and the body read are inside it too.
 export async function fetchHttpImage(url: string): Promise<Buffer> {
   return withDeadline(async signal => {
     const response = await fetch(url, { signal });
 
-    // fetch resolves a non-2xx, and the resolvers that skip the resize hand what
-    // they get straight to the encoder.
     if (!response.ok) throw httpError(new URL(url).host, response.status, response.statusText);
 
     return Buffer.from(await response.arrayBuffer());
