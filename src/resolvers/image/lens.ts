@@ -27,8 +27,6 @@ export default async function resolve(domainOrAddress: string) {
     request = { address: getAddress(domainOrAddress) };
   } else if (domainOrAddress.endsWith(LENS_EXTENSION)) {
     const localName = domainOrAddress.split(LENS_EXTENSION)[0];
-    // The API rejects an empty localName rather than answering that it has no
-    // such account, and `/avatar/.lens` reaches here.
     if (!localName) return false;
 
     request = { username: { localName } };

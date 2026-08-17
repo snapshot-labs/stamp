@@ -51,8 +51,6 @@ async function getOffchainProperty(
   entity: Entity,
   property: Property
 ) {
-  // The hub answers `user(id:)` with a validation error rather than a miss for an
-  // id that is not an address, and the avatar route serves names too.
   if (entity === 'user' && !isEvmAddress(id) && !isStarknetAddress(id)) return null;
 
   const {
