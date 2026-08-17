@@ -4,11 +4,8 @@ import { Address } from './types';
 
 const broviderUrl = process.env.BROVIDER_URL || 'https://rpc.snapshot.org';
 
-export function getProvider(
-  network: string | number,
-  providerOptions: { broviderUrl?: string; timeout?: number } = {}
-) {
-  return snapshot.utils.getProvider(network, { broviderUrl, timeout: 5e3, ...providerOptions });
+export function getProvider(network: string | number) {
+  return snapshot.utils.getProvider(network, { broviderUrl, timeout: 5e3 });
 }
 
 /**
