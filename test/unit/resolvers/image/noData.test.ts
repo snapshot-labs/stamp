@@ -198,6 +198,26 @@ describe('resolvers answer false rather than throwing when there is no data', ()
       expect(mockedAxios).not.toHaveBeenCalled();
     });
 
+    it('answers false for a local name longer than the API parses, without asking', async () => {
+      await expect(lens(`${'a'.repeat(255)}.lens`)).resolves.toBe(false);
+      expect(mockedAxios).not.toHaveBeenCalled();
+    });
+
+    it('counts what the API counts, which is bytes and not characters', async () => {
+      const localName = `${'é'.repeat(127)}a`;
+      expect(localName.length).toBeLessThanOrEqual(254);
+      expect(Buffer.byteLength(localName)).toBe(255);
+
+      await expect(lens(`${localName}.lens`)).resolves.toBe(false);
+      expect(mockedAxios).not.toHaveBeenCalled();
+    });
+
+    it('still asks for the longest local name the API parses', async () => {
+      mockedAxios.mockResolvedValue({ status: 200, data: { data: { account: null } } });
+
+      await expect(lens(`${'a'.repeat(254)}.lens`)).resolves.toBe(false);
+      expect(mockedAxios).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('coingecko', () => {

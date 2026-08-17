@@ -5,6 +5,7 @@ import { fetchHttpImage } from '../../helpers/http';
 const API_URL = 'https://api.lens.xyz';
 const LENS_IPFS_GATEWAY = 'https://gw.ipfs-lens.dev/ipfs/';
 const LENS_EXTENSION = '.lens';
+const LOCAL_NAME_MAX_BYTES = 254;
 
 function normalizeImageUrl(url: string) {
   if (!url) return false;
@@ -27,7 +28,7 @@ export default async function resolve(domainOrAddress: string) {
     request = { address: getAddress(domainOrAddress) };
   } else if (domainOrAddress.endsWith(LENS_EXTENSION)) {
     const localName = domainOrAddress.split(LENS_EXTENSION)[0];
-    if (!localName) return false;
+    if (!localName || Buffer.byteLength(localName) > LOCAL_NAME_MAX_BYTES) return false;
 
     request = { username: { localName } };
   } else {
