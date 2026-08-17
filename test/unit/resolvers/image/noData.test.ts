@@ -58,6 +58,15 @@ const STARKNET_ADDRESS = '0x0546a9a0d1a5b6cbb3a1c1c9d0e5d5a3c8a2f5c9d5b6cbb3a1c1
 const entry = (found: any) => ({ status: 200, data: { data: { entry: found } } });
 const spaces = (found: any[]) => ({ status: 200, data: { data: { spaces: found } } });
 
+const ccipError = (reason: string) =>
+  Object.assign(new Error(`${reason} (code=SERVER_ERROR, version=providers/5.7.2)`), {
+    code: 'SERVER_ERROR',
+    reason
+  });
+
+const CCIP_NO_RECORD = ccipError('response not found during CCIP fetch: unknown error');
+const CCIP_GATEWAY_DOWN = ccipError('error encountered during CCIP fetch: "unknown error"');
+
 describe('resolvers answer false rather than throwing when there is no data', () => {
   describe('starknet', () => {
     it('answers false for an EVM address, which is what every avatar request carries', async () => {
@@ -156,13 +165,19 @@ describe('resolvers answer false rather than throwing when there is no data', ()
     });
 
     it('reads a record an offchain resolver will not serve as no record', async () => {
-      ensProviderWhoseTextRead(Object.assign(new Error('CCIP fetch'), { code: 'SERVER_ERROR' }));
+      ensProviderWhoseTextRead(CCIP_NO_RECORD);
       mockedFetchHttpImage.mockResolvedValue(Buffer.from('an image'));
 
       await expect(ens('greg.cb.id')).resolves.toEqual(Buffer.from('an image'));
       expect(mockedFetchHttpImage).toHaveBeenCalledWith(
         'https://metadata.ens.domains/mainnet/avatar/greg.cb.id'
       );
+    });
+
+    it('rejects when the offchain gateway is down rather than out of records', async () => {
+      ensProviderWhoseTextRead(CCIP_GATEWAY_DOWN);
+
+      await expect(ens('greg.cb.id')).rejects.toThrow('error encountered during CCIP fetch');
     });
 
     it('rejects when the record read fails for any other reason', async () => {
