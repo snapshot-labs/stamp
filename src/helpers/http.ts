@@ -1,9 +1,8 @@
 import http from 'http';
 import https from 'https';
 import { getAddress } from '@ethersproject/address';
-import axios from 'axios';
 import { isStarknetAddress } from './address';
-import { withDeadline } from '../utils';
+import { httpError, withDeadline } from '../utils';
 
 export const axiosDefaultParams = {
   httpAgent: new http.Agent({ keepAlive: true }),
@@ -24,26 +23,21 @@ export function spaceIds(id: string): string[] | null {
   }
 }
 
-// The deadline covers the whole call, not just the request: the axios timeout is
-// an idle timeout on the socket, so an upstream that keeps sending, however
-// slowly, resets it and never trips it.
+// Shorter than the shared budget because this covers a single transfer, where
+// the other call sites cover a chain of them.
+const IMAGE_FETCH_BUDGET = 5e3;
+
+// The budget covers the whole call, not just the request: fetch settles as soon
+// as the headers land, so a body that opens and never ends outlives a budget
+// measured per request. Redirects and the body read are inside it too.
 export async function fetchHttpImage(url: string): Promise<Buffer> {
   return withDeadline(async signal => {
-    try {
-      const { data } = await axios({
-        url,
-        responseType: 'arraybuffer',
-        ...axiosDefaultParams,
-        signal
-      });
+    const response = await fetch(url, { signal });
 
-      return data;
-    } catch (err) {
-      // axios answers an abort with a Cancel of its own, which carries neither
-      // the name isSilencedError reads nor an Error prototype.
-      if (axios.isCancel(err)) throw signal.reason;
+    // fetch resolves a non-2xx, and the resolvers that skip the resize hand what
+    // they get straight to the encoder.
+    if (!response.ok) throw httpError(new URL(url).host, response.status, response.statusText);
 
-      throw err;
-    }
-  });
+    return Buffer.from(await response.arrayBuffer());
+  }, IMAGE_FETCH_BUDGET);
 }
