@@ -1,36 +1,39 @@
 import { DNSConnect, DNSConnectCacheProvider } from '@webinterop/dns-connect';
+import { CacheStore, MemoryStore } from '../cache';
 
-// Not dns-connect's own InMemoryCache: that one arms a ref'd setTimeout per entry to
-// evict it, and the TLD registration status it writes on every resolve() carries a
-// one-day TTL, so a single resolution keeps the Node process alive for 24 hours after
-// the work is done. Expiring on read instead needs no timer and answers the same.
-class ExpiringCache implements DNSConnectCacheProvider {
-  private entries = new Map<string, { value: string; expiresAt: number }>();
+const ONE_DAY = 86400;
+const MAX_ENTRIES = 5000;
 
-  async set(key: string, value: string, ttl: number): Promise<void> {
-    this.entries.set(key, { value, expiresAt: Date.now() + ttl * 1e3 });
-  }
+const stores = new Map<string, CacheStore>();
 
-  async get(key: string): Promise<string | undefined> {
-    const entry = this.entries.get(key);
+function storeFor(forwarderDomain: string): CacheStore {
+  const existing = stores.get(forwarderDomain);
 
-    if (!entry) return undefined;
-    if (entry.expiresAt <= Date.now()) {
-      this.entries.delete(key);
-      return undefined;
+  if (existing) return existing;
+
+  const store = new MemoryStore({
+    maxEntries: MAX_ENTRIES,
+    maxTtl: ONE_DAY,
+    cacheEmpty: false
+  });
+  stores.set(forwarderDomain, store);
+
+  return store;
+}
+
+function cacheProvider(store: CacheStore): DNSConnectCacheProvider {
+  return {
+    get: key => store.get(key),
+    set: (key, value, ttl) => store.set(key, value, ttl),
+    delete: async key => {
+      await store.delete(key);
     }
-
-    return entry.value;
-  }
-
-  async delete(key: string): Promise<void> {
-    this.entries.delete(key);
-  }
+  };
 }
 
 export function dnsConnect(forwarderDomain: string): DNSConnect {
   return new DNSConnect({
     dns: { forwarderDomain },
-    caching: { cacheProvider: new ExpiringCache() }
+    caching: { cacheProvider: cacheProvider(storeFor(forwarderDomain)) }
   });
 }

@@ -1,30 +1,17 @@
+import { RedisStore } from '../../cache';
 import constants from '../../constants.json';
 import { addressResolversCacheHitCount } from '../../helpers/metrics';
-import redis from '../../helpers/redis';
 
 export const KEY_PREFIX = 'address-resolvers';
 
-export async function getCache(keys: string[]): Promise<Record<string, string>> {
-  if (!redis) return {};
+const store = new RedisStore({ prefix: KEY_PREFIX, maxTtl: constants.ttl, cacheEmpty: true });
 
-  const transaction = redis.multi();
-  keys.map(key => transaction.get(`${KEY_PREFIX}:${key}`));
-  const results = await transaction.exec();
-
-  return Object.fromEntries(
-    keys.map((key, index) => [key, results[index]]).filter(([, value]) => value !== null)
-  );
+export function getCache(keys: string[]): Promise<Record<string, string>> {
+  return store.getMany(keys);
 }
 
-export function setCache(payload: Record<string, string>) {
-  if (!redis) return;
-
-  const transaction = redis.multi();
-  Object.entries(payload).map(([key, value]) =>
-    transaction.set(`${KEY_PREFIX}:${key}`, value || '', { EX: constants.ttl })
-  );
-
-  return transaction.exec();
+export function setCache(payload: Record<string, string>): Promise<void> {
+  return store.setMany(payload);
 }
 
 export default async function cache(input: string[], callback) {
@@ -45,10 +32,8 @@ export default async function cache(input: string[], callback) {
   return cache;
 }
 
-export async function clear(input: string): Promise<boolean> {
+export function clear(input: string): Promise<boolean> {
   // TODO: When redis is not available, it should probably throw instead of returning false
   // causing the api the return "failed to clear cache" instead of "not found"
-  if (!redis) return false;
-
-  return (await redis?.del(`${KEY_PREFIX}:${input}`)) > 0;
+  return store.delete(input);
 }
