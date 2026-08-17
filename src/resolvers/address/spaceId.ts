@@ -16,7 +16,7 @@ const RESOLVER_ABI = [
   'function name(bytes32 node) view returns (string name)'
 ];
 
-const provider = getProvider(NETWORK, { timeout: 5e3 });
+const provider = getProvider(NETWORK);
 
 function normalizeAddresses(addresses: Address[]): Address[] {
   return addresses.filter(isEvmAddress);
