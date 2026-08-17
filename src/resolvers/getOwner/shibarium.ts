@@ -1,5 +1,5 @@
-import { DNSConnect } from '@webinterop/dns-connect';
 import constants from '../../constants.json';
+import { dnsConnect } from '../../helpers/dns';
 import { Address, EMPTY_ADDRESS, Handle, untilAborted, withDeadline } from '../../utils';
 
 const MAINNET = '109';
@@ -44,13 +44,12 @@ async function getClaimedOwner(handle: Handle, chainId: string): Promise<Address
 }
 
 async function getResolvedAddress(handle: Handle, chainId: string): Promise<Address> {
-  const dnsConnect = new DNSConnect({ dns: { forwarderDomain: constants.d3[chainId].forwarder } });
+  const client = dnsConnect(constants.d3[chainId].forwarder);
 
   // dns-connect passes no signal to the DNS-over-HTTPS fetches it makes, so
   // only the wait can be bounded here, not the request.
   return withDeadline(
-    async signal =>
-      (await untilAborted(signal, dnsConnect.resolve(handle, NETWORK))) || EMPTY_ADDRESS
+    async signal => (await untilAborted(signal, client.resolve(handle, NETWORK))) || EMPTY_ADDRESS
   );
 }
 
