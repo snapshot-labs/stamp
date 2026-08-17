@@ -1,6 +1,6 @@
-import { DNSConnect } from '@webinterop/dns-connect';
 import constants from '../../constants.json';
 import { isEvmAddress } from '../../helpers/address';
+import { dnsConnect } from '../../helpers/dns';
 import { withoutEmptyValues } from '../../helpers/object';
 import { Address, Handle, untilAborted, withDeadline } from '../../utils';
 
@@ -32,12 +32,10 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
 
   if (normalizedAddresses.length === 0) return {};
 
-  const dnsConnect = new DNSConnect({
-    dns: { forwarderDomain: constants.d3[CHAIN_ID].forwarder }
-  });
+  const client = dnsConnect(constants.d3[CHAIN_ID].forwarder);
 
   const results = await boundedAll(
-    normalizedAddresses.map(address => dnsConnect.reverseResolve(address, NETWORK))
+    normalizedAddresses.map(address => client.reverseResolve(address, NETWORK))
   );
 
   return withoutEmptyValues(
@@ -50,12 +48,10 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
 
   if (normalizedHandles.length === 0) return {};
 
-  const dnsConnect = new DNSConnect({
-    dns: { forwarderDomain: constants.d3[CHAIN_ID].forwarder }
-  });
+  const client = dnsConnect(constants.d3[CHAIN_ID].forwarder);
 
   const results = await boundedAll(
-    normalizedHandles.map(handle => dnsConnect.resolve(handle, NETWORK))
+    normalizedHandles.map(handle => client.resolve(handle, NETWORK))
   );
 
   return withoutEmptyValues(
