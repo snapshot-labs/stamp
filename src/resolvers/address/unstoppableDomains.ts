@@ -4,7 +4,7 @@ import Resolution, { NamingServiceName } from '@unstoppabledomains/resolution';
 import { isEvmAddress } from '../../helpers/address';
 import { isSilencedError } from '../../helpers/errors';
 import { withoutEmptyValues } from '../../helpers/object';
-import { batchContractCalls, provider as getProvider } from '../../helpers/provider';
+import { batchContractCalls, getProvider } from '../../helpers/provider';
 import { Address, Handle } from '../../helpers/types';
 
 export const NAME = 'Unstoppable Domains';

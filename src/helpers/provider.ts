@@ -3,22 +3,12 @@ import snapshot from '@snapshot-labs/snapshot.js';
 import { Address } from './types';
 
 const broviderUrl = process.env.BROVIDER_URL || 'https://rpc.snapshot.org';
-const providers: Record<string, StaticJsonRpcProvider> = {};
 
-export function provider(
-  network: string,
-  providerOptions: { broviderUrl?: string; timeout?: number } = { broviderUrl, timeout: 5e3 }
+export function getProvider(
+  network: string | number,
+  providerOptions: { broviderUrl?: string; timeout?: number } = {}
 ) {
-  return snapshot.utils.getProvider(network, providerOptions);
-}
-
-export function getProvider(network: number): StaticJsonRpcProvider {
-  if (!providers[`_${network}`])
-    providers[`_${network}`] = new StaticJsonRpcProvider(
-      { url: `https://rpc.snapshot.org/${network}`, timeout: 20e3, allowGzip: true },
-      network
-    );
-  return providers[`_${network}`];
+  return snapshot.utils.getProvider(network, { broviderUrl, timeout: 5e3, ...providerOptions });
 }
 
 /**
