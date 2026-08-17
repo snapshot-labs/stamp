@@ -8,7 +8,7 @@ class ExpiringCache implements DNSConnectCacheProvider {
   private entries = new Map<string, { value: string; expiresAt: number }>();
 
   async set(key: string, value: string, ttl: number): Promise<void> {
-    this.entries.set(key, { value, expiresAt: Date.now() + ttl * 1000 });
+    this.entries.set(key, { value, expiresAt: Date.now() + ttl * 1e3 });
   }
 
   async get(key: string): Promise<string | undefined> {
