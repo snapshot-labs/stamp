@@ -1,6 +1,7 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import axios from 'axios';
-import { resolveNames } from '../../../../src/resolvers/address/ens';
+import { lookupAddresses, resolveNames } from '../../../../src/resolvers/address/ens';
+import * as universalResolver from '../../../../src/resolvers/address/universalResolver';
 
 jest.mock('@snapshot-labs/snapshot-sentry', () => ({
   capture: jest.fn()
@@ -25,6 +26,22 @@ const mockedAxios = axios as unknown as jest.Mock;
 
 const HANDLE = 'test.eth';
 const ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
+
+describe('resolvers/address/ens - lookupAddresses', () => {
+  it('surfaces a transport failure when no address resolves', async () => {
+    const error = new Error('transport failed');
+    const reverseLookup = jest.spyOn(universalResolver, 'reverseLookup').mockResolvedValue({
+      values: {},
+      errors: [error]
+    });
+
+    try {
+      await expect(lookupAddresses([ADDRESS])).rejects.toBe(error);
+    } finally {
+      reverseLookup.mockRestore();
+    }
+  });
+});
 
 describe('resolvers/address/ens - resolveNames', () => {
   it('reports the subgraph failure instead of a TypeError naming our own field', async () => {
