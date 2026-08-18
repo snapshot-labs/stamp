@@ -20,13 +20,11 @@ const IMAGE_URL = 'https://example.com/avatar.png';
 const ENS_SUBGRAPH = '[subgrapher.snapshot.org]';
 
 function response(body: any, status = 200) {
-  return {
-    ok: status >= 200 && status < 300,
+  return new Response(typeof body === 'string' ? body : JSON.stringify(body), {
     status,
     statusText: status === 200 ? 'OK' : 'Upstream Error',
-    json: async () => body,
-    text: async () => (typeof body === 'string' ? body : JSON.stringify(body))
-  };
+    headers: { 'Content-Type': 'application/json' }
+  });
 }
 
 function respondWith(body: any, status = 200) {
