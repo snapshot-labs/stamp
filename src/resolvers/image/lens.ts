@@ -27,7 +27,7 @@ export default async function resolve(domainOrAddress: string) {
   if (isAddress(domainOrAddress)) {
     request = { address: getAddress(domainOrAddress) };
   } else if (domainOrAddress.endsWith(LENS_EXTENSION)) {
-    const localName = domainOrAddress.split(LENS_EXTENSION)[0];
+    const localName = domainOrAddress.slice(0, -LENS_EXTENSION.length);
     if (!localName || Buffer.byteLength(localName) > LOCAL_NAME_MAX_BYTES) return false;
 
     request = { username: { localName } };

@@ -234,6 +234,16 @@ describe('resolvers answer false rather than throwing when there is no data', ()
       await expect(lens(`${'a'.repeat(254)}.lens`)).resolves.toBe(false);
       expect(mockedAxios).toHaveBeenCalledTimes(1);
     });
+
+    it('queries the text before the last .lens, not the text before the first one', async () => {
+      mockedAxios.mockResolvedValue({ status: 200, data: { data: { account: null } } });
+
+      await lens('a.lensb.lens');
+
+      expect(mockedAxios.mock.calls[0][0].data.variables.request.username.localName).toBe(
+        'a.lensb'
+      );
+    });
   });
 
   describe('coingecko', () => {
