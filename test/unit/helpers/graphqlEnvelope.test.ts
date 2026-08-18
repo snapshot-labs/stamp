@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { fetchHttpImage } from '../../../src/helpers/http';
 import { lookupAddresses as lensLookupAddresses } from '../../../src/resolvers/address/lens';
 import lensResolve from '../../../src/resolvers/image/lens';
@@ -6,32 +5,41 @@ import { resolveSpaceAvatar, resolveUserAvatar } from '../../../src/resolvers/im
 import { resolveAvatar as resolveSxSpaceAvatar } from '../../../src/resolvers/image/space-sx';
 import ensLookupDomains from '../../../src/resolvers/lookupDomains/ens';
 
-jest.mock('axios', () => {
-  const mock: any = jest.fn();
-  mock.get = jest.fn();
-  mock.post = jest.fn();
-  return { __esModule: true, default: mock };
-});
-
 jest.mock('../../../src/helpers/http', () => ({
   ...jest.requireActual('../../../src/helpers/http'),
   fetchHttpImage: jest.fn()
 }));
 
-const mockedAxios = axios as unknown as jest.Mock;
+const originalFetch = global.fetch;
+const mockedFetch = jest.fn();
+global.fetch = mockedFetch as unknown as typeof global.fetch;
 
 const ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
 const IMAGE_URL = 'https://example.com/avatar.png';
 
 const ENS_SUBGRAPH = '[subgrapher.snapshot.org]';
 
+function response(body: any, status = 200) {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    statusText: status === 200 ? 'OK' : 'Upstream Error',
+    json: async () => body,
+    text: async () => (typeof body === 'string' ? body : JSON.stringify(body))
+  };
+}
+
 function respondWith(body: any, status = 200) {
-  mockedAxios.mockResolvedValue({ status, data: body });
+  mockedFetch.mockResolvedValue(response(body, status));
 }
 
 function upstreamFailure(message: string, data: any = null) {
   return { errors: [{ message }], data };
 }
+
+afterAll(() => {
+  global.fetch = originalFetch;
+});
 
 describe('graphQlCall callers surface an envelope failure', () => {
   describe('src/resolvers/address/lens.ts - accountsBulk', () => {
@@ -66,9 +74,9 @@ describe('graphQlCall callers surface an envelope failure', () => {
     };
 
     function answerWith(second: any) {
-      mockedAxios
-        .mockResolvedValueOnce({ status: 200, data: hashedDomain })
-        .mockResolvedValueOnce({ status: 200, data: second });
+      mockedFetch
+        .mockResolvedValueOnce(response(hashedDomain))
+        .mockResolvedValueOnce(response(second));
     }
 
     it('decodes the label when the subgraph answers', async () => {

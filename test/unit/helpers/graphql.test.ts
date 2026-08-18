@@ -1,21 +1,21 @@
-import axios from 'axios';
 import { isSilencedError } from '../../../src/helpers/errors';
 import { graphQlCall } from '../../../src/helpers/graphql';
 
-jest.mock('axios', () => {
-  const mock: any = jest.fn();
-  mock.get = jest.fn();
-  mock.post = jest.fn();
-  return { __esModule: true, default: mock };
-});
-
-const mockedAxios = axios as unknown as jest.Mock;
+const originalFetch = global.fetch;
+const mockedFetch = jest.fn();
+global.fetch = mockedFetch as unknown as typeof global.fetch;
 
 const URL = 'https://hub.snapshot.org/graphql';
 const QUERY = 'query users { users { id } }';
 
 function respondWith(body: any, status = 200) {
-  mockedAxios.mockResolvedValue({ status, data: body });
+  mockedFetch.mockResolvedValue({
+    ok: status >= 200 && status < 300,
+    status,
+    statusText: status === 200 ? 'OK' : 'Upstream Error',
+    json: async () => body,
+    text: async () => (typeof body === 'string' ? body : JSON.stringify(body))
+  });
 }
 
 async function errorFrom(body: any, status = 200) {
@@ -29,6 +29,10 @@ async function errorFrom(body: any, status = 200) {
 
   throw new Error('graphQlCall resolved, expected it to throw');
 }
+
+afterAll(() => {
+  global.fetch = originalFetch;
+});
 
 describe('graphQlCall', () => {
   describe('when the envelope is intact', () => {
@@ -100,11 +104,12 @@ describe('graphQlCall', () => {
   });
 
   describe('the thrown error', () => {
-    it('carries the http status in both places isSilencedError reads', async () => {
-      const err = await errorFrom({ errors: [{ message: 'boom' }], data: null }, 429);
+    it('carries the HTTP status and upstream body', async () => {
+      const body = { errors: [{ message: 'boom' }], data: null };
+      const err = await errorFrom(body, 429);
 
       expect(err.status).toBe(429);
-      expect(err.response.status).toBe(429);
+      expect(err.response).toEqual({ status: 429, data: JSON.stringify(body) });
     });
 
     it.each([429, 504])('is silenced on a %i', async status => {
