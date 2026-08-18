@@ -69,7 +69,7 @@ const ccipError = (reason: string) =>
     reason
   });
 
-const CCIP_NO_RECORD = ccipError('response not found during CCIP fetch: unknown error');
+const CCIP_GATEWAY_4XX = ccipError('response not found during CCIP fetch: unknown error');
 const CCIP_GATEWAY_DOWN = ccipError('error encountered during CCIP fetch: "unknown error"');
 const DNS_LABEL_TOO_LONG = new Error('invalid DNS encoded entry; length exceeds 63 bytes');
 
@@ -185,8 +185,8 @@ describe('resolvers answer false rather than throwing when there is no data', ()
       expect(mockedFetchHttpImage).toHaveBeenCalledWith('https://example.com/avatar.png');
     });
 
-    it('reads a record an offchain resolver will not serve as no record', async () => {
-      ensProviderWhoseTextRead(CCIP_NO_RECORD);
+    it('reads any 4xx from the offchain gateway as no record', async () => {
+      ensProviderWhoseTextRead(CCIP_GATEWAY_4XX);
       mockedFetchHttpImage.mockResolvedValue(Buffer.from('an image'));
 
       await expect(ens('greg.cb.id')).resolves.toEqual(Buffer.from('an image'));
