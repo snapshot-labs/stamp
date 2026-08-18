@@ -9,13 +9,16 @@ const URL = 'https://hub.snapshot.org/graphql';
 const QUERY = 'query users { users { id } }';
 
 function respondWith(body: any, status = 200) {
-  mockedFetch.mockResolvedValue({
-    ok: status >= 200 && status < 300,
-    status,
-    statusText: status === 200 ? 'OK' : 'Upstream Error',
-    json: async () => body,
-    text: async () => (typeof body === 'string' ? body : JSON.stringify(body))
-  });
+  mockedFetch.mockResolvedValue(
+    new Response(
+      body === undefined ? null : typeof body === 'string' ? body : JSON.stringify(body),
+      {
+        status,
+        statusText: status === 200 ? 'OK' : 'Upstream Error',
+        headers: { 'Content-Type': 'application/json' }
+      }
+    )
+  );
 }
 
 async function errorFrom(body: any, status = 200) {
@@ -80,12 +83,24 @@ describe('graphQlCall', () => {
     it.each<[string, any]>([
       ['no data key at all', { errors: [{ message: 'boom' }] }],
       ['a null data envelope', { data: null }],
-      ['an empty body', {}],
-      ['a body that is not a GraphQL response', 'Bad Gateway']
+      ['an empty body', {}]
     ])('throws on %s', async (_, body) => {
       const err = await errorFrom(body);
 
       expect(err.message).toMatch(/^\[hub\.snapshot\.org\] /);
+    });
+
+    it.each([
+      ['an empty 204 response', undefined, 204],
+      ['a malformed 200 response', 'Bad Gateway', 200]
+    ])('attributes %s to its upstream', async (_, body, status) => {
+      const err = await errorFrom(body, status);
+
+      expect(err).toMatchObject({
+        message: '[hub.snapshot.org] GraphQL response has no data envelope',
+        status,
+        response: { status }
+      });
     });
 
     it('names the failure when there is no upstream message to quote', async () => {

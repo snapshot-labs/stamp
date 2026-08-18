@@ -1,7 +1,6 @@
 import { isStarkDomain } from '../../helpers/address';
-import { withDeadline } from '../../helpers/deadline';
 import { httpError } from '../../helpers/errors';
-import { fetchHttpImage, getUrl } from '../../helpers/http';
+import { fetchHttpImage, fetchHttpResponse, getUrl } from '../../helpers/http';
 import { getProvider } from '../../helpers/provider';
 
 const DEFAULT_IMG_URL = 'https://starknet.id/api/identicons/0';
@@ -28,18 +27,15 @@ async function getImage(domainOrAddress: string): Promise<string | null> {
 }
 
 async function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: string }> {
-  return withDeadline(async signal => {
-    const response = await fetch(url, { signal });
+  const { response, body: data } = await fetchHttpResponse(url);
 
-    if (!response.ok) throw httpError(new URL(url).host, response.status, response.statusText);
+  if (!response.ok) throw httpError(new URL(url).host, response.status, response.statusText);
 
-    const contentType: string = response.headers.get('content-type') || '';
-    const data = Buffer.from(await response.arrayBuffer());
-    if (contentType.includes('application/json')) {
-      return JSON.parse(data.toString('utf-8'));
-    }
-    return data;
-  }, 5e3);
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    return JSON.parse(data.toString('utf-8'));
+  }
+  return data;
 }
 
 export default async function resolve(domainOrAddress: string) {
