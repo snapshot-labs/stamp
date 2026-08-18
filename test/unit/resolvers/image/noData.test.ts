@@ -36,6 +36,11 @@ function ensProviderWhoseTextRead(rejectsWith: any) {
   mockedGetProvider.mockReturnValue({ getResolver: jest.fn().mockResolvedValue({ getText }) });
 }
 
+function ensProviderServing(url: string) {
+  const getText = jest.fn().mockResolvedValue(url);
+  mockedGetProvider.mockReturnValue({ getResolver: jest.fn().mockResolvedValue({ getText }) });
+}
+
 // coingecko reads its key at module load and answers false without one, so the
 // module has to be loaded with the key already set to reach the response at all.
 function loadCoingecko() {
@@ -66,6 +71,7 @@ const ccipError = (reason: string) =>
 
 const CCIP_NO_RECORD = ccipError('response not found during CCIP fetch: unknown error');
 const CCIP_GATEWAY_DOWN = ccipError('error encountered during CCIP fetch: "unknown error"');
+const DNS_LABEL_TOO_LONG = new Error('invalid DNS encoded entry; length exceeds 63 bytes');
 
 describe('resolvers answer false rather than throwing when there is no data', () => {
   describe('starknet', () => {
@@ -164,9 +170,19 @@ describe('resolvers answer false rather than throwing when there is no data', ()
       expect(mockedGetProvider).not.toHaveBeenCalled();
     });
 
-    it('answers false for a label dnsEncode cannot take, without asking', async () => {
+    it('answers false for a label the wildcard path cannot dns-encode', async () => {
+      ensProviderWhoseTextRead(DNS_LABEL_TOO_LONG);
+
       await expect(ens(`${'a'.repeat(64)}.cb.id`)).resolves.toBe(false);
-      expect(mockedGetProvider).not.toHaveBeenCalled();
+      expect(mockedFetchHttpImage).not.toHaveBeenCalled();
+    });
+
+    it('still asks for a long label, which a resolver of its own never dns-encodes', async () => {
+      ensProviderServing('https://example.com/avatar.png');
+      mockedFetchHttpImage.mockResolvedValue(Buffer.from('an image'));
+
+      await expect(ens(`${'a'.repeat(64)}.eth`)).resolves.toEqual(Buffer.from('an image'));
+      expect(mockedFetchHttpImage).toHaveBeenCalledWith('https://example.com/avatar.png');
     });
 
     it('reads a record an offchain resolver will not serve as no record', async () => {
