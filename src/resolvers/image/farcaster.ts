@@ -26,7 +26,6 @@ function normalizeAddress(address: Address): Address | null {
   }
 }
 
-// The body read stays inside the deadline; moving it out leaves a stalled body unbounded.
 async function fetchAddressImageUrl(normalizedAddress: string): Promise<string | null> {
   return withDeadline(async signal => {
     const response = await fetch(`${NEYNAR_API_URL}?addresses=${normalizedAddress}`, {

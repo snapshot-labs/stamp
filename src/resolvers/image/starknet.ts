@@ -1,7 +1,7 @@
 import { isStarkDomain, isStarknetFelt } from '../../helpers/address';
 import { withDeadline } from '../../helpers/deadline';
-import { fetchHttpImage, getUrl } from '../../helpers/http';
 import { httpError } from '../../helpers/errors';
+import { fetchHttpImage, getUrl } from '../../helpers/http';
 import { getProvider } from '../../helpers/provider';
 
 const DEFAULT_IMG_URL = 'https://starknet.id/api/identicons/0';

@@ -38,8 +38,8 @@ export async function graphQlCall<T = any>(
     });
 
     if (!response.ok) {
-      const error: any = httpError(
-        new URL(url).host,
+      const error: any = graphQlEnvelopeError(
+        url,
         response.status,
         `status code ${response.status}: ${response.statusText}`
       );
