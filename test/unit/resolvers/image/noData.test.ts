@@ -15,10 +15,10 @@ jest.mock('../../../../src/helpers/http', () => ({
 
 const originalFetch = global.fetch;
 const mockedFetch = jest.fn();
+global.fetch = mockedFetch as unknown as typeof global.fetch;
 
 beforeEach(() => {
   mockedFetch.mockReset();
-  global.fetch = mockedFetch as unknown as typeof global.fetch;
 });
 
 afterAll(() => {

@@ -1,5 +1,5 @@
-import { withDeadline } from './deadline';
 import { httpError } from './errors';
+import { fetchHttpResponse } from './http';
 import { GraphQlResponse } from './types';
 
 function graphQlEnvelopeError(url: string, status: number, message: string) {
@@ -13,6 +13,14 @@ function graphQlEnvelopeError(url: string, status: number, message: string) {
   return httpError(source, status, message);
 }
 
+function parseGraphQlResponse(body: string): any {
+  try {
+    return JSON.parse(body);
+  } catch {
+    return body;
+  }
+}
+
 export async function graphQlCall<T = any>(
   url: string,
   query: string,
@@ -22,42 +30,38 @@ export async function graphQlCall<T = any>(
   const data: { query: string; variables?: Record<string, any> } = { query };
   if (variables) data.variables = variables;
 
-  return withDeadline(async signal => {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...Object.fromEntries(
-          Object.entries(options.headers).filter(
-            ([, value]) => value !== undefined && value !== null
-          )
-        )
-      },
-      signal,
-      body: JSON.stringify(data)
-    });
+  const { response, body: responseBody } = await fetchHttpResponse(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...Object.fromEntries(
+        Object.entries(options.headers).filter(([, value]) => value !== undefined && value !== null)
+      )
+    },
+    body: JSON.stringify(data)
+  });
 
-    if (!response.ok) {
-      const error: any = graphQlEnvelopeError(
-        url,
-        response.status,
-        `status code ${response.status}: ${response.statusText}`
-      );
-      error.response.data = await response.text().catch(() => undefined);
-      throw error;
-    }
+  if (!response.ok) {
+    const error: any = graphQlEnvelopeError(
+      url,
+      response.status,
+      `status code ${response.status}: ${response.statusText}`
+    );
+    error.response.data = responseBody.toString();
+    throw error;
+  }
 
-    const body = (await response.json()) as GraphQlResponse<T>;
-    if (body?.errors?.length) {
-      throw graphQlEnvelopeError(
-        url,
-        response.status,
-        body.errors[0]?.message || 'GraphQL request failed'
-      );
-    }
-    if (!body?.data) {
-      throw graphQlEnvelopeError(url, response.status, 'GraphQL response has no data envelope');
-    }
-    return { data: body, status: response.status };
-  }, 5e3);
+  const body = parseGraphQlResponse(responseBody.toString());
+
+  if (body?.errors?.length) {
+    throw graphQlEnvelopeError(
+      url,
+      response.status,
+      body.errors[0]?.message || 'GraphQL request failed'
+    );
+  }
+  if (!body?.data) {
+    throw graphQlEnvelopeError(url, response.status, 'GraphQL response has no data envelope');
+  }
+  return { data: body, status: response.status };
 }

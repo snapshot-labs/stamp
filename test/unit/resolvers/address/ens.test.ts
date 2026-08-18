@@ -21,11 +21,12 @@ const HANDLE = 'test.eth';
 const ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
 
 function respondWith(body: any) {
-  mockedFetch.mockResolvedValue({
-    ok: true,
-    status: 200,
-    json: async () => body
-  });
+  mockedFetch.mockResolvedValue(
+    new Response(JSON.stringify(body), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  );
 }
 
 afterAll(() => {
