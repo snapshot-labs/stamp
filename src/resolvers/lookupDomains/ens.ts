@@ -12,33 +12,57 @@ type Domain = {
   expiryDate?: number;
 };
 
-async function fetchDomainData(domain: Domain, chainId: string): Promise<Domain> {
-  const hash = domain.name.match(/\[(.*?)\]/)?.[1];
+type Registration = {
+  id: string;
+  domain?: {
+    labelName?: string;
+  };
+};
 
-  if (!hash) return domain;
+function getLabelHash(domain: Domain) {
+  return domain.name.match(/\[(.*?)\]/)?.[1];
+}
+
+async function fetchDomainData(domains: Domain[], chainId: string): Promise<Domain[]> {
+  const hashes = [
+    ...new Set(domains.map(getLabelHash).filter((hash): hash is string => Boolean(hash)))
+  ];
+
+  if (!hashes.length) return domains;
 
   const {
     data: { data }
-  } = await graphQlCall(
+  } = await graphQlCall<{ registrations: Registration[] }>(
     constants.ensSubgraph[chainId],
-    `query Registration($id: String!) {
-      registration(id: $id) {
+    `query Registrations($ids: [String!]!, $first: Int!) {
+      registrations(first: $first, where: { id_in: $ids }) {
+        id
         domain {
-          name
           labelName
         }
       }
     }`,
-    { id: `0x${hash}` }
+    {
+      ids: hashes.map(hash => `0x${hash}`),
+      first: hashes.length
+    }
   );
-  // Not `data?.`: swallowing a missing envelope here serves the raw `[hash]`
-  // label as though the subgraph had simply not indexed it.
-  const labelName = data.registration?.domain?.labelName;
+  const labelNames = new Map(
+    (data.registrations || []).map(registration => [
+      registration.id,
+      registration.domain?.labelName
+    ])
+  );
 
-  return {
-    ...domain,
-    name: labelName ? domain.name.replace(`[${hash}]`, labelName) : domain.name
-  };
+  return domains.map(domain => {
+    const hash = getLabelHash(domain);
+    const labelName = hash ? labelNames.get(`0x${hash}`) : undefined;
+
+    return {
+      ...domain,
+      name: labelName ? domain.name.replace(`[${hash}]`, labelName) : domain.name
+    };
+  });
 }
 
 export default async function lookupDomains(
@@ -78,9 +102,5 @@ export default async function lookupDomains(
       !domain.name.endsWith('.addr.reverse')
   );
 
-  return (
-    (await Promise.all(domains.map(domain => fetchDomainData(domain, chainId)))).map(
-      domain => domain.name
-    ) || []
-  );
+  return (await fetchDomainData(domains, chainId)).map(domain => domain.name);
 }

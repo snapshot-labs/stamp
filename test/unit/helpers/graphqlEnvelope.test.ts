@@ -72,13 +72,15 @@ describe('graphQlCall callers surface an envelope failure', () => {
     }
 
     it('decodes the label when the subgraph answers', async () => {
-      answerWith({ data: { registration: { domain: { labelName: 'vitalik' } } } });
+      answerWith({
+        data: { registrations: [{ id: '0x7f3a', domain: { labelName: 'vitalik' } }] }
+      });
 
       await expect(ensLookupDomains(ADDRESS)).resolves.toEqual(['vitalik.eth']);
     });
 
     it('keeps the hashed name when the label is genuinely unknown', async () => {
-      answerWith({ data: { registration: null } });
+      answerWith({ data: { registrations: [] } });
 
       await expect(ensLookupDomains(ADDRESS)).resolves.toEqual(['[7f3a].eth']);
     });
