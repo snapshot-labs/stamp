@@ -115,7 +115,7 @@ describe('address resolvers', () => {
 
       it('does not cache an address when every ENS lookup rejects', async () => {
         const failedAddress = '0x0000000000000000000000000000000000000001';
-        const error = Object.assign(new Error('aborted'), { name: 'AbortError' });
+        const error = new Error('resolver failed');
         const reverseLookup = jest.spyOn(universalResolver, 'reverseLookup').mockResolvedValue({
           values: {},
           errors: [{ address: failedAddress, error }]

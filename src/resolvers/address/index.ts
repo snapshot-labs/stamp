@@ -85,7 +85,7 @@ async function _call(fnName: string, input: string[], maxInputLength: number) {
         );
 
         const merged = Object.fromEntries(
-          _input.map(item => [item, results.map(r => r[item]).filter(i => !!i)[0] || ''])
+          _input.map(item => [item, results.map(result => result[item]).find(Boolean) || ''])
         );
         const nonCacheable = new Set(results.flatMap(result => result[NON_CACHEABLE] || []));
 
