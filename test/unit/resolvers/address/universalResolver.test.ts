@@ -2,6 +2,7 @@ import {
   Address,
   decodeFunctionData,
   encodeErrorResult,
+  encodeFunctionData,
   encodeFunctionResult,
   Hex,
   multicall3Abi,
@@ -10,13 +11,21 @@ import {
 } from 'viem';
 import * as deadline from '../../../../src/helpers/deadline';
 import { MAX_LOOKUP_ADDRESSES } from '../../../../src/resolvers/address';
-import { BatchError, reverseLookup } from '../../../../src/resolvers/address/universalResolver';
+import {
+  BatchError,
+  isSilencedReverseError,
+  reverseLookup
+} from '../../../../src/resolvers/address/universalResolver';
 
 const reverseAbi = parseAbi([
   'function reverseWithGateways(bytes reverseName, uint256 coinType, string[] gateways) view returns (string resolvedName, address resolver, address reverseResolver)'
 ]);
 const httpErrorAbi = parseAbi(['error HttpError(uint16 status, string message)']);
 const resolverErrorAbi = parseAbi(['error ResolverError(bytes errorData)']);
+const solidityErrorAbi = parseAbi(['error Error(string message)']);
+const batchGatewayAbi = parseAbi([
+  'function query((address sender, string[] urls, bytes data)[] queries) view returns (bool[] failures, bytes[] responses)'
+]);
 const UNIVERSAL_RESOLVER = '0xeEeEEEeE14D718C2B47D9923Deab1335E144EeEe' as Address;
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as Address;
 const ADDRESSES = Array.from(
@@ -28,11 +37,39 @@ const OFFCHAIN_LOOKUP = encodeErrorResult({
   errorName: 'OffchainLookup',
   args: [UNIVERSAL_RESOLVER, ['https://gateway.test/{data}'], '0x1234', '0x12345678', '0x']
 });
+const BATCH_QUERY = encodeFunctionData({
+  abi: batchGatewayAbi,
+  functionName: 'query',
+  args: [
+    [
+      {
+        sender: UNIVERSAL_RESOLVER,
+        urls: ['https://gateway.test/{data}'],
+        data: '0x1234'
+      }
+    ]
+  ]
+});
+const BATCH_OFFCHAIN_LOOKUP = encodeErrorResult({
+  abi: [offchainLookupAbiItem],
+  errorName: 'OffchainLookup',
+  args: [UNIVERSAL_RESOLVER, ['x-batch-gateway:true'], BATCH_QUERY, '0x12345678', '0x']
+});
+const ABORTED_ERROR = encodeErrorResult({
+  abi: solidityErrorAbi,
+  errorName: 'Error',
+  args: ['This operation was aborted']
+});
 
 const HTTP_ERROR = encodeErrorResult({
   abi: httpErrorAbi,
   errorName: 'HttpError',
   args: [503, 'gateway unavailable']
+});
+const BATCH_HTTP_ERROR = encodeErrorResult({
+  abi: httpErrorAbi,
+  errorName: 'HttpError',
+  args: [503, 'HTTP request failed.']
 });
 
 const RESOLVER_ERROR = encodeErrorResult({
@@ -214,7 +251,36 @@ describe('Universal Resolver reverse lookup', () => {
     expect(errors[0].address).toBe(address);
     expect(errors[0].error).toBeInstanceOf(Error);
     expect((errors[0].error as Error).message).toContain('gateway unavailable');
+    expect(isSilencedReverseError(errors[0].error)).toBe(false);
     expect(transport).toHaveBeenCalledTimes(1);
+  });
+
+  it('silences a transient HTTP failure from the local batch gateway', async () => {
+    const address = ADDRESSES[0];
+    let callbackData = '';
+    let rpcCalls = 0;
+    jest.spyOn(global, 'fetch').mockImplementation(async (input, init) => {
+      if (String(input).startsWith('https://gateway.test/')) {
+        return new Response('unavailable', { status: 503 });
+      }
+
+      const { id, calls } = decodeBatch(init);
+      rpcCalls += 1;
+      if (rpcCalls === 1) {
+        return rpcResponse(id, [{ success: false, returnData: BATCH_OFFCHAIN_LOOKUP }]);
+      }
+
+      callbackData = calls[0].callData;
+      return rpcResponse(id, [{ success: false, returnData: BATCH_HTTP_ERROR }]);
+    });
+
+    const { values, errors } = await reverseLookup([address]);
+
+    expect(values).toEqual({});
+    expect(errors[0].address).toBe(address);
+    expect(isSilencedReverseError(errors[0].error)).toBe(true);
+    expect(callbackData).toContain(BATCH_HTTP_ERROR.slice(2));
+    expect(rpcCalls).toBe(2);
   });
 
   it('returns a rejected offchain gateway request as an error', async () => {
@@ -234,6 +300,7 @@ describe('Universal Resolver reverse lookup', () => {
   it('bounds a stalled gateway while retaining a successful sibling', async () => {
     const addresses = ADDRESSES.slice(0, 2);
     const batchSizes: number[] = [];
+    let callbackData = '';
     const actualWithDeadline = deadline.withDeadline;
     jest.spyOn(deadline, 'withDeadline').mockImplementation(fn => actualWithDeadline(fn, 5));
     jest.spyOn(global, 'fetch').mockImplementation(async (input, init) => {
@@ -247,19 +314,31 @@ describe('Universal Resolver reverse lookup', () => {
 
       const { id, calls } = decodeBatch(init);
       batchSizes.push(calls.length);
-      return rpcResponse(id, [
-        { success: false, returnData: OFFCHAIN_LOOKUP },
-        { success: true, returnData: encodeName('name1.eth') }
-      ]);
+      if (batchSizes.length === 1) {
+        return rpcResponse(id, [
+          { success: false, returnData: BATCH_OFFCHAIN_LOOKUP },
+          { success: true, returnData: encodeName('name1.eth') }
+        ]);
+      }
+
+      callbackData = calls[0].callData;
+      return rpcResponse(id, [{ success: false, returnData: ABORTED_ERROR }]);
     });
 
     const { values, errors } = await reverseLookup(addresses);
-    const root = (errors[0].error as any).walk();
+    const reverted = (errors[0].error as any).walk(
+      cause => cause instanceof Error && cause.name === 'ContractFunctionRevertedError'
+    );
 
     expect(values).toEqual({ [addresses[1]]: 'name1.eth' });
     expect(errors[0].address).toBe(addresses[0]);
-    expect(root.name).toBe('AbortError');
-    expect(batchSizes).toEqual([addresses.length]);
+    expect(reverted.data).toMatchObject({
+      errorName: 'Error',
+      args: ['This operation was aborted']
+    });
+    expect(isSilencedReverseError(errors[0].error)).toBe(true);
+    expect(callbackData).toContain(ABORTED_ERROR.slice(2));
+    expect(batchSizes).toEqual([addresses.length, 1]);
   });
 
   it('keeps a successful sibling when an offchain gateway request rejects', async () => {
