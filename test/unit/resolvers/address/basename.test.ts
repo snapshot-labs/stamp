@@ -4,8 +4,10 @@ import { StaticJsonRpcProvider } from '@ethersproject/providers';
 import { lookupAddresses, resolveNames } from '../../../../src/resolvers/address/basename';
 
 const ADDRESS_WITH_NAME = '0x2211d1D0020DAEA8039E46Cf1367962070d77DA9';
+const SECOND_ADDRESS_WITH_NAME = '0x5b76f5B8fc9D700624F78208132f91AD4e61a1f0';
 const ADDRESS_WITHOUT_NAME = '0x0C67A201b93cf58D4a5e8D4E970093f0FB4bb0D1';
 const HANDLE = 'jesse.base.eth';
+const SECOND_HANDLE = 'barmstrong.base.eth';
 const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000';
 const COIN_TYPE = '80002105';
 const RESOLVER_ABI = [
@@ -25,11 +27,21 @@ function resolverResponse(data: string): string {
   const transaction = resolverInterface.parseTransaction({ data });
 
   if (transaction.name === 'name') {
-    const name = transaction.args.node === reverseNode(ADDRESS_WITH_NAME) ? HANDLE : '';
+    const name =
+      transaction.args.node === reverseNode(ADDRESS_WITH_NAME)
+        ? HANDLE
+        : transaction.args.node === reverseNode(SECOND_ADDRESS_WITH_NAME)
+          ? SECOND_HANDLE
+          : '';
     return resolverInterface.encodeFunctionResult('name', [name]);
   }
 
-  const address = transaction.args.node === namehash(HANDLE) ? ADDRESS_WITH_NAME : EMPTY_ADDRESS;
+  const address =
+    transaction.args.node === namehash(HANDLE)
+      ? ADDRESS_WITH_NAME
+      : transaction.args.node === namehash(SECOND_HANDLE)
+        ? SECOND_ADDRESS_WITH_NAME
+        : EMPTY_ADDRESS;
   return resolverInterface.encodeFunctionResult('addr', [address]);
 }
 
@@ -62,15 +74,19 @@ describe('resolvers/address/basename batching', () => {
   });
 
   it('looks up multiple addresses in one RPC call', async () => {
-    await expect(lookupAddresses([ADDRESS_WITH_NAME, ADDRESS_WITHOUT_NAME])).resolves.toEqual({
-      [ADDRESS_WITH_NAME]: HANDLE
+    await expect(
+      lookupAddresses([ADDRESS_WITH_NAME, SECOND_ADDRESS_WITH_NAME, ADDRESS_WITHOUT_NAME])
+    ).resolves.toEqual({
+      [ADDRESS_WITH_NAME]: HANDLE,
+      [SECOND_ADDRESS_WITH_NAME]: SECOND_HANDLE
     });
     expect(send).toHaveBeenCalledTimes(1);
   });
 
   it('resolves multiple names in one RPC call', async () => {
-    await expect(resolveNames([HANDLE, 'unknown.base.eth'])).resolves.toEqual({
-      [HANDLE]: ADDRESS_WITH_NAME
+    await expect(resolveNames([HANDLE, SECOND_HANDLE, 'unknown.base.eth'])).resolves.toEqual({
+      [HANDLE]: ADDRESS_WITH_NAME,
+      [SECOND_HANDLE]: SECOND_ADDRESS_WITH_NAME
     });
     expect(send).toHaveBeenCalledTimes(1);
   });
