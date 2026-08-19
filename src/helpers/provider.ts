@@ -2,10 +2,20 @@ import { StaticJsonRpcProvider } from '@ethersproject/providers';
 import snapshot from '@snapshot-labs/snapshot.js';
 import { Address } from './types';
 
-const broviderUrl = process.env.BROVIDER_URL || 'https://rpc.snapshot.org';
+const DEFAULT_PROVIDER_TIMEOUT = 5e3;
 
-export function getProvider(network: string | number) {
-  return snapshot.utils.getProvider(network, { broviderUrl, timeout: 5e3 });
+export function getProviderOptions(timeout = DEFAULT_PROVIDER_TIMEOUT): {
+  broviderUrl: string;
+  timeout: number;
+} {
+  return {
+    broviderUrl: process.env.BROVIDER_URL || 'https://rpc.snapshot.org',
+    timeout
+  };
+}
+
+export function getProvider(network: string | number, timeout = DEFAULT_PROVIDER_TIMEOUT) {
+  return snapshot.utils.getProvider(network, getProviderOptions(timeout));
 }
 
 /**

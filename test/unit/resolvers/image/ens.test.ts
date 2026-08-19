@@ -1,41 +1,109 @@
-import { getProvider } from '../../../../src/helpers/provider';
+import snapshot from '@snapshot-labs/snapshot.js';
+import { fetchHttpImage } from '../../../../src/helpers/http';
 import resolve from '../../../../src/resolvers/image/ens';
 
-jest.mock('../../../../src/helpers/provider', () => ({ getProvider: jest.fn() }));
+jest.mock('../../../../src/helpers/http', () => ({ fetchHttpImage: jest.fn() }));
 jest.mock('../../../../src/resolvers/address', () => ({ lookupAddresses: jest.fn() }));
 
 const STARKNET_ADDRESS = '0x0779ba6e4e227947acbbdfb978a292c401339027eeb3d768f5d12cd2e818265a';
-const INVALID_NAMES = [STARKNET_ADDRESS, 'nodot', 'a..b'];
+const INVALID_NAMES = [STARKNET_ADDRESS, 'nodot', 'a..b', '../avatar/vitalik.eth'];
 const VALID_NAMES = [
   ['vitalik.eth', 'vitalik.eth'],
   ['foo.xyz', 'foo.xyz'],
   ['ⓥⓘⓣⓐⓛⓘⓚ.eth', 'vitalik.eth']
 ] as const;
 
-const getResolver = jest.fn();
+const mockTransportRequest = jest.fn();
 
-beforeEach(() => {
-  getResolver.mockReset();
-  (getProvider as jest.Mock).mockReturnValue({ getResolver });
+jest.mock('viem', () => {
+  const viem = jest.requireActual('viem');
+  return {
+    ...viem,
+    http: jest.fn(() => viem.custom({ request: mockTransportRequest }))
+  };
 });
 
-describe('ens image resolver', () => {
+const mockedFetchHttpImage = jest.mocked(fetchHttpImage);
+const originalBroviderUrl = process.env.BROVIDER_URL;
+
+beforeEach(() => {
+  process.env.BROVIDER_URL = 'https://custom.rpc';
+  mockTransportRequest.mockReset();
+  mockedFetchHttpImage.mockReset();
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+  if (originalBroviderUrl === undefined) delete process.env.BROVIDER_URL;
+  else process.env.BROVIDER_URL = originalBroviderUrl;
+});
+
+describe('resolvers/image/ens', () => {
   it.each(INVALID_NAMES)('skips the provider for %s', async input => {
+    const getEnsTextRecord = jest.spyOn(snapshot.utils, 'getEnsTextRecord');
+
     await expect(resolve(input)).resolves.toBe(false);
-    expect(getResolver).not.toHaveBeenCalled();
+    expect(getEnsTextRecord).not.toHaveBeenCalled();
+    expect(mockTransportRequest).not.toHaveBeenCalled();
+    expect(mockedFetchHttpImage).not.toHaveBeenCalled();
   });
 
   it.each(VALID_NAMES)('asks the provider for %s', async (input, normalized) => {
-    getResolver.mockResolvedValue(null);
+    const getEnsTextRecord = jest.spyOn(snapshot.utils, 'getEnsTextRecord').mockResolvedValue(null);
+    const image = Buffer.from('avatar');
+    mockedFetchHttpImage.mockResolvedValue(image);
 
-    await expect(resolve(input)).resolves.toBe(false);
-    expect(getResolver).toHaveBeenCalledWith(normalized);
+    await expect(resolve(input)).resolves.toBe(image);
+    expect(getEnsTextRecord).toHaveBeenCalledWith(normalized, 'avatar', '1', {
+      broviderUrl: 'https://custom.rpc',
+      timeout: 5e3
+    });
+  });
+
+  it('keeps a normalized name in one fallback path segment', async () => {
+    const image = Buffer.from('avatar');
+    jest.spyOn(snapshot.utils, 'getEnsTextRecord').mockResolvedValue(null);
+    mockedFetchHttpImage.mockResolvedValue(image);
+
+    await expect(resolve('🌈.eth')).resolves.toBe(image);
+
+    expect(mockedFetchHttpImage).toHaveBeenCalledWith(
+      'https://metadata.ens.domains/mainnet/avatar/%F0%9F%8C%88.eth'
+    );
   });
 
   it('preserves provider failures for the outer failure contract', async () => {
     const error = new Error('provider unavailable');
-    getResolver.mockRejectedValue(error);
+    jest.spyOn(snapshot.utils, 'getEnsTextRecord').mockRejectedValue(error);
 
     await expect(resolve('vitalik.eth')).rejects.toBe(error);
+  });
+
+  it('uses one request for an onchain text lookup and keeps the metadata fallback', async () => {
+    const getEnsTextRecord = jest.spyOn(snapshot.utils, 'getEnsTextRecord');
+    const { encodeAbiParameters } = jest.requireActual('viem');
+    const textResult = encodeAbiParameters([{ type: 'string' }], ['']);
+    const resolverResult = encodeAbiParameters(
+      [{ type: 'bytes' }, { type: 'address' }],
+      [textResult, '0x0000000000000000000000000000000000000001']
+    );
+    mockTransportRequest.mockResolvedValue(resolverResult);
+    const image = Buffer.from('avatar');
+    mockedFetchHttpImage.mockResolvedValueOnce(image);
+
+    await expect(resolve('example.eth')).resolves.toBe(image);
+
+    expect(getEnsTextRecord).toHaveBeenCalledWith('example.eth', 'avatar', '1', {
+      broviderUrl: 'https://custom.rpc',
+      timeout: 5e3
+    });
+    expect(mockTransportRequest).toHaveBeenCalledTimes(1);
+    expect(mockTransportRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ method: 'eth_call' }),
+      undefined
+    );
+    expect(mockedFetchHttpImage).toHaveBeenCalledWith(
+      'https://metadata.ens.domains/mainnet/avatar/example.eth'
+    );
   });
 });
