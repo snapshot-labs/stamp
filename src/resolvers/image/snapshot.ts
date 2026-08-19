@@ -103,10 +103,11 @@ async function getOnchainProperty(
 }
 
 function normalizeUserId(value: string): string | null {
+  const trimmed = value.trim();
   try {
-    return getAddress(value.trim());
+    return getAddress(trimmed);
   } catch {
-    return value.startsWith('0x') && snapshot.utils.isStarknetAddress(value) ? value : null;
+    return trimmed.startsWith('0x') && snapshot.utils.isStarknetAddress(trimmed) ? trimmed : null;
   }
 }
 

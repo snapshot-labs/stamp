@@ -85,9 +85,9 @@ describe('resolvers answer false rather than throwing when there is no data', ()
     );
 
     it.each([
-      ['EVM', ADDRESS.toLowerCase(), ADDRESS],
-      ['Starknet', STARKNET_ADDRESS, STARKNET_ADDRESS],
-      ['unpadded Starknet', UNPADDED_STARKNET_ADDRESS, UNPADDED_STARKNET_ADDRESS]
+      ['EVM', ` ${ADDRESS.toLowerCase()} `, ADDRESS],
+      ['Starknet', ` ${STARKNET_ADDRESS} `, STARKNET_ADDRESS],
+      ['unpadded Starknet', ` ${UNPADDED_STARKNET_ADDRESS} `, UNPADDED_STARKNET_ADDRESS]
     ])('normalizes a valid %s user id', async (_type, id, expected) => {
       mockedAxios.mockResolvedValue(entry({ avatar: null }));
 
