@@ -3,7 +3,7 @@ import { getAddress } from '@ethersproject/address';
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import snapshot from '@snapshot-labs/snapshot.js';
 import constants from '../../constants.json';
-import { isEvmAddress } from '../../helpers/address';
+import { hasOwnedTld, isEvmAddress } from '../../helpers/address';
 import { isSilencedError, isTransportFailure } from '../../helpers/errors';
 import { graphQlCall } from '../../helpers/graphql';
 import { getProvider } from '../../helpers/provider';
@@ -28,7 +28,7 @@ function normalizeAddresses(addresses: Address[]): Address[] {
 }
 
 function normalizeHandles(names: Handle[]): Handle[] {
-  return normalizeEns(names).filter(h => h);
+  return normalizeEns(names).filter(h => h && !hasOwnedTld(h));
 }
 
 export async function lookupAddresses(addresses: Address[]): Promise<Record<Address, Handle>> {
