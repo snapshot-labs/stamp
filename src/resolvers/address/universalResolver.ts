@@ -19,15 +19,35 @@ const EMPTY_REVERSE_ERRORS = new Set([
   'ReverseAddressMismatch',
   'UnsupportedResolverProfile'
 ]);
+const TRANSIENT_GATEWAY_ERRORS = new Set(['This operation was aborted', 'HTTP request failed.']);
 
-function isEmptyReverseError(error: unknown): boolean {
-  if (!(error instanceof BaseError)) return false;
+function getRevertedError(error: unknown): ContractFunctionRevertedError | undefined {
+  if (!(error instanceof BaseError)) return;
 
   const reverted = error.walk(cause => cause instanceof ContractFunctionRevertedError);
+  return reverted instanceof ContractFunctionRevertedError ? reverted : undefined;
+}
+
+function isEmptyReverseError(error: unknown): boolean {
+  return EMPTY_REVERSE_ERRORS.has(getRevertedError(error)?.data?.errorName || '');
+}
+
+export function isSilencedReverseError(error: unknown): boolean {
+  if (!(error instanceof BaseError)) return false;
+  if (!error.walk(cause => cause instanceof Error && cause.name === 'OffchainLookupError')) {
+    return false;
+  }
+
+  const data = getRevertedError(error)?.data;
+  if (data?.errorName === 'HttpError') {
+    const status = data.args?.[0];
+    return typeof status === 'number' && (status === 429 || status >= 500);
+  }
 
   return (
-    reverted instanceof ContractFunctionRevertedError &&
-    EMPTY_REVERSE_ERRORS.has(reverted.data?.errorName || '')
+    data?.errorName === 'Error' &&
+    typeof data.args?.[0] === 'string' &&
+    TRANSIENT_GATEWAY_ERRORS.has(data.args[0])
   );
 }
 const client = createPublicClient({

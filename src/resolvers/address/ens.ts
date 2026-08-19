@@ -2,7 +2,7 @@ import { ens_normalize } from '@adraffy/ens-normalize';
 import { getAddress } from '@ethersproject/address';
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import { markNonCacheable } from './cache';
-import { reverseLookup } from './universalResolver';
+import { isSilencedReverseError, reverseLookup } from './universalResolver';
 import constants from '../../constants.json';
 import { isEvmAddress } from '../../helpers/address';
 import { isSilencedError, isTransportFailure } from '../../helpers/errors';
@@ -32,6 +32,10 @@ function normalizeHandles(names: Handle[]): Handle[] {
   return normalizeEns(names).filter(h => h);
 }
 
+function isSilencedLookupError(error: unknown): boolean {
+  return isSilencedError(error) || isSilencedReverseError(error);
+}
+
 export async function lookupAddresses(addresses: Address[]): Promise<Record<Address, Handle>> {
   const normalizedAddresses = normalizeAddresses(addresses);
 
@@ -40,11 +44,13 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
   const { values, errors } = await reverseLookup(normalizedAddresses);
 
   if (errors.length === normalizedAddresses.length) {
-    throw (errors.find(({ error }) => !isSilencedError(error)) || errors[0]).error;
+    const actionable = errors.find(({ error }) => !isSilencedLookupError(error));
+    if (actionable) throw actionable.error;
+    return markNonCacheable({}, normalizedAddresses);
   }
 
   errors.forEach(({ address, error }) => {
-    if (!isSilencedError(error)) {
+    if (!isSilencedLookupError(error)) {
       capture(error, {
         tags: { provider: NAME },
         contexts: { input: { lookupAddresses: [address] } }

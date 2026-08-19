@@ -1,3 +1,4 @@
+import { capture } from '@snapshot-labs/snapshot-sentry';
 import { RedisStore } from '../../cache';
 import constants from '../../constants.json';
 import { addressResolversCacheHitCount } from '../../helpers/metrics';
@@ -38,7 +39,7 @@ export default async function cache(
     const cacheable = Object.fromEntries(
       Object.entries(results).filter(([key]) => !nonCacheable.has(key))
     );
-    await setCache(cacheable);
+    setCache(cacheable).catch(capture);
 
     return { ...cache, ...results };
   }

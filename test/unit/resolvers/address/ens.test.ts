@@ -48,6 +48,21 @@ describe('resolvers/address/ens - lookupAddresses', () => {
     await expect(lookupAddresses([ADDRESS])).rejects.toBe(error);
   });
 
+  it('keeps a silenced gateway failure retryable when every lookup rejects', async () => {
+    const error = new Error('gateway failed');
+    jest.spyOn(universalResolver, 'isSilencedReverseError').mockReturnValue(true);
+    jest.spyOn(universalResolver, 'reverseLookup').mockResolvedValue({
+      values: {},
+      errors: [{ address: ADDRESS, error }]
+    });
+
+    const result = (await lookupAddresses([ADDRESS])) as CacheResult;
+
+    expect(result).toEqual({});
+    expect(result[NON_CACHEABLE]).toEqual([ADDRESS]);
+    expect(capture).not.toHaveBeenCalled();
+  });
+
   it('keeps a fulfilled empty lookup separate from a rejected lookup', async () => {
     const error = new Error('transport failed');
     jest.spyOn(universalResolver, 'reverseLookup').mockResolvedValue({
@@ -83,7 +98,8 @@ describe('resolvers/address/ens - lookupAddresses', () => {
   });
 
   it('keeps a name without reporting a silenced rejected sibling', async () => {
-    const error = abortError();
+    const error = new Error('gateway failed');
+    jest.spyOn(universalResolver, 'isSilencedReverseError').mockReturnValue(true);
     jest.spyOn(universalResolver, 'reverseLookup').mockResolvedValue({
       values: { [ADDRESS]: HANDLE },
       errors: [{ address: OTHER_ADDRESS, error }]
