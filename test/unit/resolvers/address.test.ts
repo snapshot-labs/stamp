@@ -138,6 +138,13 @@ describe('address resolvers - invalid Space ID labels', () => {
   const RESOLVER = '0x4444444444444444444444444444444444444444';
   const RESOLVED_ADDRESS = '0x220bc93D88C0aF11f1159eA89a885d5ADd3A7Cf6';
 
+  function mockNameResolution(hash: string, address: string) {
+    return jest
+      .spyOn(provider, 'batchContractCalls')
+      .mockResolvedValueOnce({ [hash]: RESOLVER })
+      .mockResolvedValueOnce({ [hash]: address });
+  }
+
   beforeEach(() => {
     RESOLVERS.filter(resolver => resolver !== spaceId).forEach(resolver => {
       jest.spyOn(resolver, 'resolveNames').mockResolvedValue({});
@@ -145,10 +152,7 @@ describe('address resolvers - invalid Space ID labels', () => {
   });
 
   it('isolates an invalid BNB label from a valid sibling', async () => {
-    const batch = jest
-      .spyOn(provider, 'batchContractCalls')
-      .mockResolvedValueOnce({ [HASH]: RESOLVER })
-      .mockResolvedValueOnce({ [HASH]: RESOLVED_ADDRESS });
+    const batch = mockNameResolution(HASH, RESOLVED_ADDRESS);
 
     await expect(resolveNames([INVALID_HANDLES[0], HANDLE])).resolves.toEqual({
       [HANDLE]: RESOLVED_ADDRESS
@@ -167,10 +171,7 @@ describe('address resolvers - invalid Space ID labels', () => {
   });
 
   it('resolves a normalized emoji label', async () => {
-    const batch = jest
-      .spyOn(provider, 'batchContractCalls')
-      .mockResolvedValueOnce({ [EMOJI_HASH]: RESOLVER })
-      .mockResolvedValueOnce({ [EMOJI_HASH]: RESOLVED_ADDRESS });
+    const batch = mockNameResolution(EMOJI_HASH, RESOLVED_ADDRESS);
 
     await expect(resolveNames([EMOJI_HANDLE])).resolves.toEqual({
       [EMOJI_HANDLE]: RESOLVED_ADDRESS
@@ -181,10 +182,7 @@ describe('address resolvers - invalid Space ID labels', () => {
   });
 
   it('drops a zero address result', async () => {
-    const batch = jest
-      .spyOn(provider, 'batchContractCalls')
-      .mockResolvedValueOnce({ [HASH]: RESOLVER })
-      .mockResolvedValueOnce({ [HASH]: EMPTY_ADDRESS });
+    const batch = mockNameResolution(HASH, EMPTY_ADDRESS);
 
     await expect(resolveNames([HANDLE])).resolves.toEqual({});
     expect(batch).toHaveBeenCalledTimes(2);
