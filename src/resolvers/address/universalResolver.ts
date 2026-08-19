@@ -13,7 +13,6 @@ import { getProviderOptions } from '../../helpers/provider';
 
 const rpcUrl = `${getProviderOptions().broviderUrl}/${mainnet.id}`;
 const EMPTY_REVERSE_ERRORS = new Set([
-  'ResolverError',
   'ResolverNotContract',
   'ResolverNotFound',
   'ReverseAddressMismatch',

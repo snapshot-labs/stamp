@@ -48,8 +48,7 @@ describe('address resolvers cache', () => {
 
     let responseValue: Record<string, string> | undefined;
     let responseError: unknown;
-    const response = cache([ADDRESS], async () => ({ [ADDRESS]: 'less.eth' }));
-    const trackedResponse = response.then(
+    const trackedResponse = cache([ADDRESS], async () => ({ [ADDRESS]: 'less.eth' })).then(
       value => {
         responseValue = value;
       },
