@@ -1,6 +1,7 @@
 import { ens_normalize } from '@adraffy/ens-normalize';
 import { getAddress } from '@ethersproject/address';
 import { capture } from '@snapshot-labs/snapshot-sentry';
+import { markNonCacheable } from './cache';
 import { reverseLookup } from './universalResolver';
 import constants from '../../constants.json';
 import { isEvmAddress } from '../../helpers/address';
@@ -38,16 +39,29 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
 
   const { values, errors } = await reverseLookup(normalizedAddresses);
 
-  if (errors.length > 0 && Object.keys(values).length === 0) {
-    throw errors[0];
+  if (errors.length === normalizedAddresses.length) {
+    throw (errors.find(({ error }) => !isSilencedError(error)) || errors[0]).error;
   }
 
-  const validNames = normalizeEns(normalizedAddresses.map(address => values[address] || ''));
+  errors.forEach(({ address, error }) => {
+    if (!isSilencedError(error)) {
+      capture(error, {
+        tags: { provider: NAME },
+        contexts: { input: { lookupAddresses: [address] } }
+      });
+    }
+  });
 
-  return Object.fromEntries(
+  const validNames = normalizeEns(normalizedAddresses.map(address => values[address] || ''));
+  const result = Object.fromEntries(
     normalizedAddresses
       .map((address, index) => [address, validNames[index]])
       .filter((_, index) => !!validNames[index])
+  );
+
+  return markNonCacheable(
+    result,
+    errors.map(({ address }) => address)
   );
 }
 

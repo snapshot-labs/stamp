@@ -24,8 +24,18 @@ export function isSilencedError(error: any): boolean {
   // dereferences it and throws, from inside the catch block that called this.
   if (!error) return true;
 
+  const nodes = wrapped(error);
+
+  const upstream5xx = nodes.some(e => {
+    const status = Number(e.status);
+    return status >= 500 && status < 600;
+  });
+  if (upstream5xx) return true;
+
+  if (nodes.some(node => node.status === 401 || node.status === 403)) return false;
+
   // An abort is always one of our own deadlines, and each transport words it differently.
-  if (error.name === 'AbortError') return true;
+  if (nodes.some(node => node.name === 'AbortError')) return true;
 
   const messages = [
     'invalid token ID',
@@ -40,24 +50,22 @@ export function isSilencedError(error: any): boolean {
     'This operation was aborted',
     'bad port'
   ];
-  const codes = wrapped(error).flatMap(e => [e.code, e.status]);
-
-  const upstream5xx = wrapped(error).some(e => {
-    const status = Number(e.status);
-    return status >= 500 && status < 600;
-  });
-  if (upstream5xx) return true;
+  const codes = nodes.flatMap(node => [node.code, node.status, node.name]);
 
   return (
-    messages.some(
-      m =>
-        error.message?.includes(m) ||
-        error.error?.message?.includes(m) ||
-        error.cause?.message?.includes(m)
+    messages.some(m =>
+      nodes.some(node => node.message?.includes(m) || node.details?.includes(m))
     ) ||
-    ['TIMEOUT', 'ETIMEDOUT', 'ECONNRESET', 'UND_ERR_SOCKET', 504, 429].some(c =>
-      codes.some(v => String(v ?? '').includes(String(c)))
-    )
+    [
+      'TIMEOUT',
+      'TimeoutError',
+      'ETIMEDOUT',
+      'ECONNRESET',
+      'ECONNREFUSED',
+      'UND_ERR_SOCKET',
+      504,
+      429
+    ].some(c => codes.some(v => String(v ?? '').includes(String(c))))
   );
 }
 
