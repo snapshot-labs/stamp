@@ -32,7 +32,7 @@ describe('lookupDomains/ens', () => {
         data: {
           data: {
             registrations: [
-              { id: '0xbbb', domain: { labelName: 'bob' } },
+              { id: '0xbbb', domain: { labelName: '$&' } },
               { id: '0xaaa', domain: { labelName: 'alice' } }
             ]
           }
@@ -42,7 +42,7 @@ describe('lookupDomains/ens', () => {
     const result = await lookupDomains(ADDRESS);
 
     expect(mockedGraphQlCall).toHaveBeenCalledTimes(2);
-    expect(result).toEqual(['alice.eth', 'plain.eth', 'bob.eth']);
+    expect(result).toEqual(['alice.eth', 'plain.eth', '$&.eth']);
     expect(mockedGraphQlCall).toHaveBeenNthCalledWith(
       2,
       expect.any(String),
@@ -69,6 +69,14 @@ describe('lookupDomains/ens', () => {
 
     await expect(lookupDomains(ADDRESS)).resolves.toEqual(['plain.eth']);
     expect(mockedGraphQlCall).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects when the registration list is null', async () => {
+    mockedGraphQlCall
+      .mockResolvedValueOnce(accountResponse([{ name: '[aaa].eth' }]))
+      .mockResolvedValueOnce({ data: { data: { registrations: null } } });
+
+    await expect(lookupDomains(ADDRESS)).rejects.toThrow();
   });
 
   it('rejects when the registration response has no data envelope', async () => {

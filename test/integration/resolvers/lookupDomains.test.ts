@@ -9,6 +9,12 @@ describe('lookupDomains', () => {
     expect(result[0]).toContain('.eth');
   });
 
+  it('should decode hashed parent labels on subdomains', async () => {
+    const result = await lookupDomains('0x279489452dd8035f82326c8036f81d7bd1c65e6c');
+
+    expect(result).toContain('global.aragonid.eth');
+  });
+
   it('should return an array of addresses on sepolia', async () => {
     const result = await lookupDomains('0x24F15402C6Bb870554489b2fd2049A85d75B982f', '11155111');
 

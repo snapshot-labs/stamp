@@ -14,9 +14,7 @@ type Domain = {
 
 type Registration = {
   id: string;
-  domain?: {
-    labelName?: string;
-  };
+  domain?: Pick<Domain, 'labelName'>;
 };
 
 function getLabelHash(domain: Domain) {
@@ -48,10 +46,7 @@ async function fetchDomainData(domains: Domain[], chainId: string): Promise<Doma
     }
   );
   const labelNames = new Map(
-    (data.registrations || []).map(registration => [
-      registration.id,
-      registration.domain?.labelName
-    ])
+    data.registrations.map(registration => [registration.id, registration.domain?.labelName])
   );
 
   return domains.map(domain => {
@@ -60,7 +55,7 @@ async function fetchDomainData(domains: Domain[], chainId: string): Promise<Doma
 
     return {
       ...domain,
-      name: labelName ? domain.name.replace(`[${hash}]`, labelName) : domain.name
+      name: labelName ? domain.name.replace(`[${hash}]`, () => labelName) : domain.name
     };
   });
 }
