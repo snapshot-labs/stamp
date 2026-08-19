@@ -1,3 +1,4 @@
+import { ens_normalize } from '@adraffy/ens-normalize';
 import { isAddress } from '@ethersproject/address';
 import { StaticJsonRpcProvider } from '@ethersproject/providers';
 import { fetchHttpImage } from '../../helpers/http';
@@ -9,7 +10,13 @@ async function castToEnsName(nameOrAddress: string): Promise<string | undefined>
     return (await lookupAddresses([nameOrAddress]))[nameOrAddress];
   }
 
-  return nameOrAddress;
+  if (!nameOrAddress.includes('.')) return undefined;
+
+  try {
+    return ens_normalize(nameOrAddress);
+  } catch {
+    return undefined;
+  }
 }
 
 export default async function resolve(nameOrAddress: string) {
