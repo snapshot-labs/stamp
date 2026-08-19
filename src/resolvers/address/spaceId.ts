@@ -1,3 +1,4 @@
+import { ens_normalize } from '@adraffy/ens-normalize';
 import { namehash } from '@ethersproject/hash';
 import { EMPTY_ADDRESS, isEvmAddress } from '../../helpers/address';
 import { batchContractCalls, getProvider } from '../../helpers/provider';
@@ -84,6 +85,7 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
 export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Address>> {
   const pairs = normalizeHandles(handles).flatMap(handle => {
     try {
+      if (ens_normalize(handle) !== handle) return [];
       return [[handle, namehash(handle)] as const];
     } catch {
       return [];
@@ -100,7 +102,7 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
 
   Object.entries(addresses).forEach(([hash, addr]) => {
     const handle = pairs.find(([, pairHash]) => pairHash === hash)?.[0];
-    if (handle) results[handle] = addr;
+    if (handle && addr !== EMPTY_ADDRESS) results[handle] = addr;
   });
 
   return results;
