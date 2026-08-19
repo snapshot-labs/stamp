@@ -113,6 +113,22 @@ describe('address resolvers', () => {
         }
       });
 
+      it('does not cache an address when every ENS lookup rejects', async () => {
+        const failedAddress = '0x0000000000000000000000000000000000000001';
+        const error = Object.assign(new Error('aborted'), { name: 'AbortError' });
+        const reverseLookup = jest.spyOn(universalResolver, 'reverseLookup').mockResolvedValue({
+          values: {},
+          errors: [{ address: failedAddress, error }]
+        });
+
+        try {
+          await expect(lookupAddresses([failedAddress])).resolves.toEqual({});
+          await expect(getCache([failedAddress])).resolves.toEqual({});
+        } finally {
+          reverseLookup.mockRestore();
+        }
+      });
+
       it('should return the cached results', async () => {
         await setCache({
           '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7': 'test.eth',
