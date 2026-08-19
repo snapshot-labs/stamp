@@ -16,6 +16,7 @@ jest.mock('../../../../src/helpers/provider', () => ({
 }));
 
 const mockedFetch = mockGlobalFetch();
+const mockedProvider = (getProvider as jest.Mock).mock.results[0].value;
 
 const providerInstanceHeldByEns = (getProvider as jest.Mock).mock.results[0].value;
 
@@ -26,7 +27,14 @@ function respondWith(body: any, status = 200) {
   mockedFetch.mockResolvedValue(jsonResponse(body, status));
 }
 
+const sentVariables = () => JSON.parse(mockedFetch.mock.calls[0][1].body).variables;
+
 describe('resolvers/address/ens - resolveNames', () => {
+  beforeEach(() => {
+    mockedFetch.mockReset();
+    mockedProvider.resolveName.mockReset().mockResolvedValue(null);
+  });
+
   it('reports the subgraph failure instead of a TypeError naming our own field', async () => {
     respondWith({ errors: [{ message: 'bad indexers' }], data: null });
 
@@ -84,5 +92,39 @@ describe('resolvers/address/ens - resolveNames', () => {
     expect(capture).toHaveBeenCalledWith(expect.objectContaining({ code: 'INVALID_ARGUMENT' }), {
       input: { handles: [HANDLE] }
     });
+  });
+
+  it('skips names owned by sibling resolvers before querying ENS', async () => {
+    const names = ['foo.lens', 'foo.bnb', 'foo.stark', 'foo.gwei', 'foo.shib'];
+
+    await expect(resolveNames(names)).resolves.toEqual({});
+
+    expect(mockedFetch).not.toHaveBeenCalled();
+    expect(mockedProvider.resolveName).not.toHaveBeenCalled();
+  });
+
+  it('keeps ENS and DNS names in their original fallback order', async () => {
+    respondWith({
+      data: { domains: [{ name: HANDLE, resolvedAddress: { id: ADDRESS.toLowerCase() } }] }
+    });
+    mockedProvider.resolveName.mockResolvedValue(ADDRESS);
+
+    await expect(
+      resolveNames(['foo.lens', HANDLE, 'foo.xyz', 'api.lens.xyz', 'bridge.base.eth'])
+    ).resolves.toEqual({
+      [HANDLE]: ADDRESS,
+      'foo.xyz': ADDRESS,
+      'api.lens.xyz': ADDRESS,
+      'bridge.base.eth': ADDRESS
+    });
+
+    expect(sentVariables()).toEqual({
+      handles: [HANDLE, 'foo.xyz', 'api.lens.xyz', 'bridge.base.eth']
+    });
+    expect(mockedProvider.resolveName.mock.calls).toEqual([
+      ['foo.xyz'],
+      ['api.lens.xyz'],
+      ['bridge.base.eth']
+    ]);
   });
 });
