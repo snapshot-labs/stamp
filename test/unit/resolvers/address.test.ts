@@ -1,5 +1,7 @@
+import { namehash } from '@ethersproject/hash';
 import { capture } from '@snapshot-labs/snapshot-sentry';
-import { lookupAddresses } from '../../../src/resolvers/address';
+import * as provider from '../../../src/helpers/provider';
+import { lookupAddresses, resolveNames } from '../../../src/resolvers/address';
 import * as basename from '../../../src/resolvers/address/basename';
 import * as ens from '../../../src/resolvers/address/ens';
 import * as gwei from '../../../src/resolvers/address/gwei';
@@ -123,5 +125,53 @@ describe('address resolvers - resolver failures', () => {
     jest.spyOn(shibarium, 'lookupAddresses').mockResolvedValue({ [ADDRESS]: 'boorger.shib' });
 
     await expect(lookupAddresses([ADDRESS])).resolves.toEqual({ [ADDRESS]: 'boorger.shib' });
+  });
+});
+
+describe('address resolvers - invalid Space ID labels', () => {
+  const HANDLE = 'boorger.bnb';
+  const INVALID_HANDLES = ['foo!.bnb', 'a..bnb', '.bnb', 'foo_bar.bnb'];
+  const HASH = namehash(HANDLE);
+  const RESOLVER = '0x4444444444444444444444444444444444444444';
+  const RESOLVED_ADDRESS = '0x220bc93D88C0aF11f1159eA89a885d5ADd3A7Cf6';
+
+  beforeEach(() => {
+    RESOLVERS.filter(resolver => resolver !== spaceId).forEach(resolver => {
+      jest.spyOn(resolver, 'resolveNames').mockResolvedValue({});
+    });
+  });
+
+  it('isolates an invalid BNB label from a valid sibling', async () => {
+    const batch = jest
+      .spyOn(provider, 'batchContractCalls')
+      .mockResolvedValueOnce({ [HASH]: RESOLVER })
+      .mockResolvedValueOnce({ [HASH]: RESOLVED_ADDRESS });
+
+    await expect(resolveNames([INVALID_HANDLES[0], HANDLE])).resolves.toEqual({
+      [HANDLE]: RESOLVED_ADDRESS
+    });
+    expect(batch).toHaveBeenCalledTimes(2);
+    expect(batch.mock.calls[0][3]).toEqual([HASH]);
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('returns no results or RPC calls for only invalid BNB labels', async () => {
+    const batch = jest.spyOn(provider, 'batchContractCalls');
+
+    await expect(resolveNames(INVALID_HANDLES)).resolves.toEqual({});
+    expect(batch).not.toHaveBeenCalled();
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('keeps reporting Space ID RPC failures', async () => {
+    const error = new Error('rpc unavailable');
+    jest.spyOn(provider, 'batchContractCalls').mockRejectedValueOnce(error);
+
+    await expect(resolveNames([HANDLE])).resolves.toEqual({});
+    expect(capture).toHaveBeenCalledTimes(1);
+    expect(capture).toHaveBeenCalledWith(error, {
+      tags: { provider: 'Space ID' },
+      contexts: { input: { resolveNames: [HANDLE] } }
+    });
   });
 });

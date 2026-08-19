@@ -82,16 +82,24 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
 }
 
 export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Address>> {
-  const normalizedHandles = normalizeHandles(handles);
+  const pairs = normalizeHandles(handles).flatMap(handle => {
+    try {
+      return [[handle, namehash(handle)] as const];
+    } catch {
+      return [];
+    }
+  });
 
-  if (normalizedHandles.length === 0) return {};
+  if (pairs.length === 0) return {};
 
-  const namehashes = normalizedHandles.map(namehash);
-  const addresses: Record<string, Address> = await resolveNameHashes(namehashes, 'addr');
+  const addresses: Record<string, Address> = await resolveNameHashes(
+    pairs.map(([, hash]) => hash),
+    'addr'
+  );
   const results = {};
 
   Object.entries(addresses).forEach(([hash, addr]) => {
-    const handle = normalizedHandles[namehashes.indexOf(hash)];
+    const handle = pairs.find(([, pairHash]) => pairHash === hash)?.[0];
     if (handle) results[handle] = addr;
   });
 
