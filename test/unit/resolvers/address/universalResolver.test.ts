@@ -15,6 +15,8 @@ import { BatchError, reverseLookup } from '../../../../src/resolvers/address/uni
 const reverseAbi = parseAbi([
   'function reverseWithGateways(bytes reverseName, uint256 coinType, string[] gateways) view returns (string resolvedName, address resolver, address reverseResolver)'
 ]);
+const httpErrorAbi = parseAbi(['error HttpError(uint16 status, string message)']);
+const resolverErrorAbi = parseAbi(['error ResolverError(bytes errorData)']);
 const UNIVERSAL_RESOLVER = '0xeEeEEEeE14D718C2B47D9923Deab1335E144EeEe' as Address;
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as Address;
 const ADDRESSES = Array.from(
@@ -25,6 +27,18 @@ const OFFCHAIN_LOOKUP = encodeErrorResult({
   abi: [offchainLookupAbiItem],
   errorName: 'OffchainLookup',
   args: [UNIVERSAL_RESOLVER, ['https://gateway.test/{data}'], '0x1234', '0x12345678', '0x']
+});
+
+const HTTP_ERROR = encodeErrorResult({
+  abi: httpErrorAbi,
+  errorName: 'HttpError',
+  args: [503, 'gateway unavailable']
+});
+
+const RESOLVER_ERROR = encodeErrorResult({
+  abi: resolverErrorAbi,
+  errorName: 'ResolverError',
+  args: ['0x80b90f']
 });
 
 type MulticallResult = { success: boolean; returnData: Hex };
@@ -174,6 +188,33 @@ describe('Universal Resolver reverse lookup', () => {
     });
     expect(batchSizes).toEqual([addresses.length, 1]);
     expect(gatewayRequests).toHaveLength(1);
+  });
+
+  it('treats a ResolverError as an empty reverse lookup', async () => {
+    const address = ADDRESSES[0];
+    const transport = jest.spyOn(global, 'fetch').mockImplementation(async (_input, init) => {
+      const { id } = decodeBatch(init);
+      return rpcResponse(id, [{ success: false, returnData: RESOLVER_ERROR }]);
+    });
+
+    await expect(reverseLookup([address])).resolves.toEqual({ values: {}, errors: [] });
+    expect(transport).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns a Universal Resolver HTTP failure as an error', async () => {
+    const address = ADDRESSES[0];
+    const transport = jest.spyOn(global, 'fetch').mockImplementation(async (_input, init) => {
+      const { id } = decodeBatch(init);
+      return rpcResponse(id, [{ success: false, returnData: HTTP_ERROR }]);
+    });
+
+    const { values, errors } = await reverseLookup([address]);
+
+    expect(values).toEqual({});
+    expect(errors[0].address).toBe(address);
+    expect(errors[0].error).toBeInstanceOf(Error);
+    expect((errors[0].error as Error).message).toContain('gateway unavailable');
+    expect(transport).toHaveBeenCalledTimes(1);
   });
 
   it('returns a rejected offchain gateway request as an error', async () => {

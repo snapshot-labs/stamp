@@ -1,6 +1,8 @@
 import {
+  BaseError,
   ccipRequest,
   CcipRequestParameters,
+  ContractFunctionRevertedError,
   createPublicClient,
   http,
   Address as ViemAddress
@@ -10,6 +12,24 @@ import { withDeadline } from '../../helpers/deadline';
 import { getProviderOptions } from '../../helpers/provider';
 
 const rpcUrl = `${getProviderOptions().broviderUrl}/${mainnet.id}`;
+const EMPTY_REVERSE_ERRORS = new Set([
+  'ResolverError',
+  'ResolverNotContract',
+  'ResolverNotFound',
+  'ReverseAddressMismatch',
+  'UnsupportedResolverProfile'
+]);
+
+function isEmptyReverseError(error: unknown): boolean {
+  if (!(error instanceof BaseError)) return false;
+
+  const reverted = error.walk(cause => cause instanceof ContractFunctionRevertedError);
+
+  return (
+    reverted instanceof ContractFunctionRevertedError &&
+    EMPTY_REVERSE_ERRORS.has(reverted.data?.errorName || '')
+  );
+}
 const client = createPublicClient({
   chain: mainnet,
   batch: { multicall: { batchSize: 16 * 1024 } },
@@ -35,7 +55,7 @@ export type BatchResult = { values: Record<string, string>; errors: BatchError[]
 
 export async function reverseLookup(addresses: string[]): Promise<BatchResult> {
   const settled = await Promise.allSettled(
-    addresses.map(address => client.getEnsName({ address: address as ViemAddress }))
+    addresses.map(address => client.getEnsName({ address: address as ViemAddress, strict: true }))
   );
   const values: Record<string, string> = {};
   const errors: BatchError[] = [];
@@ -43,7 +63,7 @@ export async function reverseLookup(addresses: string[]): Promise<BatchResult> {
   settled.forEach((result, index) => {
     if (result.status === 'fulfilled') {
       if (result.value) values[addresses[index]] = result.value;
-    } else {
+    } else if (!isEmptyReverseError(result.reason)) {
       errors.push({ address: addresses[index], error: result.reason });
     }
   });
