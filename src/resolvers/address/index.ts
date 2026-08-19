@@ -69,6 +69,7 @@ async function _call(fnName: string, input: string[], maxInputLength: number) {
               result = await r[fnName](_input);
               status = 1;
             } catch (err) {
+              result = markNonCacheable({}, _input);
               if (!isSilencedError(err, r.MUTED_ERRORS) && !isTransportFailure(err)) {
                 // A top-level `input` beside `tags` is dropped rather than wrapped.
                 capture(err, {
