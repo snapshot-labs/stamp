@@ -1,4 +1,5 @@
 import { getAddress } from '@ethersproject/address';
+import snapshot from '@snapshot-labs/snapshot.js';
 import { defaultOffchainNetwork, offchainNetworks } from '../../constants.json';
 import { graphQlCall } from '../../helpers/graphql';
 import { fetchHttpImage, getUrl, spaceIds } from '../../helpers/http';
@@ -101,7 +102,15 @@ async function getOnchainProperty(
   return spaces?.map(space => space.metadata?.[property]).filter(Boolean)[0];
 }
 
-function normalizeEvmAddress(value: string) {
+function normalizeUserId(value: string): string | null {
+  try {
+    return getAddress(value.trim());
+  } catch {
+    return value.startsWith('0x') && snapshot.utils.isStarknetAddress(value) ? value : null;
+  }
+}
+
+function normalizeSpaceId(value: string) {
   try {
     return getAddress(value.trim());
   } catch {
@@ -117,9 +126,12 @@ function createPropertyResolver(entity: Entity, property: Property) {
     if (!Object.keys(API_URLS).includes(networkId)) return false;
 
     if (offchainNetworks.includes(networkId) || entity === 'user') {
+      const id = entity === 'user' ? normalizeUserId(address) : normalizeSpaceId(address);
+      if (!id) return false;
+
       value = await getOffchainProperty(
         offchainNetworks.includes(networkId) ? networkId : defaultOffchainNetwork,
-        normalizeEvmAddress(address),
+        id,
         entity,
         property
       );
