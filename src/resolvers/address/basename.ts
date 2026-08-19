@@ -4,7 +4,7 @@ import { namehash } from '@ethersproject/hash';
 import snapshot from '@snapshot-labs/snapshot.js';
 import { EMPTY_ADDRESS, isEvmAddress } from '../../helpers/address';
 import { getUrl } from '../../helpers/http';
-import { getProvider } from '../../helpers/provider';
+import { batchContractCalls, getProvider } from '../../helpers/provider';
 import { Address, Handle } from '../../helpers/types';
 
 export const NAME = 'Basename';
@@ -41,26 +41,55 @@ function normalizeBasename(name: Handle): Handle {
   }
 }
 
-async function collect(
-  items: string[],
-  query: (item: string) => Promise<[string, string]>
-): Promise<Record<string, string>> {
-  const entries = await Promise.all(items.map(query));
-  return Object.fromEntries(entries.filter(([, value]) => value));
-}
-
 export async function lookupAddresses(addresses: Address[]): Promise<Record<Address, Handle>> {
-  return collect(addresses.filter(isEvmAddress), async address => [
-    address,
-    normalizeBasename(await call('name', [reverseNode(address)]))
-  ]);
+  const pairs = addresses
+    .filter(isEvmAddress)
+    .map(address => [address, reverseNode(address)] as const);
+
+  if (pairs.length === 0) return {};
+
+  const names: Record<string, Handle> = await batchContractCalls(
+    NETWORK,
+    provider,
+    ABI,
+    pairs.map(([, node]) => node),
+    new Array(pairs.length).fill(RESOLVER),
+    'name'
+  );
+
+  const results: Record<Address, Handle> = {};
+  pairs.forEach(([address, node]) => {
+    const name = normalizeBasename(names[node]);
+    if (name) results[address] = name;
+  });
+
+  return results;
 }
 
 export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Address>> {
-  return collect(handles.map(normalizeBasename).filter(Boolean), async handle => {
-    const address = await call('addr', [namehash(handle)]);
-    return [handle, address && address !== EMPTY_ADDRESS ? getAddress(address) : ''];
+  const pairs = handles
+    .map(normalizeBasename)
+    .filter(Boolean)
+    .map(handle => [handle, namehash(handle)] as const);
+
+  if (pairs.length === 0) return {};
+
+  const addresses: Record<string, Address> = await batchContractCalls(
+    NETWORK,
+    provider,
+    ABI,
+    pairs.map(([, node]) => node),
+    new Array(pairs.length).fill(RESOLVER),
+    'addr'
+  );
+
+  const results: Record<Handle, Address> = {};
+  pairs.forEach(([handle, node]) => {
+    const address = addresses[node];
+    if (address && address !== EMPTY_ADDRESS) results[handle] = getAddress(address);
   });
+
+  return results;
 }
 
 // Avatar text record, used by the avatar resolver. Resolves the name against
