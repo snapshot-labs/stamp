@@ -8,14 +8,12 @@ jest.mock('../../../../src/helpers/graphql', () => ({
 const mockedGraphQlCall = graphQlCall as jest.Mock;
 const ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
 
+function graphQlResponse<T>(data: T) {
+  return { data: { data } };
+}
+
 function accountResponse(domains: { name: string }[]) {
-  return {
-    data: {
-      data: {
-        account: { domains, wrappedDomains: [] }
-      }
-    }
-  };
+  return graphQlResponse({ account: { domains, wrappedDomains: [] } });
 }
 
 describe('lookupDomains/ens', () => {
@@ -28,16 +26,14 @@ describe('lookupDomains/ens', () => {
       .mockResolvedValueOnce(
         accountResponse([{ name: '[aaa].eth' }, { name: 'plain.eth' }, { name: '[bbb].eth' }])
       )
-      .mockResolvedValue({
-        data: {
-          data: {
-            registrations: [
-              { id: '0xbbb', domain: { labelName: '$&' } },
-              { id: '0xaaa', domain: { labelName: 'alice' } }
-            ]
-          }
-        }
-      });
+      .mockResolvedValue(
+        graphQlResponse({
+          registrations: [
+            { id: '0xbbb', domain: { labelName: '$&' } },
+            { id: '0xaaa', domain: { labelName: 'alice' } }
+          ]
+        })
+      );
 
     const result = await lookupDomains(ADDRESS);
 
@@ -55,7 +51,7 @@ describe('lookupDomains/ens', () => {
     const domains = Array.from({ length: 101 }, (_, index) => ({ name: `[${index}].eth` }));
     mockedGraphQlCall
       .mockResolvedValueOnce(accountResponse(domains))
-      .mockResolvedValueOnce({ data: { data: { registrations: [] } } });
+      .mockResolvedValueOnce(graphQlResponse({ registrations: [] }));
 
     await lookupDomains(ADDRESS);
 
@@ -74,7 +70,7 @@ describe('lookupDomains/ens', () => {
   it('rejects when the registration list is null', async () => {
     mockedGraphQlCall
       .mockResolvedValueOnce(accountResponse([{ name: '[aaa].eth' }]))
-      .mockResolvedValueOnce({ data: { data: { registrations: null } } });
+      .mockResolvedValueOnce(graphQlResponse({ registrations: null }));
 
     await expect(lookupDomains(ADDRESS)).rejects.toThrow();
   });
