@@ -1,7 +1,13 @@
 import redis from '../../../../src/helpers/redis';
-import { setCache } from '../../../../src/resolvers/address/cache';
+import cache, {
+  getCache,
+  markNonCacheable,
+  setCache
+} from '../../../../src/resolvers/address/cache';
 
 const ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
+const FAILED_ADDRESS = '0x0C67A201b93cf58D4a5e8D4E970093f0FB4bb0D1';
+const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000001';
 const KEY = `address-resolvers:${ADDRESS}`;
 const TTL = 43200;
 
@@ -19,5 +25,23 @@ describe('address resolvers cache', () => {
 
     expect(ttl).toBeGreaterThan(TTL - 10);
     expect(ttl).toBeLessThanOrEqual(TTL);
+  });
+
+  it('does not cache a rejected lookup beside cacheable results', async () => {
+    await cache([ADDRESS, FAILED_ADDRESS, EMPTY_ADDRESS], async () =>
+      markNonCacheable(
+        {
+          [ADDRESS]: 'less.eth',
+          [FAILED_ADDRESS]: '',
+          [EMPTY_ADDRESS]: ''
+        },
+        [FAILED_ADDRESS]
+      )
+    );
+
+    await expect(getCache([ADDRESS, FAILED_ADDRESS, EMPTY_ADDRESS])).resolves.toEqual({
+      [ADDRESS]: 'less.eth',
+      [EMPTY_ADDRESS]: ''
+    });
   });
 });

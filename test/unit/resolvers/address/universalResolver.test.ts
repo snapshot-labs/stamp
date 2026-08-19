@@ -8,7 +8,9 @@ import {
   offchainLookupAbiItem,
   parseAbi
 } from 'viem';
-import { reverseLookup } from '../../../../src/resolvers/address/universalResolver';
+import * as deadline from '../../../../src/helpers/deadline';
+import { MAX_LOOKUP_ADDRESSES } from '../../../../src/resolvers/address';
+import { BatchError, reverseLookup } from '../../../../src/resolvers/address/universalResolver';
 
 const reverseAbi = parseAbi([
   'function reverseWithGateways(bytes reverseName, uint256 coinType, string[] gateways) view returns (string resolvedName, address resolver, address reverseResolver)'
@@ -16,7 +18,7 @@ const reverseAbi = parseAbi([
 const UNIVERSAL_RESOLVER = '0xeEeEEEeE14D718C2B47D9923Deab1335E144EeEe' as Address;
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as Address;
 const ADDRESSES = Array.from(
-  { length: 50 },
+  { length: MAX_LOOKUP_ADDRESSES },
   (_, index) => `0x${(index + 1).toString(16).padStart(40, '0')}` as Address
 );
 const OFFCHAIN_LOOKUP = encodeErrorResult({
@@ -80,10 +82,11 @@ function mockRejectedGateway(results: MulticallResult[]) {
   return { batchSizes, transport };
 }
 
-function expectRejectedGateway(errors: unknown[]) {
+function expectRejectedGateway(errors: BatchError[], address: Address) {
   expect(errors).toHaveLength(1);
-  expect(errors[0]).toBeInstanceOf(Error);
-  expect((errors[0] as Error).message).toContain('gateway unavailable');
+  expect(errors[0].address).toBe(address);
+  expect(errors[0].error).toBeInstanceOf(Error);
+  expect((errors[0].error as Error).message).toContain('gateway unavailable');
 }
 
 describe('Universal Resolver reverse lookup', () => {
@@ -108,9 +111,32 @@ describe('Universal Resolver reverse lookup', () => {
     expect(errors).toEqual([]);
     expect(Object.keys(values)).toHaveLength(ADDRESSES.length);
     expect(values[ADDRESSES[0]]).toBe('name0.eth');
-    expect(values[ADDRESSES[49]]).toBe('name49.eth');
+    expect(values[ADDRESSES[MAX_LOOKUP_ADDRESSES - 1]]).toBe(`name${MAX_LOOKUP_ADDRESSES - 1}.eth`);
     expect(batchSizes).toEqual([ADDRESSES.length]);
     expect(transport).toHaveBeenCalledTimes(1);
+  });
+
+  it('caps batches shared by concurrent maximum-size lookups', async () => {
+    const batchSizes: number[] = [];
+    jest.spyOn(global, 'fetch').mockImplementation(async (_input, init) => {
+      const { id, calls } = decodeBatch(init);
+      batchSizes.push(calls.length);
+      return rpcResponse(
+        id,
+        calls.map(() => ({ success: true, returnData: encodeName('name.eth') }))
+      );
+    });
+
+    const results = await Promise.all([reverseLookup(ADDRESSES), reverseLookup(ADDRESSES)]);
+
+    expect(results.every(result => result.errors.length === 0)).toBe(true);
+    expect(results.map(result => Object.keys(result.values).length)).toEqual([
+      MAX_LOOKUP_ADDRESSES,
+      MAX_LOOKUP_ADDRESSES
+    ]);
+    expect(batchSizes).toHaveLength(2);
+    expect(batchSizes.reduce((sum, size) => sum + size, 0)).toBe(2 * MAX_LOOKUP_ADDRESSES);
+    expect(Math.max(...batchSizes)).toBeLessThanOrEqual(56);
   });
 
   it('fetches one offchain entry without splitting the initial batch', async () => {
@@ -159,9 +185,40 @@ describe('Universal Resolver reverse lookup', () => {
     const { values, errors } = await reverseLookup([address]);
 
     expect(values).toEqual({});
-    expectRejectedGateway(errors);
+    expectRejectedGateway(errors, address);
     expect(batchSizes).toEqual([1]);
     expect(transport).toHaveBeenCalledTimes(2);
+  });
+
+  it('bounds a stalled gateway while retaining a successful sibling', async () => {
+    const addresses = ADDRESSES.slice(0, 2);
+    const batchSizes: number[] = [];
+    const actualWithDeadline = deadline.withDeadline;
+    jest.spyOn(deadline, 'withDeadline').mockImplementation(fn => actualWithDeadline(fn, 5));
+    jest.spyOn(global, 'fetch').mockImplementation(async (input, init) => {
+      if (String(input).startsWith('https://gateway.test/')) {
+        if (!init?.signal) throw new Error('Missing gateway deadline signal');
+
+        return new Promise((_resolve, reject) => {
+          init.signal?.addEventListener('abort', () => reject(init.signal?.reason), { once: true });
+        });
+      }
+
+      const { id, calls } = decodeBatch(init);
+      batchSizes.push(calls.length);
+      return rpcResponse(id, [
+        { success: false, returnData: OFFCHAIN_LOOKUP },
+        { success: true, returnData: encodeName('name1.eth') }
+      ]);
+    });
+
+    const { values, errors } = await reverseLookup(addresses);
+    const root = (errors[0].error as any).walk();
+
+    expect(values).toEqual({ [addresses[1]]: 'name1.eth' });
+    expect(errors[0].address).toBe(addresses[0]);
+    expect(root.name).toBe('AbortError');
+    expect(batchSizes).toEqual([addresses.length]);
   });
 
   it('keeps a successful sibling when an offchain gateway request rejects', async () => {
@@ -174,7 +231,7 @@ describe('Universal Resolver reverse lookup', () => {
     const { values, errors } = await reverseLookup(addresses);
 
     expect(values).toEqual({ [addresses[1]]: 'name1.eth' });
-    expectRejectedGateway(errors);
+    expectRejectedGateway(errors, addresses[0]);
     expect(batchSizes).toEqual([addresses.length]);
     expect(transport).toHaveBeenCalledTimes(2);
   });
