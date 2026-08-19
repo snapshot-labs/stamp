@@ -1,4 +1,5 @@
 import testAddressResolver from './helper';
+import { CacheResult, NON_CACHEABLE } from '../../../../src/resolvers/address/cache';
 import { lookupAddresses, resolveNames } from '../../../../src/resolvers/address/ens';
 
 testAddressResolver({
@@ -23,9 +24,9 @@ describe('ENS address resolver: CCIP-Read', () => {
     const expiredAddress = '0x3a872f8FED4421E7d5BE5c98Ab5Ea0e0245169A0';
     const goodAddress = '0xE6D0Dd18C6C3a9Af8C2FaB57d6e6A38E29d513cC';
 
-    await expect(lookupAddresses([expiredAddress])).resolves.toEqual({});
-    await expect(lookupAddresses([expiredAddress, goodAddress])).resolves.toEqual({
-      [goodAddress]: 'sdntestens.eth'
-    });
+    const result = (await lookupAddresses([expiredAddress, goodAddress])) as CacheResult;
+
+    expect(result).toEqual({ [goodAddress]: 'sdntestens.eth' });
+    expect(result[NON_CACHEABLE]).toEqual([expiredAddress]);
   }, 20e3);
 });

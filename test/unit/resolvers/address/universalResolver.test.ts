@@ -227,14 +227,24 @@ describe('Universal Resolver reverse lookup', () => {
     expect(gatewayRequests).toHaveLength(1);
   });
 
-  it('treats a ResolverError as an empty reverse lookup', async () => {
+  it('returns a ResolverError as an error', async () => {
     const address = ADDRESSES[0];
     const transport = jest.spyOn(global, 'fetch').mockImplementation(async (_input, init) => {
       const { id } = decodeBatch(init);
       return rpcResponse(id, [{ success: false, returnData: RESOLVER_ERROR }]);
     });
 
-    await expect(reverseLookup([address])).resolves.toEqual({ values: {}, errors: [] });
+    const { values, errors } = await reverseLookup([address]);
+    const reverted = (errors[0].error as any).walk(
+      cause => cause instanceof Error && cause.name === 'ContractFunctionRevertedError'
+    );
+
+    expect(values).toEqual({});
+    expect(errors[0].address).toBe(address);
+    expect(reverted.data).toMatchObject({
+      errorName: 'ResolverError',
+      args: ['0x80b90f']
+    });
     expect(transport).toHaveBeenCalledTimes(1);
   });
 
