@@ -21,12 +21,12 @@ function getLabelHash(domain: Domain) {
   return domain.name.match(/\[(.*?)\]/)?.[1];
 }
 
-async function fetchDomainData(domains: Domain[], chainId: string): Promise<Domain[]> {
+async function fetchDomainNames(domains: Domain[], chainId: string): Promise<Handle[]> {
   const hashes = [
     ...new Set(domains.map(getLabelHash).filter((hash): hash is string => Boolean(hash)))
   ];
 
-  if (!hashes.length) return domains;
+  if (!hashes.length) return domains.map(domain => domain.name);
 
   const {
     data: { data }
@@ -53,10 +53,7 @@ async function fetchDomainData(domains: Domain[], chainId: string): Promise<Doma
     const hash = getLabelHash(domain);
     const labelName = hash ? labelNames.get(`0x${hash}`) : undefined;
 
-    return {
-      ...domain,
-      name: labelName ? domain.name.replace(`[${hash}]`, () => labelName) : domain.name
-    };
+    return labelName ? domain.name.replace(`[${hash}]`, () => labelName) : domain.name;
   });
 }
 
@@ -97,5 +94,5 @@ export default async function lookupDomains(
       !domain.name.endsWith('.addr.reverse')
   );
 
-  return (await fetchDomainData(domains, chainId)).map(domain => domain.name);
+  return fetchDomainNames(domains, chainId);
 }
