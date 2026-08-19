@@ -1,7 +1,11 @@
 import axios from 'axios';
 import nodeFetch from 'node-fetch';
 import farcaster from '../../../../src/resolvers/image/farcaster';
-import { resolveSpaceAvatar, resolveSpaceLogo } from '../../../../src/resolvers/image/snapshot';
+import {
+  resolveSpaceAvatar,
+  resolveSpaceLogo,
+  resolveUserAvatar
+} from '../../../../src/resolvers/image/snapshot';
 import { resolveAvatar as resolveSxAvatar } from '../../../../src/resolvers/image/space-sx';
 import starknet from '../../../../src/resolvers/image/starknet';
 
@@ -30,8 +34,11 @@ function loadCoingecko() {
 }
 
 const ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
+const STARKNET_ADDRESS = '0x07ff6b17f07c4d83236e3fc5f94259a19d1ed41bbcf1822397ea17882e9b038d';
+const UNPADDED_STARKNET_ADDRESS = `0x${STARKNET_ADDRESS.slice(3)}`;
 const NOT_AN_ADDRESS = '0x00006ba9855965EeEc09B5D43B113944c27F45aD3Ce';
 
+const entry = (found: any) => ({ status: 200, data: { data: { entry: found } } });
 const spaces = (found: any[]) => ({ status: 200, data: { data: { spaces: found } } });
 
 describe('resolvers answer false rather than throwing when there is no data', () => {
@@ -69,6 +76,39 @@ describe('resolvers answer false rather than throwing when there is no data', ()
   });
 
   describe('snapshot', () => {
+    it.each(['vitalik.eth', 'foo.lens', 'foo.stark', '1'])(
+      'answers false for invalid user id %s without asking',
+      async id => {
+        await expect(resolveUserAvatar(id)).resolves.toBe(false);
+        expect(mockedAxios).not.toHaveBeenCalled();
+      }
+    );
+
+    it.each([
+      ['EVM', ADDRESS.toLowerCase(), ADDRESS],
+      ['Starknet', STARKNET_ADDRESS, STARKNET_ADDRESS],
+      ['unpadded Starknet', UNPADDED_STARKNET_ADDRESS, UNPADDED_STARKNET_ADDRESS]
+    ])('normalizes a valid %s user id', async (_type, id, expected) => {
+      mockedAxios.mockResolvedValue(entry({ avatar: null }));
+
+      await expect(resolveUserAvatar(id)).resolves.toBe(false);
+      expect(mockedAxios).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ variables: { id: expected } }) })
+      );
+    });
+
+    it.each([
+      ['slug', 'ens.eth', 'ens.eth'],
+      ['EVM address', ADDRESS.toLowerCase(), ADDRESS]
+    ])('preserves an offchain space %s', async (_type, id, expected) => {
+      mockedAxios.mockResolvedValue(entry({ avatar: null }));
+
+      await expect(resolveSpaceAvatar(id, 1, 's')).resolves.toBe(false);
+      expect(mockedAxios).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ variables: { id: expected } }) })
+      );
+    });
+
     it('answers false for a space id that is not an address, without asking', async () => {
       await expect(resolveSpaceAvatar('ens.eth', 1, 'eth')).resolves.toBe(false);
       expect(mockedAxios).not.toHaveBeenCalled();
