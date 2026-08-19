@@ -1,5 +1,5 @@
-import { namehash } from '@ethersproject/hash';
 import { capture } from '@snapshot-labs/snapshot-sentry';
+import { namehash } from 'viem/ens';
 import { EMPTY_ADDRESS } from '../../../src/helpers/address';
 import * as provider from '../../../src/helpers/provider';
 import { lookupAddresses, resolveNames } from '../../../src/resolvers/address';
@@ -131,8 +131,10 @@ describe('address resolvers - resolver failures', () => {
 
 describe('address resolvers - invalid Space ID labels', () => {
   const HANDLE = 'boorger.bnb';
+  const EMOJI_HANDLE = '🩷🩷🩷.bnb';
   const INVALID_HANDLES = ['foo!.bnb', 'a..bnb', '.bnb', 'foo_bar.bnb', 'ｆｏｏ.bnb'];
   const HASH = namehash(HANDLE);
+  const EMOJI_HASH = namehash(EMOJI_HANDLE);
   const RESOLVER = '0x4444444444444444444444444444444444444444';
   const RESOLVED_ADDRESS = '0x220bc93D88C0aF11f1159eA89a885d5ADd3A7Cf6';
 
@@ -161,6 +163,20 @@ describe('address resolvers - invalid Space ID labels', () => {
 
     await expect(resolveNames(INVALID_HANDLES)).resolves.toEqual({});
     expect(batch).not.toHaveBeenCalled();
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('resolves a normalized emoji label', async () => {
+    const batch = jest
+      .spyOn(provider, 'batchContractCalls')
+      .mockResolvedValueOnce({ [EMOJI_HASH]: RESOLVER })
+      .mockResolvedValueOnce({ [EMOJI_HASH]: RESOLVED_ADDRESS });
+
+    await expect(resolveNames([EMOJI_HANDLE])).resolves.toEqual({
+      [EMOJI_HANDLE]: RESOLVED_ADDRESS
+    });
+    expect(batch).toHaveBeenCalledTimes(2);
+    expect(batch.mock.calls[0][3]).toEqual([EMOJI_HASH]);
     expect(capture).not.toHaveBeenCalled();
   });
 

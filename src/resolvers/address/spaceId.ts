@@ -1,5 +1,4 @@
-import { ens_normalize } from '@adraffy/ens-normalize';
-import { namehash } from '@ethersproject/hash';
+import { namehash, normalize } from 'viem/ens';
 import { EMPTY_ADDRESS, isEvmAddress } from '../../helpers/address';
 import { batchContractCalls, getProvider } from '../../helpers/provider';
 import { Address, Handle } from '../../helpers/types';
@@ -68,8 +67,8 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
 
   if (normalizedAddresses.length === 0) return {};
 
-  const reverseNamehashes = normalizedAddresses.map(addr => {
-    return namehash(`${addr.slice(2)}.addr.reverse`);
+  const reverseNamehashes: string[] = normalizedAddresses.map(addr => {
+    return namehash(normalize(`${addr.slice(2)}.addr.reverse`));
   });
   const names: Record<string, Handle> = await resolveNameHashes(reverseNamehashes, 'name');
   const results = {};
@@ -85,7 +84,7 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
 export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Address>> {
   const pairs = normalizeHandles(handles).flatMap(handle => {
     try {
-      if (ens_normalize(handle) !== handle) return [];
+      if (normalize(handle) !== handle) return [];
       return [[handle, namehash(handle)] as const];
     } catch {
       return [];
