@@ -1,5 +1,6 @@
 import { namehash } from '@ethersproject/hash';
 import { capture } from '@snapshot-labs/snapshot-sentry';
+import { EMPTY_ADDRESS } from '../../../src/helpers/address';
 import * as provider from '../../../src/helpers/provider';
 import { lookupAddresses, resolveNames } from '../../../src/resolvers/address';
 import * as basename from '../../../src/resolvers/address/basename';
@@ -130,7 +131,7 @@ describe('address resolvers - resolver failures', () => {
 
 describe('address resolvers - invalid Space ID labels', () => {
   const HANDLE = 'boorger.bnb';
-  const INVALID_HANDLES = ['foo!.bnb', 'a..bnb', '.bnb', 'foo_bar.bnb'];
+  const INVALID_HANDLES = ['foo!.bnb', 'a..bnb', '.bnb', 'foo_bar.bnb', 'ｆｏｏ.bnb'];
   const HASH = namehash(HANDLE);
   const RESOLVER = '0x4444444444444444444444444444444444444444';
   const RESOLVED_ADDRESS = '0x220bc93D88C0aF11f1159eA89a885d5ADd3A7Cf6';
@@ -156,10 +157,21 @@ describe('address resolvers - invalid Space ID labels', () => {
   });
 
   it('returns no results or RPC calls for only invalid BNB labels', async () => {
-    const batch = jest.spyOn(provider, 'batchContractCalls');
+    const batch = jest.spyOn(provider, 'batchContractCalls').mockResolvedValue({});
 
     await expect(resolveNames(INVALID_HANDLES)).resolves.toEqual({});
     expect(batch).not.toHaveBeenCalled();
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('drops a zero address result', async () => {
+    const batch = jest
+      .spyOn(provider, 'batchContractCalls')
+      .mockResolvedValueOnce({ [HASH]: RESOLVER })
+      .mockResolvedValueOnce({ [HASH]: EMPTY_ADDRESS });
+
+    await expect(resolveNames([HANDLE])).resolves.toEqual({});
+    expect(batch).toHaveBeenCalledTimes(2);
     expect(capture).not.toHaveBeenCalled();
   });
 
