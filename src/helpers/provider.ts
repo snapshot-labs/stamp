@@ -14,7 +14,10 @@ export function getProviderOptions(timeout = DEFAULT_PROVIDER_TIMEOUT): {
   };
 }
 
-export function getProvider(network: string | number, timeout = DEFAULT_PROVIDER_TIMEOUT) {
+export function getProvider<T extends string | number>(
+  network: T,
+  timeout = DEFAULT_PROVIDER_TIMEOUT
+) {
   return snapshot.utils.getProvider(network, getProviderOptions(timeout));
 }
 
