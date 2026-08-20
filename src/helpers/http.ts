@@ -1,16 +1,8 @@
-import http from 'http';
-import https from 'https';
 import { getAddress } from '@ethersproject/address';
 import snapshot from '@snapshot-labs/snapshot.js';
 import { isStarknetAddress } from './address';
 import { withDeadline } from './deadline';
 import { httpError } from './errors';
-
-export const axiosDefaultParams = {
-  httpAgent: new http.Agent({ keepAlive: true }),
-  httpsAgent: new https.Agent({ keepAlive: true }),
-  timeout: 5e3
-};
 
 // Spaces are keyed by address on the onchain APIs, and both accept the raw id
 // as well as the checksummed one. An id that is not an address is not a space
@@ -25,16 +17,28 @@ export function spaceIds(id: string): string[] | null {
   }
 }
 
-const IMAGE_FETCH_BUDGET = 5e3;
+export const IMAGE_FETCH_BUDGET = 5e3;
+
+export async function readHttpImage(url: string, response: Response): Promise<Buffer> {
+  if (!response.ok) {
+    await response.body?.cancel();
+    throw httpError(new URL(url).host, response.status, response.statusText);
+  }
+
+  const type = response.headers.get('content-type');
+  if (type && !type.toLowerCase().startsWith('image/')) {
+    await response.body?.cancel();
+    throw httpError(new URL(url).host, 404, `not an image: ${type}`);
+  }
+
+  return Buffer.from(await response.arrayBuffer());
+}
 
 export async function fetchHttpImage(url: string): Promise<Buffer> {
-  return withDeadline(async signal => {
-    const response = await fetch(url, { signal });
-
-    if (!response.ok) throw httpError(new URL(url).host, response.status, response.statusText);
-
-    return Buffer.from(await response.arrayBuffer());
-  }, IMAGE_FETCH_BUDGET);
+  return withDeadline(
+    async signal => readHttpImage(url, await fetch(url, { signal })),
+    IMAGE_FETCH_BUDGET
+  );
 }
 
 export function getUrl(url) {
