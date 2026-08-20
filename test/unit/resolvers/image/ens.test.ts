@@ -60,6 +60,17 @@ describe('resolvers/image/ens', () => {
     });
   });
 
+  it('uses a direct HTTP avatar record', async () => {
+    const url = 'https://example.com/avatar.png';
+    const image = Buffer.from('avatar');
+    jest.spyOn(snapshot.utils, 'getEnsTextRecord').mockResolvedValue(url);
+    mockedFetchHttpImage.mockResolvedValue(image);
+
+    await expect(resolve('vitalik.eth')).resolves.toBe(image);
+
+    expect(mockedFetchHttpImage).toHaveBeenCalledWith(url);
+  });
+
   it('keeps a normalized name in one fallback path segment', async () => {
     const image = Buffer.from('avatar');
     jest.spyOn(snapshot.utils, 'getEnsTextRecord').mockResolvedValue(null);
