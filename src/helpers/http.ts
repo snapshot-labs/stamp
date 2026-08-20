@@ -1,16 +1,8 @@
-import http from 'http';
-import https from 'https';
 import { getAddress } from '@ethersproject/address';
 import snapshot from '@snapshot-labs/snapshot.js';
 import { isStarknetAddress } from './address';
 import { withDeadline } from './deadline';
 import { httpError } from './errors';
-
-export const axiosDefaultParams = {
-  httpAgent: new http.Agent({ keepAlive: true }),
-  httpsAgent: new https.Agent({ keepAlive: true }),
-  timeout: 5e3
-};
 
 // Spaces are keyed by address on the onchain APIs, and both accept the raw id
 // as well as the checksummed one. An id that is not an address is not a space
