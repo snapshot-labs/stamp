@@ -399,7 +399,8 @@ describe('Universal Resolver forward lookup', () => {
   });
 
   it('sends the maximum name batch in one eth_call and omits a missing resolver', async () => {
-    const names = [...NAMES.slice(0, -1), 'foo.lens'];
+    const resolvableNames = NAMES.slice(0, -1);
+    const names = [...resolvableNames, 'foo.lens'];
     const batchSizes: number[] = [];
     let resultIndex = 0;
     const transport = jest.spyOn(global, 'fetch').mockImplementation(async (_input, init) => {
@@ -420,7 +421,7 @@ describe('Universal Resolver forward lookup', () => {
 
     expect(errors).toEqual([]);
     expect(values).toEqual(
-      Object.fromEntries(NAMES.slice(0, -1).map((name, index) => [name, ADDRESSES[index]]))
+      Object.fromEntries(resolvableNames.map((name, index) => [name, ADDRESSES[index]]))
     );
     expect(batchSizes).toEqual([MAX_RESOLVE_NAMES]);
     expect(transport).toHaveBeenCalledTimes(1);
@@ -428,13 +429,13 @@ describe('Universal Resolver forward lookup', () => {
 
   it('resolves an offchain name without splitting the initial batch', async () => {
     const name = 'jesse.base.eth';
-    const gatewayRequests: string[] = [];
+    let gatewayRequestCount = 0;
     const batchSizes: number[] = [];
 
     jest.spyOn(global, 'fetch').mockImplementation(async (input, init) => {
       const url = String(input);
       if (url.startsWith('https://gateway.test/')) {
-        gatewayRequests.push(url);
+        gatewayRequestCount += 1;
         return jsonResponse({ data: '0xabcd' });
       }
 
@@ -452,6 +453,40 @@ describe('Universal Resolver forward lookup', () => {
       errors: []
     });
     expect(batchSizes).toEqual([1, 1]);
-    expect(gatewayRequests).toHaveLength(1);
+    expect(gatewayRequestCount).toBe(1);
+  });
+
+  it('keeps a successful sibling when an offchain gateway returns a transient failure', async () => {
+    const names = NAMES.slice(0, 2);
+    const batchSizes: number[] = [];
+
+    jest.spyOn(global, 'fetch').mockImplementation(async (_input, init) => {
+      const { id, calls } = decodeBatch(init);
+      batchSizes.push(calls.length);
+      if (batchSizes.length === 1) {
+        return rpcResponse(id, [
+          { success: false, returnData: BATCH_OFFCHAIN_LOOKUP },
+          { success: true, returnData: encodeAddress(ADDRESSES[1]) }
+        ]);
+      }
+
+      return rpcResponse(id, [{ success: false, returnData: BATCH_HTTP_ERROR }]);
+    });
+
+    const { values, errors } = await forwardLookup(names);
+
+    expect(errors).toHaveLength(1);
+    const reverted = (errors[0].error as any).walk(
+      cause => cause instanceof Error && cause.name === 'ContractFunctionRevertedError'
+    );
+
+    expect(values).toEqual({ [names[1]]: ADDRESSES[1] });
+    expect(errors[0].name).toBe(names[0]);
+    expect(reverted.data).toMatchObject({
+      errorName: 'HttpError',
+      args: [503, 'HTTP request failed.']
+    });
+    expect(isSilencedReverseError(errors[0].error)).toBe(true);
+    expect(batchSizes).toEqual([names.length, 1]);
   });
 });
