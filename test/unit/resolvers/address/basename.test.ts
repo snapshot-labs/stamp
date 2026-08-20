@@ -30,6 +30,11 @@ const resolverInterface = new Interface(RESOLVER_ABI);
 const multicallInterface = new Interface(MULTICALL_ABI);
 const reverseNode = (address: string) =>
   namehash(`${address.toLowerCase().slice(2)}.${COIN_TYPE}.reverse`);
+const ADDRESS_BY_NODE: Record<string, string> = {
+  [namehash(HANDLE)]: ADDRESS_WITH_NAME,
+  [namehash(SECOND_HANDLE)]: SECOND_ADDRESS_WITH_NAME,
+  [namehash(EMOJI_HANDLE)]: EMOJI_ADDRESS_WITH_NAME
+};
 
 function resolverResponse(data: string): string {
   const transaction = resolverInterface.parseTransaction({ data });
@@ -49,14 +54,7 @@ function resolverResponse(data: string): string {
     return resolverInterface.encodeFunctionResult('text', [text]);
   }
 
-  const address =
-    transaction.args.node === namehash(HANDLE)
-      ? ADDRESS_WITH_NAME
-      : transaction.args.node === namehash(SECOND_HANDLE)
-        ? SECOND_ADDRESS_WITH_NAME
-        : transaction.args.node === namehash(EMOJI_HANDLE)
-          ? EMOJI_ADDRESS_WITH_NAME
-          : EMPTY_ADDRESS;
+  const address = ADDRESS_BY_NODE[transaction.args.node] ?? EMPTY_ADDRESS;
   return resolverInterface.encodeFunctionResult('addr', [address]);
 }
 
