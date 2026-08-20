@@ -6,31 +6,42 @@ jest.mock('../../../../src/helpers/provider', () => ({
     getAddressFromStarkName: jest.fn()
   })
 }));
-jest.mock('axios', () => ({ __esModule: true, default: jest.fn() }));
 
-import axios from 'axios';
 import starknet from '../../../../src/resolvers/image/starknet';
 
-const mockedAxios = axios as unknown as jest.Mock;
 const ADDRESS = '0x07ff6b17f07c4d83236e3fc5f94259a19d1ed41bbcf1822397ea17882e9b038d';
 
 beforeEach(() => {
   mockGetStarkProfile.mockReset().mockResolvedValue({
     profilePicture: 'https://example.com/avatar'
   });
-  mockedAxios.mockReset();
 });
 
 describe('Starknet image resolver', () => {
-  it('rejects a successful response whose body is neither image nor JSON', async () => {
-    mockedAxios.mockResolvedValue({
-      headers: { 'content-type': 'text/html; charset=utf-8' },
-      data: Buffer.from('<html>not an image</html>')
+  it('rejects and cancels a streaming body whose media type is neither image nor JSON', async () => {
+    const cancel = jest.fn();
+    const fetchSpy = jest.spyOn(global, 'fetch').mockImplementation(async (_input, init) => {
+      const signal = init?.signal;
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(Buffer.from('<html>not an image'));
+          signal?.addEventListener('abort', () => controller.error(signal.reason), { once: true });
+        },
+        cancel
+      });
+      return new Response(body, {
+        headers: { 'Content-Type': 'text/html; charset=utf-8' }
+      });
     });
 
-    await expect(starknet(ADDRESS)).rejects.toMatchObject({
-      status: 404,
-      message: expect.stringContaining('not an image: text/html; charset=utf-8')
-    });
+    try {
+      await expect(starknet(ADDRESS)).rejects.toMatchObject({
+        status: 404,
+        message: expect.stringContaining('not an image: text/html; charset=utf-8')
+      });
+      expect(cancel).toHaveBeenCalledTimes(1);
+    } finally {
+      fetchSpy.mockRestore();
+    }
   });
 });
