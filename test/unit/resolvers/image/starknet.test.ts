@@ -170,17 +170,26 @@ describe('Starknet image resolver', () => {
     expect(mockCallContract).not.toHaveBeenCalled();
   });
 
-  it('rejects a successful response whose body is neither image nor JSON', async () => {
-    mockedFetch.mockResolvedValue(
-      new Response('<html>not an image</html>', {
-        status: 200,
+  it('rejects and cancels a streaming body whose media type is neither image nor JSON', async () => {
+    const cancel = jest.fn();
+    mockedFetch.mockImplementation(async (_url, init) => {
+      const signal = (init as RequestInit | undefined)?.signal;
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(Buffer.from('<html>not an image'));
+          signal?.addEventListener('abort', () => controller.error(signal.reason), { once: true });
+        },
+        cancel
+      });
+      return new Response(body, {
         headers: { 'Content-Type': 'text/html; charset=utf-8' }
-      })
-    );
+      });
+    });
 
     await expect(starknet(ADDRESS)).rejects.toMatchObject({
       status: 404,
       message: expect.stringContaining('not an image: text/html; charset=utf-8')
     });
+    expect(cancel).toHaveBeenCalledTimes(1);
   });
 });
