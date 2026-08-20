@@ -6,14 +6,12 @@ jest.mock('../../../../src/helpers/provider', () => ({
   })
 }));
 
-const originalFetch = global.fetch;
-const mockedFetch = jest.fn();
-global.fetch = mockedFetch as unknown as typeof global.fetch;
+const mockedFetch = jest.spyOn(global, 'fetch');
 
 const ADDRESS = '0x07ff6b17f07c4d83236e3fc5f94259a19d1ed41bbcf1822397ea17882e9b038d';
 
 afterAll(() => {
-  global.fetch = originalFetch;
+  mockedFetch.mockRestore();
 });
 
 describe('starknet image resolver', () => {
