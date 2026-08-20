@@ -11,9 +11,21 @@ let missingUrl: string;
 let nonImageUrl: string;
 let mixedCaseUrl: string;
 let neverEndingUrl: string;
+let slowErrorUrl: string;
 let nonImageClosed!: Promise<void>;
 let resolveNonImageClosed!: () => void;
+let slowErrorClosed!: Promise<void>;
+let resolveSlowErrorClosed!: () => void;
 const sockets = new Set<Socket>();
+
+function streamForever(res: http.ServerResponse, resolveClosed: () => void) {
+  res.flushHeaders();
+  const timer = setInterval(() => res.write('x'), 50);
+  res.on('close', () => {
+    clearInterval(timer);
+    resolveClosed();
+  });
+}
 
 async function closesWithin(promise: Promise<void>, ms: number): Promise<boolean> {
   let timer: NodeJS.Timeout | undefined;
@@ -34,14 +46,12 @@ beforeAll(async () => {
 
     if (req.url === '/not-an-image.png') {
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-      res.flushHeaders();
-      const closeNonImage = resolveNonImageClosed;
-      const timer = setInterval(() => res.write('x'), 50);
-      res.on('close', () => {
-        clearInterval(timer);
-        closeNonImage();
-      });
-      return;
+      return streamForever(res, resolveNonImageClosed);
+    }
+
+    if (req.url === '/slow-error.png') {
+      res.writeHead(504, { 'Content-Type': 'text/html' });
+      return streamForever(res, resolveSlowErrorClosed);
     }
 
     if (req.url === '/mixed-case.png') {
@@ -68,6 +78,7 @@ beforeAll(async () => {
   nonImageUrl = `${origin}/not-an-image.png`;
   mixedCaseUrl = `${origin}/mixed-case.png`;
   neverEndingUrl = `${origin}/never-ends.png`;
+  slowErrorUrl = `${origin}/slow-error.png`;
 });
 
 afterAll(async () => {
@@ -101,6 +112,26 @@ describe('fetchHttpImage', () => {
         message: expect.stringContaining('not an image: text/html; charset=utf-8')
       });
       await expect(closesWithin(nonImageClosed, 1000)).resolves.toBe(true);
+    } finally {
+      fetchSpy.mockRestore();
+      await response?.body?.cancel();
+    }
+  });
+
+  it('closes a streaming non-2xx body', async () => {
+    slowErrorClosed = new Promise<void>(resolve => {
+      resolveSlowErrorClosed = resolve;
+    });
+    const nativeFetch = global.fetch;
+    let response: Response | undefined;
+    const fetchSpy = jest.spyOn(global, 'fetch').mockImplementation(async (input, init) => {
+      response = await nativeFetch(input, init);
+      return response;
+    });
+
+    try {
+      await expect(fetchHttpImage(slowErrorUrl)).rejects.toMatchObject({ status: 504 });
+      await expect(closesWithin(slowErrorClosed, 1000)).resolves.toBe(true);
     } finally {
       fetchSpy.mockRestore();
       await response?.body?.cancel();

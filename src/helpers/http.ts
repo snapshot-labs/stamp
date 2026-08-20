@@ -23,7 +23,10 @@ export async function fetchHttpImage(url: string): Promise<Buffer> {
   return withDeadline(async signal => {
     const response = await fetch(url, { signal });
 
-    if (!response.ok) throw httpError(new URL(url).host, response.status, response.statusText);
+    if (!response.ok) {
+      await response.body?.cancel();
+      throw httpError(new URL(url).host, response.status, response.statusText);
+    }
 
     const type = response.headers.get('content-type') ?? '';
     if (!type.toLowerCase().startsWith('image/')) {
