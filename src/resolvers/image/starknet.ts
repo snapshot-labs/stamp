@@ -1,11 +1,9 @@
 import { isStarkDomain } from '../../helpers/address';
 import { withDeadline } from '../../helpers/deadline';
-import { httpError } from '../../helpers/errors';
-import { fetchHttpImage, getUrl } from '../../helpers/http';
+import { fetchHttpImage, getUrl, IMAGE_FETCH_BUDGET, readHttpImage } from '../../helpers/http';
 import { getProvider } from '../../helpers/provider';
 
 const DEFAULT_IMG_URL = 'https://starknet.id/api/identicons/0';
-const IMAGE_FETCH_BUDGET = 5e3;
 const provider = getProvider('0x534e5f4d41494e');
 
 function normalizeAddress(address: string): string | null {
@@ -31,22 +29,13 @@ async function getImage(domainOrAddress: string): Promise<string | null> {
 async function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: string }> {
   return withDeadline(async signal => {
     const response = await fetch(url, { signal });
+    const type = response.headers.get('content-type') ?? '';
 
-    if (!response.ok) {
-      await response.body?.cancel();
-      throw httpError(new URL(url).host, response.status, response.statusText);
-    }
-
-    const contentType = response.headers.get('content-type') ?? '';
-    const type = contentType.toLowerCase();
-    if (type.startsWith('application/json')) {
+    if (response.ok && type.toLowerCase().startsWith('application/json')) {
       return JSON.parse(await response.text());
     }
-    if (!type.startsWith('image/')) {
-      await response.body?.cancel();
-      throw httpError(new URL(url).host, 404, `not an image: ${contentType}`);
-    }
-    return Buffer.from(await response.arrayBuffer());
+
+    return readHttpImage(url, response);
   }, IMAGE_FETCH_BUDGET);
 }
 

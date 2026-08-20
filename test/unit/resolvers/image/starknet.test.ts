@@ -18,10 +18,14 @@ beforeEach(() => {
   });
 });
 
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
 describe('Starknet image resolver', () => {
   it('rejects and cancels a streaming body whose media type is neither image nor JSON', async () => {
     const cancel = jest.fn();
-    const fetchSpy = jest.spyOn(global, 'fetch').mockImplementation(async (_input, init) => {
+    jest.spyOn(global, 'fetch').mockImplementation(async (_input, init) => {
       const signal = init?.signal;
       const body = new ReadableStream<Uint8Array>({
         start(controller) {
@@ -35,27 +39,19 @@ describe('Starknet image resolver', () => {
       });
     });
 
-    try {
-      await expect(starknet(ADDRESS)).rejects.toMatchObject({
-        status: 404,
-        message: expect.stringContaining('not an image: text/html; charset=utf-8')
-      });
-      expect(cancel).toHaveBeenCalledTimes(1);
-    } finally {
-      fetchSpy.mockRestore();
-    }
+    await expect(starknet(ADDRESS)).rejects.toMatchObject({
+      status: 404,
+      message: expect.stringContaining('not an image: text/html; charset=utf-8')
+    });
+    expect(cancel).toHaveBeenCalledTimes(1);
   });
 
   it('returns the bytes of an image response', async () => {
-    const fetchSpy = jest
+    jest
       .spyOn(global, 'fetch')
       .mockResolvedValue(new Response(IMAGE, { headers: { 'Content-Type': 'image/png' } }));
 
-    try {
-      await expect(starknet(ADDRESS)).resolves.toEqual(IMAGE);
-    } finally {
-      fetchSpy.mockRestore();
-    }
+    await expect(starknet(ADDRESS)).resolves.toEqual(IMAGE);
   });
 
   it('follows a JSON metadata response to its image', async () => {
@@ -67,11 +63,20 @@ describe('Starknet image resolver', () => {
         : new Response(IMAGE, { headers: { 'Content-Type': 'image/png' } })
     );
 
-    try {
-      await expect(starknet(ADDRESS)).resolves.toEqual(IMAGE);
-      expect(fetchSpy).toHaveBeenCalledTimes(2);
-    } finally {
-      fetchSpy.mockRestore();
-    }
+    await expect(starknet(ADDRESS)).resolves.toEqual(IMAGE);
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('raises the status of a non-2xx JSON response instead of reading it as metadata', async () => {
+    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ image: 'https://example.com/nft.png' }), {
+        status: 504,
+        statusText: 'Gateway Timeout',
+        headers: { 'Content-Type': 'application/json' }
+      })
+    );
+
+    await expect(starknet(ADDRESS)).rejects.toMatchObject({ status: 504 });
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 });
