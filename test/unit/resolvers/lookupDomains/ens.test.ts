@@ -77,6 +77,20 @@ describe('lookupDomains/ens', () => {
     expect(result).toHaveLength(1006);
   });
 
+  it('keeps paging when only the wrapped list is still full', async () => {
+    mockedGraphQlCall
+      .mockResolvedValueOnce(accountResponse(namedDomains(2, 'a'), namedDomains(1000, 'w')))
+      .mockResolvedValueOnce(accountResponse([], namedDomains(3, 'x')));
+
+    const result = await lookupDomains(ADDRESS);
+
+    expect(mockedGraphQlCall).toHaveBeenCalledTimes(2);
+    expect(mockedGraphQlCall.mock.calls[1][2]).toEqual(
+      expect.objectContaining({ domainsSkip: 2, wrappedDomainsSkip: 1000 })
+    );
+    expect(result).toHaveLength(1005);
+  });
+
   it('advances each skip cumulatively across pages', async () => {
     mockedGraphQlCall
       .mockResolvedValueOnce(accountResponse(namedDomains(1000, 'a')))
