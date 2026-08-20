@@ -90,18 +90,24 @@ describe('resolvers - failure contract', () => {
     await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
   });
 
-  it('reports a resolver failure, with the resolver named and its arguments', async () => {
-    const error = new Error('boom');
-    (ens as jest.Mock).mockRejectedValue(error);
+  it.each([
+    ['ens', ens],
+    ['lens', lens]
+  ] as const)(
+    'reports a %s failure, with the resolver named and its arguments',
+    async (name, fn) => {
+      const error = new Error('boom');
+      (fn as jest.Mock).mockRejectedValue(error);
 
-    await resolvers.ens(ADDRESS);
+      await resolvers[name](ADDRESS);
 
-    expect(capture).toHaveBeenCalledTimes(1);
-    expect(capture).toHaveBeenCalledWith(error, {
-      tags: { provider: 'ens' },
-      contexts: { input: { args: [ADDRESS] } }
-    });
-  });
+      expect(capture).toHaveBeenCalledTimes(1);
+      expect(capture).toHaveBeenCalledWith(error, {
+        tags: { provider: name },
+        contexts: { input: { args: [ADDRESS] } }
+      });
+    }
+  );
 
   it.each(NOT_REPORTED)('does not report %s', async (_label, error) => {
     (ens as jest.Mock).mockRejectedValue(error);
