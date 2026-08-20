@@ -17,26 +17,23 @@ export function spaceIds(id: string): string[] | null {
   }
 }
 
-export function fetchWithDeadline<T>(
-  url: string,
-  read: (response: Response) => Promise<T>
-): Promise<T> {
-  return withDeadline(async signal => {
-    const response = await fetch(url, { signal });
-
-    if (!response.ok) {
-      await response.body?.cancel();
-      throw httpError(new URL(url).host, response.status, response.statusText);
-    }
-
-    return read(response);
-  }, 5e3);
-}
-
+export const IMAGE_FETCH_BUDGET = 5e3;
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
-export async function readBoundedImage(url: string, response: Response): Promise<Buffer> {
+export async function readHttpImage(url: string, response: Response): Promise<Buffer> {
   const host = new URL(url).host;
+
+  if (!response.ok) {
+    await response.body?.cancel();
+    throw httpError(host, response.status, response.statusText);
+  }
+
+  const type = response.headers.get('content-type') ?? '';
+  if (!type.toLowerCase().startsWith('image/')) {
+    await response.body?.cancel();
+    throw httpError(host, 404, `not an image: ${type}`);
+  }
+
   const declared = Number(response.headers.get('content-length'));
   if (declared > MAX_IMAGE_BYTES) {
     await response.body?.cancel();
@@ -60,16 +57,11 @@ export async function readBoundedImage(url: string, response: Response): Promise
   return Buffer.concat(chunks);
 }
 
-export function fetchHttpImage(url: string): Promise<Buffer> {
-  return fetchWithDeadline(url, async response => {
-    const type = response.headers.get('content-type') ?? '';
-    if (!type.toLowerCase().startsWith('image/')) {
-      await response.body?.cancel();
-      throw httpError(new URL(url).host, 404, `not an image: ${type}`);
-    }
-
-    return readBoundedImage(url, response);
-  });
+export async function fetchHttpImage(url: string): Promise<Buffer> {
+  return withDeadline(
+    async signal => readHttpImage(url, await fetch(url, { signal })),
+    IMAGE_FETCH_BUDGET
+  );
 }
 
 export function isHttpUrl(value: string): boolean {
