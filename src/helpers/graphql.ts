@@ -14,7 +14,7 @@ function graphQlEnvelopeError(url: string, status: number, message: string) {
 }
 
 function parseGraphQlResponse(body: string): any {
-  const decoded = body.charCodeAt(0) === 0xfeff ? body.slice(1) : body;
+  const decoded = body.startsWith('\uFEFF') ? body.slice(1) : body;
   try {
     return JSON.parse(decoded);
   } catch {
