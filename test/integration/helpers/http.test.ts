@@ -10,11 +10,16 @@ let server: http.Server;
 let url: string;
 let missingUrl: string;
 let nonImageUrl: string;
+let mixedCaseUrl: string;
 let neverEndingUrl: string;
 let oversizedDeclaredUrl: string;
 let oversizedStreamedUrl: string;
 let closed: Promise<void>;
 let resolveClosed: () => void = () => {};
+let resolveNonImageClosed!: () => void;
+const nonImageClosed = new Promise<void>(resolve => {
+  resolveNonImageClosed = resolve;
+});
 const sockets = new Set<Socket>();
 
 function closesWithin(ms: number): Promise<boolean> {
@@ -64,7 +69,18 @@ beforeAll(async () => {
 
     if (req.url === '/not-an-image.png') {
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-      return res.end('<html><body>not an image</body></html>');
+      res.flushHeaders();
+      const timer = setInterval(() => res.write('x'), 50);
+      res.on('close', () => {
+        clearInterval(timer);
+        resolveNonImageClosed();
+      });
+      return;
+    }
+
+    if (req.url === '/mixed-case.png') {
+      res.writeHead(200, { 'Content-Type': 'Image/PNG' });
+      return res.end(BODY);
     }
 
     res.writeHead(200, { 'Content-Type': 'image/png' });
@@ -84,6 +100,7 @@ beforeAll(async () => {
   url = `${origin}/image.png`;
   missingUrl = `${origin}/missing.png`;
   nonImageUrl = `${origin}/not-an-image.png`;
+  mixedCaseUrl = `${origin}/mixed-case.png`;
   neverEndingUrl = `${origin}/never-ends.png`;
   oversizedDeclaredUrl = `${origin}/oversized-declared.png`;
   oversizedStreamedUrl = `${origin}/oversized-streamed.png`;
@@ -123,11 +140,16 @@ describe('fetchHttpImage', () => {
     await expect(closesWithin(1000)).resolves.toBe(true);
   });
 
-  it('raises a routine miss rather than returning a non-image body', async () => {
+  it('raises a routine miss and closes a streaming non-image body', async () => {
     await expect(fetchHttpImage(nonImageUrl)).rejects.toMatchObject({
       status: 404,
       message: expect.stringContaining('not an image: text/html; charset=utf-8')
     });
+    await expect(nonImageClosed).resolves.toBeUndefined();
+  });
+
+  it('accepts a valid image media type regardless of case', async () => {
+    await expect(fetchHttpImage(mixedCaseUrl)).resolves.toEqual(BODY);
   });
 
   it('raises a silenced abort against an upstream that never stops sending', async () => {

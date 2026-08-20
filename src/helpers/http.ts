@@ -60,7 +60,8 @@ export async function readBoundedImage(url: string, response: Response): Promise
 export function fetchHttpImage(url: string): Promise<Buffer> {
   return fetchWithDeadline(url, async response => {
     const type = response.headers.get('content-type') ?? '';
-    if (!type.startsWith('image/')) {
+    if (!type.toLowerCase().startsWith('image/')) {
+      await response.body?.cancel();
       throw httpError(new URL(url).host, 404, `not an image: ${type}`);
     }
 
