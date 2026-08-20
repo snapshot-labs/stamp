@@ -21,6 +21,18 @@ function respondWith(body: any, status = 200) {
   );
 }
 
+function incompleteJsonResponse(signal?: AbortSignal | null) {
+  return new Response(
+    new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('{"data":'));
+        signal?.addEventListener('abort', () => controller.error(signal.reason), { once: true });
+      }
+    }),
+    { headers: { 'Content-Type': 'application/json' } }
+  );
+}
+
 async function errorFrom(body: any, status = 200) {
   respondWith(body, status);
 
@@ -61,6 +73,16 @@ describe('graphQlCall', () => {
       const { data } = await graphQlCall(URL, QUERY);
 
       expect(data.data.account).toBeNull();
+    });
+  });
+
+  it('aborts an incomplete response body at the total deadline', async () => {
+    mockedFetch.mockImplementation(async (_url, init) =>
+      incompleteJsonResponse((init as RequestInit | undefined)?.signal)
+    );
+
+    await expect(graphQlCall(URL, QUERY)).rejects.toMatchObject({
+      name: 'AbortError'
     });
   });
 
