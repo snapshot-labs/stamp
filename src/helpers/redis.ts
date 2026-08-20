@@ -9,7 +9,10 @@ let connection: Promise<void> | undefined;
   console.log('[redis] Connecting to Redis');
   client = createClient({
     url: process.env.REDIS_URL,
-    socket: process.env.NODE_ENV === 'test' ? { reconnectStrategy: false } : undefined
+    socket:
+      process.env.NODE_ENV === 'test'
+        ? { reconnectStrategy: false, connectTimeout: 1000 }
+        : undefined
   });
   client.on('connect', () => console.log('[redis] Redis connect'));
   client.on('ready', () => console.log('[redis] Redis ready'));
@@ -27,9 +30,10 @@ export default client;
 export async function closeRedis(redisClient = client): Promise<void> {
   if (!redisClient) return;
 
+  if (redisClient === client) await connection;
+
   if (redisClient.isReady) {
     try {
-      await redisClient.flushDb();
       await redisClient.quit();
       return;
     } catch {
@@ -38,5 +42,4 @@ export async function closeRedis(redisClient = client): Promise<void> {
   }
 
   if (redisClient.isOpen) await redisClient.disconnect();
-  if (redisClient === client) await connection;
 }

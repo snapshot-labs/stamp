@@ -1,3 +1,5 @@
+import { execFile } from 'child_process';
+import path from 'path';
 import { RedisClientType } from 'redis';
 import { closeRedis } from '../../../src/helpers/redis';
 
@@ -23,24 +25,46 @@ describe('closeRedis', () => {
     expect(client.disconnect).toHaveBeenCalledTimes(1);
   });
 
-  it('flushes and gracefully quits a ready client', async () => {
+  it('gracefully quits a ready client without touching its data', async () => {
     const client = mockClient();
 
     await closeRedis(client);
 
-    expect(client.flushDb).toHaveBeenCalledTimes(1);
+    expect(client.flushDb).not.toHaveBeenCalled();
     expect(client.quit).toHaveBeenCalledTimes(1);
     expect(client.disconnect).not.toHaveBeenCalled();
   });
 
   it('disconnects when graceful cleanup fails', async () => {
     const client = mockClient({
-      flushDb: jest.fn().mockRejectedValue(new Error('Redis unavailable'))
+      quit: jest.fn().mockRejectedValue(new Error('Redis unavailable'))
     });
 
     await closeRedis(client);
 
-    expect(client.quit).not.toHaveBeenCalled();
     expect(client.disconnect).toHaveBeenCalledTimes(1);
   });
+
+  it('lets the process exit on its own against an unreachable Redis endpoint', async () => {
+    const script = path.join(__dirname, 'fixtures/close-redis-unreachable.ts');
+
+    await new Promise<void>((resolve, reject) => {
+      execFile(
+        process.execPath,
+        ['-r', 'ts-node/register/transpile-only', script],
+        {
+          env: {
+            ...process.env,
+            REDIS_URL: 'redis://127.0.0.1:1',
+            NODE_ENV: 'test'
+          },
+          timeout: 10000
+        },
+        (error, stdout, stderr) => {
+          if (error) return reject(new Error(`${error.message}\n${stdout}\n${stderr}`));
+          resolve();
+        }
+      );
+    });
+  }, 15000);
 });
