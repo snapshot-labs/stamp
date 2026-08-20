@@ -1,5 +1,9 @@
+import { isSilencedError } from '../../../src/helpers/errors';
 import { fetchHttpImage } from '../../../src/helpers/http';
-import { lookupAddresses as lensLookupAddresses } from '../../../src/resolvers/address/lens';
+import {
+  MUTED_ERRORS as LENS_MUTED_ERRORS,
+  lookupAddresses as lensLookupAddresses
+} from '../../../src/resolvers/address/lens';
 import lensResolve from '../../../src/resolvers/image/lens';
 import { resolveSpaceAvatar, resolveUserAvatar } from '../../../src/resolvers/image/snapshot';
 import { resolveAvatar as resolveSxSpaceAvatar } from '../../../src/resolvers/image/space-sx';
@@ -47,6 +51,14 @@ describe('graphQlCall callers surface an envelope failure', () => {
       await expect(lensLookupAddresses([ADDRESS])).rejects.toThrow(
         '[api.lens.xyz] Rate limit exceeded'
       );
+    });
+
+    it('phrases an upstream outage the way MUTED_ERRORS matches', async () => {
+      respondWith('Service Unavailable', 503);
+
+      const error = await lensLookupAddresses([ADDRESS]).catch(err => err);
+
+      expect(isSilencedError(error, LENS_MUTED_ERRORS)).toBe(true);
     });
   });
 
@@ -122,13 +134,16 @@ describe('graphQlCall callers surface an envelope failure', () => {
 
   describe('src/resolvers/image/space-sx.ts - spaces', () => {
     it('does not use a payload the upstream flagged as an error', async () => {
-      respondWith(
-        upstreamFailure('subgraph is down', { spaces: [{ metadata: { avatar: IMAGE_URL } }] })
+      mockedFetch.mockImplementation(async () =>
+        response(
+          upstreamFailure('subgraph is down', { spaces: [{ metadata: { avatar: IMAGE_URL } }] })
+        )
       );
 
       await expect(resolveSxSpaceAvatar(ADDRESS)).rejects.toThrow(
         '[api.snapshot.box] subgraph is down'
       );
+      expect(mockedFetch).toHaveBeenCalledTimes(2);
       expect(fetchHttpImage).not.toHaveBeenCalled();
     });
   });
