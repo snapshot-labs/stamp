@@ -2,6 +2,7 @@ import constants from '../../constants.json';
 import { EMPTY_ADDRESS } from '../../helpers/address';
 import { untilAborted, withDeadline } from '../../helpers/deadline';
 import { dnsConnect } from '../../helpers/dns';
+import { httpError } from '../../helpers/errors';
 import { Address, Handle } from '../../helpers/types';
 
 const MAINNET = '109';
@@ -32,7 +33,7 @@ async function getClaimedOwner(handle: Handle, chainId: string): Promise<Address
     );
 
     if (response.status === 404) return EMPTY_ADDRESS;
-    if (!response.ok) throw new Error(`Error fetching owner: ${response.statusText}`);
+    if (!response.ok) throw httpError('d3', response.status, response.statusText);
 
     const data = await response.json();
 
