@@ -28,8 +28,8 @@ export async function readHttpImage(url: string, response: Response): Promise<Bu
     throw httpError(host, response.status, response.statusText);
   }
 
-  const type = response.headers.get('content-type') ?? '';
-  if (!type.toLowerCase().startsWith('image/')) {
+  const type = response.headers.get('content-type');
+  if (type && !type.toLowerCase().startsWith('image/')) {
     await response.body?.cancel();
     throw httpError(host, 404, `not an image: ${type}`);
   }
