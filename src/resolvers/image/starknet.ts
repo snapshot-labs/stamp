@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { isStarkDomain } from '../../helpers/address';
+import { httpError } from '../../helpers/errors';
 import { axiosDefaultParams, fetchHttpImage, getUrl } from '../../helpers/http';
 import { getProvider } from '../../helpers/provider';
 
@@ -33,9 +34,13 @@ async function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: str
     ...axiosDefaultParams
   });
   const contentType: string = response.headers['content-type'] || '';
+  const type = contentType.toLowerCase();
   const data = Buffer.from(response.data);
-  if (contentType.includes('application/json')) {
+  if (type.startsWith('application/json')) {
     return JSON.parse(data.toString('utf-8'));
+  }
+  if (!type.startsWith('image/')) {
+    throw httpError(new URL(url).host, 404, `not an image: ${contentType}`);
   }
   return data;
 }

@@ -34,7 +34,8 @@ export async function fetchHttpImage(url: string): Promise<Buffer> {
     if (!response.ok) throw httpError(new URL(url).host, response.status, response.statusText);
 
     const type = response.headers.get('content-type') ?? '';
-    if (!type.startsWith('image/')) {
+    if (!type.toLowerCase().startsWith('image/')) {
+      await response.body?.cancel();
       throw httpError(new URL(url).host, 404, `not an image: ${type}`);
     }
 
