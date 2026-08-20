@@ -1,5 +1,5 @@
+import { withDeadline } from './deadline';
 import { httpError } from './errors';
-import { fetchHttpResponse } from './http';
 import { GraphQlResponse } from './types';
 
 function graphQlEnvelopeError(url: string, status: number, message: string) {
@@ -31,16 +31,24 @@ export async function graphQlCall<T = any>(
   const data: { query: string; variables?: Record<string, any> } = { query };
   if (variables) data.variables = variables;
 
-  const { response, body: responseBody } = await fetchHttpResponse(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...Object.fromEntries(
-        Object.entries(options.headers).filter(([, value]) => value !== undefined && value !== null)
-      )
-    },
-    body: JSON.stringify(data)
-  });
+  const { response, responseBody } = await withDeadline(async signal => {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...Object.fromEntries(
+          Object.entries(options.headers).filter(
+            ([, value]) => value !== undefined && value !== null
+          )
+        )
+      },
+      body: JSON.stringify(data),
+      signal
+    });
+    const responseBody = Buffer.from(await response.arrayBuffer());
+
+    return { response, responseBody };
+  }, 5e3);
 
   if (!response.ok) {
     const error: any = graphQlEnvelopeError(

@@ -1,6 +1,7 @@
 import { isStarkDomain } from '../../helpers/address';
+import { withDeadline } from '../../helpers/deadline';
 import { httpError } from '../../helpers/errors';
-import { fetchHttpImage, fetchHttpResponse, getUrl } from '../../helpers/http';
+import { fetchHttpImage, getUrl } from '../../helpers/http';
 import { getProvider } from '../../helpers/provider';
 
 const DEFAULT_IMG_URL = 'https://starknet.id/api/identicons/0';
@@ -27,7 +28,12 @@ async function getImage(domainOrAddress: string): Promise<string | null> {
 }
 
 async function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: string }> {
-  const { response, body: data } = await fetchHttpResponse(url);
+  const { response, data } = await withDeadline(async signal => {
+    const response = await fetch(url, { signal });
+    const data = Buffer.from(await response.arrayBuffer());
+
+    return { response, data };
+  }, 5e3);
 
   if (!response.ok) throw httpError(new URL(url).host, response.status, response.statusText);
 
