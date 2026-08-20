@@ -13,6 +13,13 @@ testAddressResolver({
 });
 
 describe('ENS address resolver: CCIP-Read', () => {
+  it('resolves onchain and offchain names while omitting a missing resolver', async () => {
+    await expect(resolveNames(['sdntestens.eth', 'jesse.base.eth', 'foo.lens'])).resolves.toEqual({
+      'sdntestens.eth': '0xE6D0Dd18C6C3a9Af8C2FaB57d6e6A38E29d513cC',
+      'jesse.base.eth': '0x2211d1D0020DAEA8039E46Cf1367962070d77DA9'
+    });
+  }, 15e3);
+
   it('resolves a name served by an offchain resolver', async () => {
     const address = '0x2211d1D0020DAEA8039E46Cf1367962070d77DA9';
     await expect(lookupAddresses([address])).resolves.toEqual({
