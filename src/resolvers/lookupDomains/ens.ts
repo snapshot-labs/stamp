@@ -6,10 +6,12 @@ export const NAME = 'Ens';
 export const DEFAULT_CHAIN_ID = '1';
 export const CHAIN_IDS = Object.keys(constants.ensSubgraph);
 
+const PAGE_SIZE = 1000;
+
 type Domain = {
   name: string;
   labelName?: string;
-  expiryDate?: number;
+  expiryDate?: string;
 };
 
 type Registration = {
@@ -28,26 +30,32 @@ async function fetchDomainNames(domains: Domain[], chainId: string): Promise<Han
 
   if (!hashes.length) return domains.map(domain => domain.name);
 
-  const {
-    data: { data }
-  } = await graphQlCall<{ registrations: Registration[] }>(
-    constants.ensSubgraph[chainId],
-    `query Registrations($ids: [String!]!, $first: Int!) {
-      registrations(first: $first, where: { id_in: $ids }) {
-        id
-        domain {
-          labelName
+  const labelNames = new Map<string, string | undefined>();
+
+  for (let offset = 0; offset < hashes.length; offset += PAGE_SIZE) {
+    const ids = hashes.slice(offset, offset + PAGE_SIZE).map(hash => `0x${hash}`);
+    const {
+      data: { data }
+    } = await graphQlCall<{ registrations: Registration[] }>(
+      constants.ensSubgraph[chainId],
+      `query Registrations($ids: [String!]!, $first: Int!) {
+        registrations(first: $first, where: { id_in: $ids }) {
+          id
+          domain {
+            labelName
+          }
         }
+      }`,
+      {
+        ids,
+        first: ids.length
       }
-    }`,
-    {
-      ids: hashes.map(hash => `0x${hash}`),
-      first: hashes.length
+    );
+
+    for (const registration of data.registrations) {
+      labelNames.set(registration.id, registration.domain?.labelName);
     }
-  );
-  const labelNames = new Map(
-    data.registrations.map(registration => [registration.id, registration.domain?.labelName])
-  );
+  }
 
   return domains.map(domain => {
     const hash = getLabelHash(domain);
@@ -57,38 +65,54 @@ async function fetchDomainNames(domains: Domain[], chainId: string): Promise<Han
   });
 }
 
+async function fetchOwnedDomains(address: Address, chainId: string): Promise<Domain[]> {
+  const owned: Domain[] = [];
+  let domainsSkip = 0;
+  let wrappedDomainsSkip = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    const {
+      data: {
+        data: { account }
+      }
+    } = await graphQlCall(
+      constants.ensSubgraph[chainId],
+      `query Domain($id: String!, $first: Int!, $domainsSkip: Int!, $wrappedDomainsSkip: Int!) {
+        account(id: $id) {
+          domains(first: $first, skip: $domainsSkip) {
+            name
+            expiryDate
+          }
+          wrappedDomains(first: $first, skip: $wrappedDomainsSkip) {
+            name
+            expiryDate
+          }
+        }
+      }`,
+      { id: address.toLowerCase(), first: PAGE_SIZE, domainsSkip, wrappedDomainsSkip }
+    );
+
+    const domains: Domain[] = account?.domains || [];
+    const wrappedDomains: Domain[] = account?.wrappedDomains || [];
+
+    owned.push(...domains, ...wrappedDomains);
+    domainsSkip += domains.length;
+    wrappedDomainsSkip += wrappedDomains.length;
+    hasMore = domains.length === PAGE_SIZE || wrappedDomains.length === PAGE_SIZE;
+  }
+
+  return owned;
+}
+
 export default async function lookupDomains(
   address: Address,
   chainId = DEFAULT_CHAIN_ID
 ): Promise<Handle[]> {
   if (!constants.ensSubgraph[chainId]) return [];
 
-  const {
-    data: {
-      data: { account }
-    }
-  } = await graphQlCall(
-    constants.ensSubgraph[chainId],
-    `query Domain($id: String!) {
-      account(id: $id) {
-        domains {
-          name
-          expiryDate
-        }
-        wrappedDomains {
-          name
-          expiryDate
-        }
-      }
-    }`,
-    { id: address.toLowerCase() }
-  );
-
   const now = (Date.now() / 1000).toFixed(0);
-  const domains: Domain[] = [
-    ...(account?.domains || []),
-    ...(account?.wrappedDomains || [])
-  ].filter(
+  const domains = (await fetchOwnedDomains(address, chainId)).filter(
     domain =>
       (!domain.expiryDate || domain.expiryDate === '0' || domain.expiryDate > now) &&
       !domain.name.endsWith('.addr.reverse')
