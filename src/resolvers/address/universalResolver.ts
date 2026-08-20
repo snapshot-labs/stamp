@@ -71,6 +71,11 @@ const client = createPublicClient({
 
 export type BatchError = { address: string; error: unknown };
 export type BatchResult = { values: Record<string, string>; errors: BatchError[] };
+export type ForwardBatchError = { name: string; error: unknown };
+export type ForwardBatchResult = {
+  values: Record<string, string>;
+  errors: ForwardBatchError[];
+};
 
 export async function reverseLookup(addresses: string[]): Promise<BatchResult> {
   const settled = await Promise.allSettled(
@@ -84,6 +89,22 @@ export async function reverseLookup(addresses: string[]): Promise<BatchResult> {
       if (result.value) values[addresses[index]] = result.value;
     } else if (!isEmptyReverseError(result.reason)) {
       errors.push({ address: addresses[index], error: result.reason });
+    }
+  });
+
+  return { values, errors };
+}
+
+export async function forwardLookup(names: string[]): Promise<ForwardBatchResult> {
+  const settled = await Promise.allSettled(names.map(name => client.getEnsAddress({ name })));
+  const values: Record<string, string> = {};
+  const errors: ForwardBatchError[] = [];
+
+  settled.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
+      if (result.value) values[names[index]] = result.value;
+    } else {
+      errors.push({ name: names[index], error: result.reason });
     }
   });
 

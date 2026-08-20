@@ -1,5 +1,4 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
-import axios from 'axios';
 import { CacheResult, NON_CACHEABLE } from '../../../../src/resolvers/address/cache';
 import { lookupAddresses, resolveNames } from '../../../../src/resolvers/address/ens';
 import * as universalResolver from '../../../../src/resolvers/address/universalResolver';
@@ -7,23 +6,6 @@ import * as universalResolver from '../../../../src/resolvers/address/universalR
 jest.mock('@snapshot-labs/snapshot-sentry', () => ({
   capture: jest.fn()
 }));
-
-jest.mock('axios', () => {
-  const mock: any = jest.fn();
-  mock.get = jest.fn();
-  mock.post = jest.fn();
-  return { __esModule: true, default: mock };
-});
-
-jest.mock('../../../../src/helpers/provider', () => ({
-  ...jest.requireActual('../../../../src/helpers/provider'),
-  getProvider: jest.fn(() => ({
-    resolveName: jest.fn().mockResolvedValue(null),
-    lookupAddress: jest.fn().mockResolvedValue(null)
-  }))
-}));
-
-const mockedAxios = axios as unknown as jest.Mock;
 
 const HANDLE = 'test.eth';
 const ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
@@ -127,29 +109,35 @@ describe('resolvers/address/ens - lookupAddresses', () => {
 });
 
 describe('resolvers/address/ens - resolveNames', () => {
-  it('reports the subgraph failure instead of a TypeError naming our own field', async () => {
-    mockedAxios.mockResolvedValue({
-      status: 200,
-      data: { errors: [{ message: 'bad indexers' }], data: null }
-    });
-
-    await expect(resolveNames([HANDLE])).resolves.toEqual({});
-
-    expect(capture).toHaveBeenCalledWith(
-      expect.objectContaining({ message: '[subgrapher.snapshot.org] bad indexers' }),
-      { input: { handles: [HANDLE] } }
-    );
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
-  it('resolves from the subgraph and reports nothing when it answers', async () => {
-    mockedAxios.mockResolvedValue({
-      status: 200,
-      data: {
-        data: { domains: [{ name: HANDLE, resolvedAddress: { id: ADDRESS.toLowerCase() } }] }
-      }
+  it('resolves normalized handles through the Universal Resolver', async () => {
+    const lookup = jest.spyOn(universalResolver, 'forwardLookup').mockResolvedValue({
+      values: { [HANDLE]: ADDRESS.toLowerCase() },
+      errors: []
     });
 
     await expect(resolveNames([HANDLE])).resolves.toEqual({ [HANDLE]: ADDRESS });
+    expect(lookup).toHaveBeenCalledWith([HANDLE]);
     expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('keeps rejected names retryable and reports the failure', async () => {
+    const error = new Error('transport failed');
+    jest.spyOn(universalResolver, 'forwardLookup').mockResolvedValue({
+      values: {},
+      errors: [{ name: HANDLE, error }]
+    });
+
+    const result = (await resolveNames([HANDLE])) as CacheResult;
+
+    expect(result).toEqual({});
+    expect(result[NON_CACHEABLE]).toEqual([HANDLE]);
+    expect(capture).toHaveBeenCalledWith(error, {
+      tags: { provider: 'Ens' },
+      contexts: { input: { resolveNames: [HANDLE] } }
+    });
   });
 });

@@ -2,17 +2,12 @@ import { ens_normalize } from '@adraffy/ens-normalize';
 import { getAddress } from '@ethersproject/address';
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import { markNonCacheable } from './cache';
-import { isSilencedReverseError, reverseLookup } from './universalResolver';
-import constants from '../../constants.json';
+import { forwardLookup, isSilencedReverseError, reverseLookup } from './universalResolver';
 import { isEvmAddress } from '../../helpers/address';
 import { isSilencedError } from '../../helpers/errors';
-import { graphQlCall } from '../../helpers/graphql';
-import { getProvider } from '../../helpers/provider';
 import { Address, Handle } from '../../helpers/types';
 
 export const NAME = 'Ens';
-const NETWORK = '1';
-const provider = getProvider(NETWORK);
 
 function normalizeEns(names: Handle[]): Handle[] {
   return names.map(name => {
@@ -76,55 +71,23 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
 
   if (normalizedHandles.length === 0) return {};
 
-  const results = {};
+  const { values, errors } = await forwardLookup(normalizedHandles);
 
-  try {
-    const {
-      data: {
-        data: { domains: items }
-      }
-    } = await graphQlCall(
-      constants.ensSubgraph[NETWORK],
-      `query Domains($handles: [String!]!) {
-        domains(where: {name_in: $handles}) {
-          name
-          resolvedAddress {
-            id
-          }
-        }
-      }`,
-      { handles: normalizedHandles }
-    );
-
-    for (const item of items) {
-      results[item.name] = item.resolvedAddress ? getAddress(item.resolvedAddress.id) : '';
+  errors.forEach(({ name, error }) => {
+    if (!isSilencedLookupError(error)) {
+      capture(error, {
+        tags: { provider: NAME },
+        contexts: { input: { resolveNames: [name] } }
+      });
     }
-  } catch (err) {
-    if (!isSilencedError(err)) {
-      capture(err, { input: { handles: normalizedHandles } });
-    }
-  }
+  });
 
-  const unresolvedHandles = normalizedHandles.filter(handle => !results[handle]);
+  const result = Object.fromEntries(
+    Object.entries(values).map(([handle, address]) => [handle, getAddress(address)])
+  );
 
-  if (unresolvedHandles.length === 0) return results;
-
-  try {
-    const providerResults = await Promise.allSettled(
-      unresolvedHandles.map(handle => provider.resolveName(handle))
-    );
-
-    unresolvedHandles.forEach((handle, index) => {
-      const result = providerResults[index];
-      if (result.status === 'fulfilled' && result.value) {
-        results[handle] = getAddress(result.value);
-      }
-    });
-  } catch (err) {
-    if (!isSilencedError(err)) {
-      capture(err, { input: { handles: normalizedHandles } });
-    }
-  }
-
-  return results;
+  return markNonCacheable(
+    result,
+    errors.map(({ name }) => name)
+  );
 }
