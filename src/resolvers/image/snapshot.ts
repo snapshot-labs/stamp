@@ -1,7 +1,6 @@
 import { getAddress } from '@ethersproject/address';
 import snapshot from '@snapshot-labs/snapshot.js';
 import { defaultOffchainNetwork, offchainNetworks } from '../../constants.json';
-import { isEvmAddress, isStarknetAddress } from '../../helpers/address';
 import { graphQlCall } from '../../helpers/graphql';
 import { fetchHttpImage, getUrl, spaceIds } from '../../helpers/http';
 
@@ -51,8 +50,6 @@ async function getOffchainProperty(
   entity: Entity,
   property: Property
 ) {
-  if (entity === 'user' && !isEvmAddress(id) && !isStarknetAddress(id)) return null;
-
   const {
     data: {
       data: { entry }
