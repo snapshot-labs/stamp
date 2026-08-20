@@ -6,7 +6,9 @@ let url: string;
 const sockets = new Set<any>();
 
 beforeAll(async () => {
-  server = http.createServer(() => {
+  server = http.createServer(req => {
+    if (req.url === '/reset') return req.socket.destroy();
+
     // Accepts the connection and never answers, so the abort is what ends the request.
   });
   server.on('connection', socket => {
@@ -41,6 +43,18 @@ describe('isSilencedError, on a request we aborted ourselves', () => {
 
     expect(error).toBeDefined();
     expect(error.name).toBe('AbortError');
+    expect(isSilencedError(error)).toBe(true);
+  });
+});
+
+describe('isSilencedError, on a peer reset', () => {
+  it('silences the native fetch socket error', async () => {
+    const error = await fetch(`${url}reset`, { method: 'POST' }).catch(err => err);
+
+    expect(error).toMatchObject({
+      name: 'TypeError',
+      cause: { code: 'UND_ERR_SOCKET' }
+    });
     expect(isSilencedError(error)).toBe(true);
   });
 });
