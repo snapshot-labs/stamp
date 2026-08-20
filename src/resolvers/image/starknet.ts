@@ -2,10 +2,11 @@ import { byteArray, CallData, constants, shortString, starknetId } from 'starkne
 import { isStarkDomain, isStarknetFelt } from '../../helpers/address';
 import { untilAborted, withDeadline } from '../../helpers/deadline';
 import { httpError } from '../../helpers/errors';
-import { fetchHttpImage, fetchWithDeadline, getUrl, readBoundedImage } from '../../helpers/http';
+import { fetchHttpImage, getUrl, readBoundedImage } from '../../helpers/http';
 import { getProvider } from '../../helpers/provider';
 
 const DEFAULT_IMG_URL = 'https://starknet.id/api/identicons/0';
+const IMAGE_FETCH_BUDGET = 5e3;
 const CHAIN_ID = constants.StarknetChainId.SN_MAIN;
 const provider = getProvider(CHAIN_ID);
 
@@ -116,17 +117,26 @@ async function getImage(domainOrAddress: string): Promise<string | null> {
   }
 }
 
-function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: string }> {
-  return fetchWithDeadline(url, async response => {
-    const type = response.headers.get('content-type') ?? '';
-    if (type.toLowerCase().startsWith('application/json')) {
-      return response.json();
+async function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: string }> {
+  return withDeadline(async signal => {
+    const response = await fetch(url, { signal });
+
+    if (!response.ok) {
+      await response.body?.cancel();
+      throw httpError(new URL(url).host, response.status, response.statusText);
     }
-    if (!type.toLowerCase().startsWith('image/')) {
-      throw httpError(new URL(url).host, 404, `not an image: ${type}`);
+
+    const contentType = response.headers.get('content-type') ?? '';
+    const type = contentType.toLowerCase();
+    if (type.startsWith('application/json')) {
+      return JSON.parse(await response.text());
+    }
+    if (!type.startsWith('image/')) {
+      await response.body?.cancel();
+      throw httpError(new URL(url).host, 404, `not an image: ${contentType}`);
     }
     return readBoundedImage(url, response);
-  });
+  }, IMAGE_FETCH_BUDGET);
 }
 
 async function fetchMetadataImage(image: string): Promise<Buffer | null> {
