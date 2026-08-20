@@ -1,7 +1,7 @@
 import { ens_normalize } from '@adraffy/ens-normalize';
 import { getAddress } from '@ethersproject/address';
-import { namehash } from '@ethersproject/hash';
 import snapshot from '@snapshot-labs/snapshot.js';
+import { namehash } from 'viem/ens';
 import { EMPTY_ADDRESS, isEvmAddress } from '../../helpers/address';
 import { getUrl } from '../../helpers/http';
 import { batchContractCalls, getProvider } from '../../helpers/provider';
