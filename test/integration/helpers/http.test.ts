@@ -9,6 +9,7 @@ const CHUNK = Buffer.alloc(1024 * 1024, 'x');
 let server: http.Server;
 let url: string;
 let missingUrl: string;
+let nonImageUrl: string;
 let neverEndingUrl: string;
 let oversizedDeclaredUrl: string;
 let oversizedStreamedUrl: string;
@@ -61,6 +62,11 @@ beforeAll(async () => {
       return write();
     }
 
+    if (req.url === '/not-an-image.png') {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      return res.end('<html><body>not an image</body></html>');
+    }
+
     res.writeHead(200, { 'Content-Type': 'image/png' });
 
     if (req.url === '/image.png') return res.end(BODY);
@@ -77,6 +83,7 @@ beforeAll(async () => {
   const origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   url = `${origin}/image.png`;
   missingUrl = `${origin}/missing.png`;
+  nonImageUrl = `${origin}/not-an-image.png`;
   neverEndingUrl = `${origin}/never-ends.png`;
   oversizedDeclaredUrl = `${origin}/oversized-declared.png`;
   oversizedStreamedUrl = `${origin}/oversized-streamed.png`;
@@ -114,6 +121,13 @@ describe('fetchHttpImage', () => {
       message: expect.stringContaining('image too large')
     });
     await expect(closesWithin(1000)).resolves.toBe(true);
+  });
+
+  it('raises a routine miss rather than returning a non-image body', async () => {
+    await expect(fetchHttpImage(nonImageUrl)).rejects.toMatchObject({
+      status: 404,
+      message: expect.stringContaining('not an image: text/html; charset=utf-8')
+    });
   });
 
   it('raises a silenced abort against an upstream that never stops sending', async () => {
