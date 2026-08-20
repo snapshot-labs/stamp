@@ -12,12 +12,12 @@ import { withDeadline } from '../../helpers/deadline';
 import { getProviderOptions } from '../../helpers/provider';
 
 const rpcUrl = `${getProviderOptions().broviderUrl}/${mainnet.id}`;
-const EMPTY_REVERSE_ERRORS = new Set([
+const EMPTY_FORWARD_ERRORS = new Set([
   'ResolverNotContract',
   'ResolverNotFound',
-  'ReverseAddressMismatch',
   'UnsupportedResolverProfile'
 ]);
+const EMPTY_REVERSE_ERRORS = new Set([...EMPTY_FORWARD_ERRORS, 'ReverseAddressMismatch']);
 const TRANSIENT_GATEWAY_ERRORS = new Set(['This operation was aborted', 'HTTP request failed.']);
 
 function getRevertedError(error: unknown): ContractFunctionRevertedError | undefined {
@@ -29,6 +29,10 @@ function getRevertedError(error: unknown): ContractFunctionRevertedError | undef
 
 function isEmptyReverseError(error: unknown): boolean {
   return EMPTY_REVERSE_ERRORS.has(getRevertedError(error)?.data?.errorName || '');
+}
+
+function isEmptyForwardError(error: unknown): boolean {
+  return EMPTY_FORWARD_ERRORS.has(getRevertedError(error)?.data?.errorName || '');
 }
 
 export function isSilencedReverseError(error: unknown): boolean {
@@ -96,14 +100,16 @@ export async function reverseLookup(addresses: string[]): Promise<BatchResult> {
 }
 
 export async function forwardLookup(names: string[]): Promise<ForwardBatchResult> {
-  const settled = await Promise.allSettled(names.map(name => client.getEnsAddress({ name })));
+  const settled = await Promise.allSettled(
+    names.map(name => client.getEnsAddress({ name, strict: true }))
+  );
   const values: Record<string, string> = {};
   const errors: ForwardBatchError[] = [];
 
   settled.forEach((result, index) => {
     if (result.status === 'fulfilled') {
       if (result.value) values[names[index]] = result.value;
-    } else {
+    } else if (!isEmptyForwardError(result.reason)) {
       errors.push({ name: names[index], error: result.reason });
     }
   });
