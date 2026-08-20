@@ -20,6 +20,18 @@ beforeEach(() => {
   });
 });
 
+function incompleteJsonResponse(signal?: AbortSignal | null) {
+  return new Response(
+    new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('{"image":'));
+        signal?.addEventListener('abort', () => controller.error(signal.reason), { once: true });
+      }
+    }),
+    { headers: { 'Content-Type': 'application/json' } }
+  );
+}
+
 afterAll(() => {
   mockedFetch.mockRestore();
 });
@@ -49,6 +61,16 @@ describe('Starknet image resolver', () => {
       message: '[example.com] Not Found',
       status: 404,
       response: { status: 404 }
+    });
+  });
+
+  it('aborts an incomplete metadata body at the total deadline', async () => {
+    mockedFetch.mockImplementation(async (_url, init) =>
+      incompleteJsonResponse((init as RequestInit | undefined)?.signal)
+    );
+
+    await expect(starknet(ADDRESS)).rejects.toMatchObject({
+      name: 'AbortError'
     });
   });
 });
