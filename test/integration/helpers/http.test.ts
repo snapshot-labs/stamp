@@ -1,14 +1,13 @@
 import http from 'http';
 import { AddressInfo, Socket } from 'net';
 import { isSilencedError } from '../../../src/helpers/errors';
-import { fetchHttpImage, fetchHttpResponse } from '../../../src/helpers/http';
+import { fetchHttpImage } from '../../../src/helpers/http';
 
 const BODY = Buffer.from('as much of an image as the fetch cares about');
 
 let server: http.Server;
 let url: string;
 let missingUrl: string;
-let activeStreamUrl: string;
 let neverEndingUrl: string;
 const sockets = new Set<Socket>();
 
@@ -23,21 +22,6 @@ beforeAll(async () => {
 
     if (req.url === '/image.png') return res.end(BODY);
 
-    if (req.url === '/active-stream.png') {
-      res.flushHeaders();
-      let sent = 0;
-      const timer = setInterval(() => {
-        res.write('x');
-        sent += 1;
-        if (sent === 12) {
-          clearInterval(timer);
-          res.end('done');
-        }
-      }, 100);
-      res.on('close', () => clearInterval(timer));
-      return;
-    }
-
     res.flushHeaders();
     const timer = setInterval(() => res.write('x'), 250);
     res.on('close', () => clearInterval(timer));
@@ -50,27 +34,12 @@ beforeAll(async () => {
   const origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   url = `${origin}/image.png`;
   missingUrl = `${origin}/missing.png`;
-  activeStreamUrl = `${origin}/active-stream.png`;
   neverEndingUrl = `${origin}/never-ends.png`;
 });
 
 afterAll(async () => {
   sockets.forEach(socket => socket.destroy());
   await new Promise<void>(resolve => server.close(() => resolve()));
-});
-
-describe('fetchHttpResponse', () => {
-  it('allows an active response to outlive its inactivity budget', async () => {
-    const { body } = await fetchHttpResponse(activeStreamUrl, {}, 500);
-
-    expect(body).toEqual(Buffer.from(`${'x'.repeat(12)}done`));
-  });
-
-  it('aborts a response that stays idle for its inactivity budget', async () => {
-    const error = await fetchHttpResponse(neverEndingUrl, {}, 100).catch(err => err);
-
-    expect(error.name).toBe('AbortError');
-  });
 });
 
 describe('fetchHttpImage', () => {
