@@ -7,6 +7,7 @@ export const DEFAULT_CHAIN_ID = '1';
 export const CHAIN_IDS = Object.keys(constants.ensSubgraph);
 
 const PAGE_SIZE = 1000;
+const MAX_PAGES = 10;
 
 type Domain = {
   name: string;
@@ -46,10 +47,7 @@ async function fetchDomainNames(domains: Domain[], chainId: string): Promise<Han
           }
         }
       }`,
-      {
-        ids,
-        first: ids.length
-      }
+      { ids, first: ids.length }
     );
 
     for (const registration of data.registrations) {
@@ -70,8 +68,9 @@ async function fetchOwnedDomains(address: Address, chainId: string): Promise<Dom
   let domainsSkip = 0;
   let wrappedDomainsSkip = 0;
   let hasMore = true;
+  let page = 0;
 
-  while (hasMore) {
+  while (hasMore && page < MAX_PAGES) {
     const {
       data: {
         data: { account }
@@ -100,6 +99,7 @@ async function fetchOwnedDomains(address: Address, chainId: string): Promise<Dom
     domainsSkip += domains.length;
     wrappedDomainsSkip += wrappedDomains.length;
     hasMore = domains.length === PAGE_SIZE || wrappedDomains.length === PAGE_SIZE;
+    page++;
   }
 
   return owned;
@@ -111,8 +111,9 @@ export default async function lookupDomains(
 ): Promise<Handle[]> {
   if (!constants.ensSubgraph[chainId]) return [];
 
+  const owned = await fetchOwnedDomains(address, chainId);
   const now = (Date.now() / 1000).toFixed(0);
-  const domains = (await fetchOwnedDomains(address, chainId)).filter(
+  const domains = owned.filter(
     domain =>
       (!domain.expiryDate || domain.expiryDate === '0' || domain.expiryDate > now) &&
       !domain.name.endsWith('.addr.reverse')

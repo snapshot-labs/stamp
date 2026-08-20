@@ -56,6 +56,42 @@ describe('lookupDomains/ens', () => {
     expect(result).toContain('b0.eth');
   });
 
+  it('keeps paging while either list alone is still full', async () => {
+    mockedGraphQlCall
+      .mockResolvedValueOnce(accountResponse(namedDomains(1000, 'a'), namedDomains(2, 'w')))
+      .mockResolvedValueOnce(accountResponse(namedDomains(4, 'b')));
+
+    const result = await lookupDomains(ADDRESS);
+
+    expect(mockedGraphQlCall).toHaveBeenCalledTimes(2);
+    expect(mockedGraphQlCall.mock.calls[1][2]).toEqual(
+      expect.objectContaining({ domainsSkip: 1000, wrappedDomainsSkip: 2 })
+    );
+    expect(result).toHaveLength(1006);
+  });
+
+  it('advances each skip cumulatively across pages', async () => {
+    mockedGraphQlCall
+      .mockResolvedValueOnce(accountResponse(namedDomains(1000, 'a')))
+      .mockResolvedValueOnce(accountResponse(namedDomains(1000, 'b')))
+      .mockResolvedValueOnce(accountResponse(namedDomains(3, 'c')));
+
+    const result = await lookupDomains(ADDRESS);
+
+    expect(mockedGraphQlCall).toHaveBeenCalledTimes(3);
+    expect(mockedGraphQlCall.mock.calls.map(call => call[2].domainsSkip)).toEqual([0, 1000, 2000]);
+    expect(result).toHaveLength(2003);
+  });
+
+  it('stops requesting once the page cap is reached', async () => {
+    mockedGraphQlCall.mockResolvedValue(accountResponse(namedDomains(1000, 'a')));
+
+    const result = await lookupDomains(ADDRESS);
+
+    expect(mockedGraphQlCall).toHaveBeenCalledTimes(10);
+    expect(result).toHaveLength(10000);
+  });
+
   it('splits the registration lookup into subgraph-sized chunks', async () => {
     const domains = Array.from({ length: 1001 }, (_, index) => ({ name: `[${index}].eth` }));
     mockedGraphQlCall
