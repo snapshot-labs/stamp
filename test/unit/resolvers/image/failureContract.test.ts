@@ -62,11 +62,30 @@ const UPSTREAM_404 = Object.assign(new Error('Request failed with status code 40
 });
 
 const NOT_REPORTED = [
+  [
+    'an upstream 400',
+    Object.assign(new Error('[profile host]'), {
+      status: 400,
+      response: { status: 400 }
+    })
+  ],
+  [
+    'an axios-shaped upstream 400',
+    Object.assign(new Error('Request failed with status code 400'), {
+      response: { status: 400 }
+    })
+  ],
   ['an upstream 404', UPSTREAM_404],
   [
     'a 404 carried on the error itself',
     Object.assign(new Error('[trustwallet] Not Found'), {
       status: 404
+    })
+  ],
+  [
+    'an avatar host that no longer resolves',
+    Object.assign(new TypeError('fetch failed'), {
+      cause: { code: 'ENOTFOUND' }
     })
   ],
   [
@@ -114,6 +133,17 @@ describe('resolvers - failure contract', () => {
 
     await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
     expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('still reports an upstream 500', async () => {
+    const error = Object.assign(new Error('[profile host]'), {
+      status: 500,
+      response: { status: 500 }
+    });
+    (ens as jest.Mock).mockRejectedValue(error);
+
+    await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
+    expect(capture).toHaveBeenCalledWith(error, expect.anything());
   });
 
   it.each(RESIZED)('attributes %s bytes sharp cannot process to itself', async (name, fn) => {
