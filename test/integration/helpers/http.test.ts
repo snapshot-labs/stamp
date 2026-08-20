@@ -11,11 +11,19 @@ let missingUrl: string;
 let nonImageUrl: string;
 let mixedCaseUrl: string;
 let neverEndingUrl: string;
+let nonImageClosed!: Promise<void>;
 let resolveNonImageClosed!: () => void;
-const nonImageClosed = new Promise<void>(resolve => {
-  resolveNonImageClosed = resolve;
-});
 const sockets = new Set<Socket>();
+
+async function closesWithin(promise: Promise<void>, ms: number): Promise<boolean> {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<boolean>(resolve => {
+    timer = setTimeout(() => resolve(false), ms);
+  });
+  const closed = await Promise.race([promise.then(() => true), timeout]);
+  if (timer) clearTimeout(timer);
+  return closed;
+}
 
 beforeAll(async () => {
   server = http.createServer((req, res) => {
@@ -27,10 +35,11 @@ beforeAll(async () => {
     if (req.url === '/not-an-image.png') {
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       res.flushHeaders();
+      const closeNonImage = resolveNonImageClosed;
       const timer = setInterval(() => res.write('x'), 50);
       res.on('close', () => {
         clearInterval(timer);
-        resolveNonImageClosed();
+        closeNonImage();
       });
       return;
     }
@@ -76,11 +85,26 @@ describe('fetchHttpImage', () => {
   });
 
   it('raises a routine miss and closes a streaming non-image body', async () => {
-    await expect(fetchHttpImage(nonImageUrl)).rejects.toMatchObject({
-      status: 404,
-      message: expect.stringContaining('not an image: text/html; charset=utf-8')
+    nonImageClosed = new Promise<void>(resolve => {
+      resolveNonImageClosed = resolve;
     });
-    await expect(nonImageClosed).resolves.toBeUndefined();
+    const nativeFetch = global.fetch;
+    let response: Response | undefined;
+    const fetchSpy = jest.spyOn(global, 'fetch').mockImplementation(async (input, init) => {
+      response = await nativeFetch(input, init);
+      return response;
+    });
+
+    try {
+      await expect(fetchHttpImage(nonImageUrl)).rejects.toMatchObject({
+        status: 404,
+        message: expect.stringContaining('not an image: text/html; charset=utf-8')
+      });
+      await expect(closesWithin(nonImageClosed, 1000)).resolves.toBe(true);
+    } finally {
+      fetchSpy.mockRestore();
+      await response?.body?.cancel();
+    }
   });
 
   it('accepts a valid image media type regardless of case', async () => {
