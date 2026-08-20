@@ -1,3 +1,4 @@
+import { capture } from '@snapshot-labs/snapshot-sentry';
 import constants from '../../constants.json';
 import { graphQlCall } from '../../helpers/graphql';
 import { Address, Handle } from '../../helpers/types';
@@ -100,6 +101,12 @@ async function fetchOwnedDomains(address: Address, chainId: string): Promise<Dom
     wrappedDomainsSkip += wrappedDomains.length;
     hasMore = domains.length === PAGE_SIZE || wrappedDomains.length === PAGE_SIZE;
     page++;
+  }
+
+  if (hasMore) {
+    capture(new Error('ENS account has more domains than the page cap allows'), {
+      contexts: { input: { address, chainId, pages: page, returned: owned.length } }
+    });
   }
 
   return owned;

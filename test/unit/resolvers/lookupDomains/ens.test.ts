@@ -1,11 +1,17 @@
+import { capture } from '@snapshot-labs/snapshot-sentry';
 import { graphQlCall } from '../../../../src/helpers/graphql';
 import lookupDomains from '../../../../src/resolvers/lookupDomains/ens';
+
+jest.mock('@snapshot-labs/snapshot-sentry', () => ({
+  capture: jest.fn()
+}));
 
 jest.mock('../../../../src/helpers/graphql', () => ({
   graphQlCall: jest.fn()
 }));
 
 const mockedGraphQlCall = graphQlCall as jest.Mock;
+const mockedCapture = capture as jest.Mock;
 const ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
 
 function graphQlResponse<T>(data: T) {
@@ -23,6 +29,7 @@ function namedDomains(count: number, prefix: string) {
 describe('lookupDomains/ens', () => {
   beforeEach(() => {
     mockedGraphQlCall.mockReset();
+    mockedCapture.mockReset();
   });
 
   it('bounds both nested domain lists with an explicit page size', async () => {
@@ -90,6 +97,25 @@ describe('lookupDomains/ens', () => {
 
     expect(mockedGraphQlCall).toHaveBeenCalledTimes(10);
     expect(result).toHaveLength(10000);
+  });
+
+  it('reports the account whose names the page cap truncated', async () => {
+    mockedGraphQlCall.mockResolvedValue(accountResponse(namedDomains(1000, 'a')));
+
+    await lookupDomains(ADDRESS);
+
+    expect(mockedCapture).toHaveBeenCalledTimes(1);
+    expect(mockedCapture.mock.calls[0][1]).toEqual({
+      contexts: { input: { address: ADDRESS, chainId: '1', pages: 10, returned: 10000 } }
+    });
+  });
+
+  it('stays quiet when every name fits inside the page cap', async () => {
+    mockedGraphQlCall.mockResolvedValueOnce(accountResponse([{ name: 'plain.eth' }]));
+
+    await lookupDomains(ADDRESS);
+
+    expect(mockedCapture).not.toHaveBeenCalled();
   });
 
   it('splits the registration lookup into subgraph-sized chunks', async () => {
