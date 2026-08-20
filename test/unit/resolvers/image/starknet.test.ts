@@ -22,6 +22,7 @@ const EVM_ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
 const UNPADDED_ADDRESS = '0xa00373a00352aa367058555149b573322910d54fcdf3a926e3e56d0dcb4b0c';
 const NFT_CONTRACT = '0x123';
 const IMAGE_URL = 'https://example.com/avatar/token-12345.png';
+const IMAGE = Buffer.from('as much of an image as the fetch cares about');
 
 beforeEach(() => {
   mockCallContract.mockReset();
@@ -191,5 +192,34 @@ describe('Starknet image resolver', () => {
       message: expect.stringContaining('not an image: text/html; charset=utf-8')
     });
     expect(cancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns the bytes of an image response', async () => {
+    const fetchSpy = jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValue(new Response(IMAGE, { headers: { 'Content-Type': 'image/png' } }));
+
+    try {
+      await expect(starknet(ADDRESS)).resolves.toEqual(IMAGE);
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+
+  it('follows a JSON metadata response to its image', async () => {
+    const fetchSpy = jest.spyOn(global, 'fetch').mockImplementation(async input =>
+      String(input).endsWith('/avatar')
+        ? new Response(JSON.stringify({ image: 'https://example.com/nft.png' }), {
+            headers: { 'Content-Type': 'application/json' }
+          })
+        : new Response(IMAGE, { headers: { 'Content-Type': 'image/png' } })
+    );
+
+    try {
+      await expect(starknet(ADDRESS)).resolves.toEqual(IMAGE);
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+    } finally {
+      fetchSpy.mockRestore();
+    }
   });
 });
