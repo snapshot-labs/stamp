@@ -1,5 +1,5 @@
 import { configureToMatchImageSnapshot } from 'jest-image-snapshot';
-import client from '../src/helpers/redis';
+import { closeRedis } from '../src/helpers/redis';
 
 // Allow a tiny percentage of differing pixels to absorb anti-aliasing noise
 // across platforms / sharp versions. The matcher fails above this threshold.
@@ -15,12 +15,5 @@ jest.spyOn(console, 'log').mockImplementation(() => {});
 jest.retryTimes(3);
 
 afterAll(async () => {
-  if (client) {
-    try {
-      await client.flushDb();
-      await client.quit();
-    } catch {
-      // Ignore errors during cleanup
-    }
-  }
+  await closeRedis();
 });
