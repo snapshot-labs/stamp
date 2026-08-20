@@ -47,6 +47,16 @@ describe('graphQlCall', () => {
       expect(data.data.users).toEqual([{ id: '0x1' }]);
     });
 
+    it('returns a response prefixed by a UTF-8 BOM', async () => {
+      respondWith(
+        `${String.fromCharCode(0xfeff)}${JSON.stringify({ data: { users: [{ id: '0x1' }] } })}`
+      );
+
+      const { data } = await graphQlCall(URL, QUERY);
+
+      expect(data.data.users).toEqual([{ id: '0x1' }]);
+    });
+
     it('does not throw on a field that resolved to null', async () => {
       respondWith({ data: { account: null } });
 
