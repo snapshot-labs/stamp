@@ -66,9 +66,10 @@ describe('resolvers answer false rather than throwing when there is no data', ()
     });
 
     it('answers false when neither API has the space', async () => {
-      mockedFetch.mockResolvedValue(spaces([]));
+      mockedFetch.mockImplementation(async () => spaces([]));
 
       await expect(resolveSxAvatar(ADDRESS)).resolves.toBe(false);
+      expect(mockedFetch).toHaveBeenCalledTimes(2);
     });
 
     it('answers false when one API is down and the other has no space', async () => {
