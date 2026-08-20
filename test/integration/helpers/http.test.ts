@@ -11,6 +11,7 @@ let url: string;
 let missingUrl: string;
 let nonImageUrl: string;
 let mixedCaseUrl: string;
+let undeclaredUrl: string;
 let neverEndingUrl: string;
 let oversizedDeclaredUrl: string;
 let oversizedStreamedUrl: string;
@@ -94,6 +95,11 @@ beforeAll(async () => {
       return res.end(BODY);
     }
 
+    if (req.url === '/undeclared.png') {
+      res.writeHead(200);
+      return res.end(BODY);
+    }
+
     res.writeHead(200, { 'Content-Type': 'image/png' });
 
     if (req.url === '/image.png') return res.end(BODY);
@@ -112,6 +118,7 @@ beforeAll(async () => {
   missingUrl = `${origin}/missing.png`;
   nonImageUrl = `${origin}/not-an-image.png`;
   mixedCaseUrl = `${origin}/mixed-case.png`;
+  undeclaredUrl = `${origin}/undeclared.png`;
   neverEndingUrl = `${origin}/never-ends.png`;
   oversizedDeclaredUrl = `${origin}/oversized-declared.png`;
   oversizedStreamedUrl = `${origin}/oversized-streamed.png`;
@@ -179,6 +186,10 @@ describe('fetchHttpImage', () => {
 
   it('accepts a valid image media type regardless of case', async () => {
     await expect(fetchHttpImage(mixedCaseUrl)).resolves.toEqual(BODY);
+  });
+
+  it('returns a body that declares no media type at all', async () => {
+    await expect(fetchHttpImage(undeclaredUrl)).resolves.toEqual(BODY);
   });
 
   it('raises a silenced abort against an upstream that never stops sending', async () => {
