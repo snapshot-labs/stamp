@@ -1,14 +1,10 @@
 import axios from 'axios';
-import { isStarkDomain } from '../../helpers/address';
+import { isStarkDomain, isStarknetAddress } from '../../helpers/address';
 import { axiosDefaultParams, fetchHttpImage, getUrl } from '../../helpers/http';
 import { getProvider } from '../../helpers/provider';
 
 const DEFAULT_IMG_URL = 'https://starknet.id/api/identicons/0';
 const provider = getProvider('0x534e5f4d41494e');
-
-function normalizeAddress(address: string): string | null {
-  return /^(0x)?[0-9a-fA-F]{64}$/.test(address) ? address : null;
-}
 
 async function getStarknetAddress(domain: string): Promise<string | null> {
   const address = await provider.getAddressFromStarkName(domain);
@@ -19,7 +15,9 @@ async function getStarknetAddress(domain: string): Promise<string | null> {
 async function getImage(domainOrAddress: string): Promise<string | null> {
   const address = isStarkDomain(domainOrAddress)
     ? await getStarknetAddress(domainOrAddress)
-    : normalizeAddress(domainOrAddress);
+    : isStarknetAddress(domainOrAddress)
+      ? domainOrAddress
+      : null;
 
   if (!address) return null;
 
