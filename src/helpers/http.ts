@@ -24,7 +24,10 @@ export function fetchWithDeadline<T>(
   return withDeadline(async signal => {
     const response = await fetch(url, { signal });
 
-    if (!response.ok) throw httpError(new URL(url).host, response.status, response.statusText);
+    if (!response.ok) {
+      await response.body?.cancel();
+      throw httpError(new URL(url).host, response.status, response.statusText);
+    }
 
     return read(response);
   }, 5e3);
