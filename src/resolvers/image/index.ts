@@ -31,8 +31,13 @@ type Resolver = {
 };
 
 function isRoutineMiss(error: any): boolean {
+  const status = Number(error?.status ?? error?.response?.status);
+  const code = error?.cause?.code ?? error?.code;
+
   return (
-    error?.status === 404 || error?.response?.status === 404 || error?.code === 'INVALID_ARGUMENT'
+    (status >= 400 && status < 500) ||
+    ['ENOTFOUND', 'EAI_AGAIN', 'ECONNREFUSED'].includes(code) ||
+    error?.code === 'INVALID_ARGUMENT'
   );
 }
 
