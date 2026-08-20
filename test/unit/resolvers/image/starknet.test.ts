@@ -10,6 +10,7 @@ jest.mock('../../../../src/helpers/provider', () => ({
 import starknet from '../../../../src/resolvers/image/starknet';
 
 const ADDRESS = '0x07ff6b17f07c4d83236e3fc5f94259a19d1ed41bbcf1822397ea17882e9b038d';
+const IMAGE = Buffer.from('as much of an image as the fetch cares about');
 
 beforeEach(() => {
   mockGetStarkProfile.mockReset().mockResolvedValue({
@@ -40,6 +41,35 @@ describe('Starknet image resolver', () => {
         message: expect.stringContaining('not an image: text/html; charset=utf-8')
       });
       expect(cancel).toHaveBeenCalledTimes(1);
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+
+  it('returns the bytes of an image response', async () => {
+    const fetchSpy = jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValue(new Response(IMAGE, { headers: { 'Content-Type': 'image/png' } }));
+
+    try {
+      await expect(starknet(ADDRESS)).resolves.toEqual(IMAGE);
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+
+  it('follows a JSON metadata response to its image', async () => {
+    const fetchSpy = jest.spyOn(global, 'fetch').mockImplementation(async input =>
+      String(input).endsWith('/avatar')
+        ? new Response(JSON.stringify({ image: 'https://example.com/nft.png' }), {
+            headers: { 'Content-Type': 'application/json' }
+          })
+        : new Response(IMAGE, { headers: { 'Content-Type': 'image/png' } })
+    );
+
+    try {
+      await expect(starknet(ADDRESS)).resolves.toEqual(IMAGE);
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
     } finally {
       fetchSpy.mockRestore();
     }
