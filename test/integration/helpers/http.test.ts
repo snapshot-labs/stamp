@@ -8,6 +8,7 @@ const BODY = Buffer.from('as much of an image as the fetch cares about');
 let server: http.Server;
 let url: string;
 let missingUrl: string;
+let nonImageUrl: string;
 let neverEndingUrl: string;
 const sockets = new Set<Socket>();
 
@@ -16,6 +17,11 @@ beforeAll(async () => {
     if (req.url === '/missing.png') {
       res.writeHead(404, { 'Content-Type': 'text/html' });
       return res.end('<html><body>not found</body></html>');
+    }
+
+    if (req.url === '/not-an-image.png') {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      return res.end('<html><body>not an image</body></html>');
     }
 
     res.writeHead(200, { 'Content-Type': 'image/png' });
@@ -34,6 +40,7 @@ beforeAll(async () => {
   const origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   url = `${origin}/image.png`;
   missingUrl = `${origin}/missing.png`;
+  nonImageUrl = `${origin}/not-an-image.png`;
   neverEndingUrl = `${origin}/never-ends.png`;
 });
 
@@ -49,6 +56,13 @@ describe('fetchHttpImage', () => {
 
   it('raises rather than returning the body of a non-2xx', async () => {
     await expect(fetchHttpImage(missingUrl)).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('raises a routine miss rather than returning a non-image body', async () => {
+    await expect(fetchHttpImage(nonImageUrl)).rejects.toMatchObject({
+      status: 404,
+      message: expect.stringContaining('not an image: text/html; charset=utf-8')
+    });
   });
 
   it('raises a silenced abort against an upstream that never stops sending', async () => {
