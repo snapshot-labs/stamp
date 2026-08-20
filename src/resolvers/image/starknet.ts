@@ -1,6 +1,7 @@
 import { byteArray, CallData, constants, shortString, starknetId } from 'starknet';
 import { isStarkDomain, isStarknetFelt } from '../../helpers/address';
 import { untilAborted, withDeadline } from '../../helpers/deadline';
+import { httpError } from '../../helpers/errors';
 import { fetchHttpImage, fetchWithDeadline, getUrl, readBoundedImage } from '../../helpers/http';
 import { getProvider } from '../../helpers/provider';
 
@@ -116,11 +117,16 @@ async function getImage(domainOrAddress: string): Promise<string | null> {
 }
 
 function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: string }> {
-  return fetchWithDeadline(url, async response =>
-    response.headers.get('content-type')?.includes('application/json')
-      ? await response.json()
-      : readBoundedImage(url, response)
-  );
+  return fetchWithDeadline(url, async response => {
+    const type = response.headers.get('content-type') ?? '';
+    if (type.toLowerCase().startsWith('application/json')) {
+      return response.json();
+    }
+    if (!type.toLowerCase().startsWith('image/')) {
+      throw httpError(new URL(url).host, 404, `not an image: ${type}`);
+    }
+    return readBoundedImage(url, response);
+  });
 }
 
 async function fetchMetadataImage(image: string): Promise<Buffer | null> {

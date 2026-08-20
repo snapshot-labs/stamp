@@ -4,7 +4,8 @@ const mockCallContract = jest.fn();
 jest.mock('../../../../src/helpers/provider', () => ({
   getProvider: () => ({
     getStarkProfile: mockGetStarkProfile,
-    callContract: mockCallContract
+    callContract: mockCallContract,
+    getAddressFromStarkName: jest.fn()
   })
 }));
 
@@ -25,7 +26,7 @@ const IMAGE_URL = 'https://example.com/avatar/token-12345.png';
 beforeEach(() => {
   mockCallContract.mockReset();
   mockGetStarkProfile.mockReset().mockResolvedValue({
-    profilePicture: 'https://example.com/profile.png'
+    profilePicture: 'https://example.com/avatar'
   });
 });
 
@@ -167,5 +168,19 @@ describe('Starknet image resolver', () => {
 
     await expect(starknet(UNPADDED_ADDRESS)).rejects.toBe(error);
     expect(mockCallContract).not.toHaveBeenCalled();
+  });
+
+  it('rejects a successful response whose body is neither image nor JSON', async () => {
+    mockedFetch.mockResolvedValue(
+      new Response('<html>not an image</html>', {
+        status: 200,
+        headers: { 'Content-Type': 'text/html; charset=utf-8' }
+      })
+    );
+
+    await expect(starknet(ADDRESS)).rejects.toMatchObject({
+      status: 404,
+      message: expect.stringContaining('not an image: text/html; charset=utf-8')
+    });
   });
 });
