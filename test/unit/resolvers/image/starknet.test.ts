@@ -11,9 +11,7 @@ jest.mock('../../../../src/helpers/provider', () => ({
 
 import { MAX_IMAGE_BYTES } from '../../../../src/helpers/http';
 import starknet from '../../../../src/resolvers/image/starknet';
-import { incompleteJsonResponse, mockGlobalFetch } from '../../../helpers/fetch';
-
-const mockedFetch = mockGlobalFetch();
+import { incompleteJsonResponse } from '../../../helpers/fetch';
 
 const ADDRESS = '0x07ff6b17f07c4d83236e3fc5f94259a19d1ed41bbcf1822397ea17882e9b038d';
 const OVER_PRIME_ADDRESS = '0x2121212121212121212121212121212121212121212121212121212121212121';
@@ -29,6 +27,10 @@ beforeEach(() => {
   mockGetStarkProfile.mockReset().mockResolvedValue({
     profilePicture: 'https://example.com/avatar'
   });
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
 });
 
 describe('Starknet image resolver', () => {
@@ -67,9 +69,9 @@ describe('Starknet image resolver', () => {
   });
 
   it('rejects a non-2xx image response with its HTTP status', async () => {
-    mockedFetch.mockResolvedValue(
-      new Response('missing', { status: 404, statusText: 'Not Found' })
-    );
+    jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValue(new Response('missing', { status: 404, statusText: 'Not Found' }));
 
     await expect(starknet(ADDRESS)).rejects.toMatchObject({
       message: '[example.com] Not Found',
@@ -92,9 +94,11 @@ describe('Starknet image resolver', () => {
   });
 
   it('aborts an incomplete metadata body at the total deadline', async () => {
-    mockedFetch.mockImplementation(async (_url, init) =>
-      incompleteJsonResponse('{"image":', (init as RequestInit | undefined)?.signal)
-    );
+    jest
+      .spyOn(global, 'fetch')
+      .mockImplementation(async (_input, init) =>
+        incompleteJsonResponse('{"image":', (init as RequestInit | undefined)?.signal)
+      );
 
     await expect(starknet(ADDRESS)).rejects.toMatchObject({
       name: 'AbortError'
@@ -105,7 +109,9 @@ describe('Starknet image resolver', () => {
     mockGetStarkProfile.mockRejectedValue(
       new Error('starknetid/multicall-failed: ENTRYPOINT_NOT_FOUND')
     );
-    mockedFetch.mockResolvedValue(new Response(Buffer.from('image')));
+    const fetchSpy = jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValue(new Response(Buffer.from('image')));
     const urlFelts = [IMAGE_URL.slice(0, 31), IMAGE_URL.slice(31)].map(
       part => `0x${Buffer.from(part).toString('hex')}`
     );
@@ -117,7 +123,7 @@ describe('Starknet image resolver', () => {
       .mockResolvedValueOnce(['0x2', ...urlFelts]);
 
     await expect(starknet(UNPADDED_ADDRESS)).resolves.toBeInstanceOf(Buffer);
-    expect(mockedFetch).toHaveBeenCalledWith(IMAGE_URL, expect.anything());
+    expect(fetchSpy).toHaveBeenCalledWith(IMAGE_URL, expect.anything());
     expect(mockCallContract.mock.calls[1][0]).toEqual({
       contractAddress: expect.any(String),
       entrypoint: 'domain_to_id',
@@ -134,7 +140,9 @@ describe('Starknet image resolver', () => {
     mockGetStarkProfile.mockRejectedValue(
       new Error('starknetid/multicall-failed: ENTRYPOINT_NOT_FOUND')
     );
-    mockedFetch.mockResolvedValue(new Response(Buffer.from('image')));
+    const fetchSpy = jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValue(new Response(Buffer.from('image')));
     const fullWord = IMAGE_URL.slice(0, 31);
     const pendingWord = IMAGE_URL.slice(31);
     mockCallContract
@@ -150,7 +158,7 @@ describe('Starknet image resolver', () => {
       ]);
 
     await expect(starknet(UNPADDED_ADDRESS)).resolves.toBeInstanceOf(Buffer);
-    expect(mockedFetch).toHaveBeenCalledWith(IMAGE_URL, expect.anything());
+    expect(fetchSpy).toHaveBeenCalledWith(IMAGE_URL, expect.anything());
   });
 
   it('links a fallback failure to the original profile error', async () => {
@@ -173,8 +181,8 @@ describe('Starknet image resolver', () => {
 
   it('rejects and cancels a streaming body whose media type is neither image nor JSON', async () => {
     const cancel = jest.fn();
-    mockedFetch.mockImplementation(async (_url, init) => {
-      const signal = (init as RequestInit | undefined)?.signal;
+    jest.spyOn(global, 'fetch').mockImplementation(async (_input, init) => {
+      const signal = init?.signal;
       const body = new ReadableStream<Uint8Array>({
         start(controller) {
           controller.enqueue(Buffer.from('<html>not an image'));
@@ -195,15 +203,11 @@ describe('Starknet image resolver', () => {
   });
 
   it('returns the bytes of an image response', async () => {
-    const fetchSpy = jest
+    jest
       .spyOn(global, 'fetch')
       .mockResolvedValue(new Response(IMAGE, { headers: { 'Content-Type': 'image/png' } }));
 
-    try {
-      await expect(starknet(ADDRESS)).resolves.toEqual(IMAGE);
-    } finally {
-      fetchSpy.mockRestore();
-    }
+    await expect(starknet(ADDRESS)).resolves.toEqual(IMAGE);
   });
 
   it('follows a JSON metadata response to its image', async () => {
@@ -215,11 +219,20 @@ describe('Starknet image resolver', () => {
         : new Response(IMAGE, { headers: { 'Content-Type': 'image/png' } })
     );
 
-    try {
-      await expect(starknet(ADDRESS)).resolves.toEqual(IMAGE);
-      expect(fetchSpy).toHaveBeenCalledTimes(2);
-    } finally {
-      fetchSpy.mockRestore();
-    }
+    await expect(starknet(ADDRESS)).resolves.toEqual(IMAGE);
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('raises the status of a non-2xx JSON response instead of reading it as metadata', async () => {
+    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ image: 'https://example.com/nft.png' }), {
+        status: 504,
+        statusText: 'Gateway Timeout',
+        headers: { 'Content-Type': 'application/json' }
+      })
+    );
+
+    await expect(starknet(ADDRESS)).rejects.toMatchObject({ status: 504 });
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 });

@@ -35,13 +35,16 @@ function streamForever(res: http.ServerResponse, resolveClosed: () => void) {
 }
 
 async function closesWithin(promise: Promise<void>, ms: number): Promise<boolean> {
-  let timer: NodeJS.Timeout | undefined;
-  const timeout = new Promise<boolean>(resolve => {
+  let timer!: NodeJS.Timeout;
+  const timedOut = new Promise<boolean>(resolve => {
     timer = setTimeout(() => resolve(false), ms);
   });
-  const closed = await Promise.race([promise.then(() => true), timeout]);
-  if (timer) clearTimeout(timer);
-  return closed;
+
+  try {
+    return await Promise.race([promise.then(() => true), timedOut]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 beforeAll(async () => {
@@ -157,43 +160,21 @@ describe('fetchHttpImage', () => {
     nonImageClosed = new Promise<void>(resolve => {
       resolveNonImageClosed = resolve;
     });
-    const nativeFetch = global.fetch;
-    let response: Response | undefined;
-    const fetchSpy = jest.spyOn(global, 'fetch').mockImplementation(async (input, init) => {
-      response = await nativeFetch(input, init);
-      return response;
-    });
 
-    try {
-      await expect(fetchHttpImage(nonImageUrl)).rejects.toMatchObject({
-        status: 404,
-        message: expect.stringContaining('not an image: text/html; charset=utf-8')
-      });
-      await expect(closesWithin(nonImageClosed, 1000)).resolves.toBe(true);
-    } finally {
-      fetchSpy.mockRestore();
-      await response?.body?.cancel();
-    }
+    await expect(fetchHttpImage(nonImageUrl)).rejects.toMatchObject({
+      status: 404,
+      message: expect.stringContaining('not an image: text/html; charset=utf-8')
+    });
+    await expect(closesWithin(nonImageClosed, 1000)).resolves.toBe(true);
   });
 
   it('closes a streaming non-2xx body', async () => {
     slowErrorClosed = new Promise<void>(resolve => {
       resolveSlowErrorClosed = resolve;
     });
-    const nativeFetch = global.fetch;
-    let response: Response | undefined;
-    const fetchSpy = jest.spyOn(global, 'fetch').mockImplementation(async (input, init) => {
-      response = await nativeFetch(input, init);
-      return response;
-    });
 
-    try {
-      await expect(fetchHttpImage(slowErrorUrl)).rejects.toMatchObject({ status: 504 });
-      await expect(closesWithin(slowErrorClosed, 1000)).resolves.toBe(true);
-    } finally {
-      fetchSpy.mockRestore();
-      await response?.body?.cancel();
-    }
+    await expect(fetchHttpImage(slowErrorUrl)).rejects.toMatchObject({ status: 504 });
+    await expect(closesWithin(slowErrorClosed, 1000)).resolves.toBe(true);
   });
 
   it('accepts a valid image media type regardless of case', async () => {
