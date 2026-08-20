@@ -6,14 +6,14 @@ import { getProviderOptions } from '../../helpers/provider';
 import { lookupAddresses } from '../address';
 
 async function castToEnsName(nameOrAddress: string): Promise<string | undefined> {
-  if (isAddress(nameOrAddress)) {
-    return (await lookupAddresses([nameOrAddress]))[nameOrAddress];
-  }
+  const name = isAddress(nameOrAddress)
+    ? (await lookupAddresses([nameOrAddress]))[nameOrAddress]
+    : nameOrAddress;
 
-  if (!nameOrAddress.includes('.')) return undefined;
+  if (!name?.includes('.')) return undefined;
 
   try {
-    return ens_normalize(nameOrAddress);
+    return ens_normalize(name);
   } catch {
     return undefined;
   }
