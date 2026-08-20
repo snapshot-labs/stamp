@@ -1,10 +1,12 @@
 import snapshot from '@snapshot-labs/snapshot.js';
 import { fetchHttpImage } from '../../../../src/helpers/http';
+import { lookupAddresses } from '../../../../src/resolvers/address';
 import resolve from '../../../../src/resolvers/image/ens';
 
 jest.mock('../../../../src/helpers/http', () => ({ fetchHttpImage: jest.fn() }));
 jest.mock('../../../../src/resolvers/address', () => ({ lookupAddresses: jest.fn() }));
 
+const EVM_ADDRESS = '0x0000000000000000000000000000000000000001';
 const STARKNET_ADDRESS = '0x0779ba6e4e227947acbbdfb978a292c401339027eeb3d768f5d12cd2e818265a';
 const INVALID_NAMES = [STARKNET_ADDRESS, 'nodot', 'a..b', '../avatar/vitalik.eth'];
 const VALID_NAMES = [
@@ -24,12 +26,14 @@ jest.mock('viem', () => {
 });
 
 const mockedFetchHttpImage = jest.mocked(fetchHttpImage);
+const mockedLookupAddresses = jest.mocked(lookupAddresses);
 const originalBroviderUrl = process.env.BROVIDER_URL;
 
 beforeEach(() => {
   process.env.BROVIDER_URL = 'https://custom.rpc';
   mockTransportRequest.mockReset();
   mockedFetchHttpImage.mockReset();
+  mockedLookupAddresses.mockReset();
 });
 
 afterEach(() => {
@@ -58,6 +62,35 @@ describe('resolvers/image/ens', () => {
       broviderUrl: 'https://custom.rpc',
       timeout: 5e3
     });
+  });
+
+  it.each(['Kamruzzaman', 'a..b'])('rejects an invalid reverse result %s', async reverseName => {
+    mockedLookupAddresses.mockResolvedValue({ [EVM_ADDRESS]: reverseName });
+    const getEnsTextRecord = jest.spyOn(snapshot.utils, 'getEnsTextRecord').mockResolvedValue(null);
+
+    await expect(resolve(EVM_ADDRESS)).resolves.toBe(false);
+
+    expect(mockedLookupAddresses).toHaveBeenCalledWith([EVM_ADDRESS]);
+    expect(getEnsTextRecord).not.toHaveBeenCalled();
+    expect(mockTransportRequest).not.toHaveBeenCalled();
+    expect(mockedFetchHttpImage).not.toHaveBeenCalled();
+  });
+
+  it('normalizes a valid reverse result before lookup and fallback', async () => {
+    mockedLookupAddresses.mockResolvedValue({ [EVM_ADDRESS]: 'VITALIK.eth' });
+    const getEnsTextRecord = jest.spyOn(snapshot.utils, 'getEnsTextRecord').mockResolvedValue(null);
+    const image = Buffer.from('avatar');
+    mockedFetchHttpImage.mockResolvedValue(image);
+
+    await expect(resolve(EVM_ADDRESS)).resolves.toBe(image);
+
+    expect(getEnsTextRecord).toHaveBeenCalledWith('vitalik.eth', 'avatar', '1', {
+      broviderUrl: 'https://custom.rpc',
+      timeout: 5e3
+    });
+    expect(mockedFetchHttpImage).toHaveBeenCalledWith(
+      'https://metadata.ens.domains/mainnet/avatar/vitalik.eth'
+    );
   });
 
   it('uses a direct HTTP avatar record', async () => {
