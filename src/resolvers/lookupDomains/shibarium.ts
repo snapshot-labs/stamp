@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 import constants from '../../constants.json';
 import { withDeadline } from '../../helpers/deadline';
 import { Address, Handle } from '../../helpers/types';

@@ -1,24 +1,21 @@
-import axios from 'axios';
+import { isSilencedError } from '../../../src/helpers/errors';
 import { fetchHttpImage } from '../../../src/helpers/http';
-import { lookupAddresses as lensLookupAddresses } from '../../../src/resolvers/address/lens';
+import {
+  MUTED_ERRORS as LENS_MUTED_ERRORS,
+  lookupAddresses as lensLookupAddresses
+} from '../../../src/resolvers/address/lens';
 import lensResolve from '../../../src/resolvers/image/lens';
 import { resolveSpaceAvatar, resolveUserAvatar } from '../../../src/resolvers/image/snapshot';
 import { resolveAvatar as resolveSxSpaceAvatar } from '../../../src/resolvers/image/space-sx';
 import ensLookupDomains from '../../../src/resolvers/lookupDomains/ens';
-
-jest.mock('axios', () => {
-  const mock: any = jest.fn();
-  mock.get = jest.fn();
-  mock.post = jest.fn();
-  return { __esModule: true, default: mock };
-});
+import { jsonResponse, mockGlobalFetch } from '../../helpers/fetch';
 
 jest.mock('../../../src/helpers/http', () => ({
   ...jest.requireActual('../../../src/helpers/http'),
   fetchHttpImage: jest.fn()
 }));
 
-const mockedAxios = axios as unknown as jest.Mock;
+const mockedFetch = mockGlobalFetch();
 
 const ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
 const IMAGE_URL = 'https://example.com/avatar.png';
@@ -26,7 +23,7 @@ const IMAGE_URL = 'https://example.com/avatar.png';
 const ENS_SUBGRAPH = '[subgrapher.snapshot.org]';
 
 function respondWith(body: any, status = 200) {
-  mockedAxios.mockResolvedValue({ status, data: body });
+  mockedFetch.mockResolvedValue(jsonResponse(body, status));
 }
 
 function upstreamFailure(message: string, data: any = null) {
@@ -41,6 +38,14 @@ describe('graphQlCall callers surface an envelope failure', () => {
       await expect(lensLookupAddresses([ADDRESS])).rejects.toThrow(
         '[api.lens.xyz] Rate limit exceeded'
       );
+    });
+
+    it('phrases an upstream outage the way MUTED_ERRORS matches', async () => {
+      respondWith('Service Unavailable', 503);
+
+      const error = await lensLookupAddresses([ADDRESS]).catch(err => err);
+
+      expect(isSilencedError(error, LENS_MUTED_ERRORS)).toBe(true);
     });
   });
 
@@ -66,9 +71,9 @@ describe('graphQlCall callers surface an envelope failure', () => {
     };
 
     function answerWith(second: any) {
-      mockedAxios
-        .mockResolvedValueOnce({ status: 200, data: hashedDomain })
-        .mockResolvedValueOnce({ status: 200, data: second });
+      mockedFetch
+        .mockResolvedValueOnce(jsonResponse(hashedDomain))
+        .mockResolvedValueOnce(jsonResponse(second));
     }
 
     it('decodes the label when the subgraph answers', async () => {
@@ -116,13 +121,16 @@ describe('graphQlCall callers surface an envelope failure', () => {
 
   describe('src/resolvers/image/space-sx.ts - spaces', () => {
     it('does not use a payload the upstream flagged as an error', async () => {
-      respondWith(
-        upstreamFailure('subgraph is down', { spaces: [{ metadata: { avatar: IMAGE_URL } }] })
+      mockedFetch.mockImplementation(async () =>
+        jsonResponse(
+          upstreamFailure('subgraph is down', { spaces: [{ metadata: { avatar: IMAGE_URL } }] })
+        )
       );
 
       await expect(resolveSxSpaceAvatar(ADDRESS)).rejects.toThrow(
         '[api.snapshot.box] subgraph is down'
       );
+      expect(mockedFetch).toHaveBeenCalledTimes(2);
       expect(fetchHttpImage).not.toHaveBeenCalled();
     });
   });

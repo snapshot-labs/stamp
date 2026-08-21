@@ -1,5 +1,3 @@
-import axios from 'axios';
-import nodeFetch from 'node-fetch';
 import farcaster from '../../../../src/resolvers/image/farcaster';
 import lens from '../../../../src/resolvers/image/lens';
 import {
@@ -9,17 +7,18 @@ import {
 } from '../../../../src/resolvers/image/snapshot';
 import { resolveAvatar as resolveSxAvatar } from '../../../../src/resolvers/image/space-sx';
 import starknet from '../../../../src/resolvers/image/starknet';
-
-jest.mock('axios', () => ({ __esModule: true, default: jest.fn() }));
-jest.mock('node-fetch', () => ({ __esModule: true, default: jest.fn() }));
+import { jsonResponse, mockGlobalFetch } from '../../../helpers/fetch';
 
 jest.mock('../../../../src/helpers/http', () => ({
   ...jest.requireActual('../../../../src/helpers/http'),
   fetchHttpImage: jest.fn()
 }));
 
-const mockedAxios = axios as unknown as jest.Mock;
-const mockedFetch = nodeFetch as unknown as jest.Mock;
+const mockedFetch = mockGlobalFetch();
+
+beforeEach(() => {
+  mockedFetch.mockReset();
+});
 
 // coingecko reads its key at module load and answers false without one, so the
 // module has to be loaded with the key already set to reach the response at all.
@@ -39,8 +38,12 @@ const STARKNET_ADDRESS = '0x07ff6b17f07c4d83236e3fc5f94259a19d1ed41bbcf1822397ea
 const UNPADDED_STARKNET_ADDRESS = `0x${STARKNET_ADDRESS.slice(3)}`;
 const NOT_AN_ADDRESS = '0x00006ba9855965EeEc09B5D43B113944c27F45aD3Ce';
 
-const entry = (found: any) => ({ status: 200, data: { data: { entry: found } } });
-const spaces = (found: any[]) => ({ status: 200, data: { data: { spaces: found } } });
+const graphQlResponse = (data: Record<string, any>) => jsonResponse({ data });
+
+const entry = (found: any) => graphQlResponse({ entry: found });
+const spaces = (found: any[]) => graphQlResponse({ spaces: found });
+
+const sentVariables = () => JSON.parse(mockedFetch.mock.calls[0][1].body).variables;
 
 describe('resolvers answer false rather than throwing when there is no data', () => {
   describe('starknet', () => {
@@ -52,17 +55,18 @@ describe('resolvers answer false rather than throwing when there is no data', ()
   describe('space-sx', () => {
     it('answers false for an id that is not an address, without asking', async () => {
       await expect(resolveSxAvatar(NOT_AN_ADDRESS)).resolves.toBe(false);
-      expect(mockedAxios).not.toHaveBeenCalled();
+      expect(mockedFetch).not.toHaveBeenCalled();
     });
 
     it('answers false when neither API has the space', async () => {
-      mockedAxios.mockResolvedValue(spaces([]));
+      mockedFetch.mockImplementation(async () => spaces([]));
 
       await expect(resolveSxAvatar(ADDRESS)).resolves.toBe(false);
+      expect(mockedFetch).toHaveBeenCalledTimes(2);
     });
 
     it('answers false when one API is down and the other has no space', async () => {
-      mockedAxios
+      mockedFetch
         .mockRejectedValueOnce(new Error('mainnet is down'))
         .mockResolvedValueOnce(spaces([]));
 
@@ -70,7 +74,7 @@ describe('resolvers answer false rather than throwing when there is no data', ()
     });
 
     it('rejects when every API is down', async () => {
-      mockedAxios.mockRejectedValue(new Error('everything is down'));
+      mockedFetch.mockRejectedValue(new Error('everything is down'));
 
       await expect(resolveSxAvatar(ADDRESS)).rejects.toThrow('everything is down');
     });
@@ -81,7 +85,7 @@ describe('resolvers answer false rather than throwing when there is no data', ()
       'answers false for invalid user id %s without asking',
       async id => {
         await expect(resolveUserAvatar(id)).resolves.toBe(false);
-        expect(mockedAxios).not.toHaveBeenCalled();
+        expect(mockedFetch).not.toHaveBeenCalled();
       }
     );
 
@@ -90,46 +94,42 @@ describe('resolvers answer false rather than throwing when there is no data', ()
       ['Starknet', ` ${STARKNET_ADDRESS} `, STARKNET_ADDRESS],
       ['unpadded Starknet', ` ${UNPADDED_STARKNET_ADDRESS} `, UNPADDED_STARKNET_ADDRESS]
     ])('normalizes a valid %s user id', async (_type, id, expected) => {
-      mockedAxios.mockResolvedValue(entry({ avatar: null }));
+      mockedFetch.mockResolvedValue(entry({ avatar: null }));
 
       await expect(resolveUserAvatar(id)).resolves.toBe(false);
-      expect(mockedAxios).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ variables: { id: expected } }) })
-      );
+      expect(sentVariables()).toEqual({ id: expected });
     });
 
     it.each([
       ['slug', 'ens.eth', 'ens.eth'],
       ['EVM address', ADDRESS.toLowerCase(), ADDRESS]
     ])('preserves an offchain space %s', async (_type, id, expected) => {
-      mockedAxios.mockResolvedValue(entry({ avatar: null }));
+      mockedFetch.mockResolvedValue(entry({ avatar: null }));
 
       await expect(resolveSpaceAvatar(id, 1, 's')).resolves.toBe(false);
-      expect(mockedAxios).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ variables: { id: expected } }) })
-      );
+      expect(sentVariables()).toEqual({ id: expected });
     });
 
     it('answers false for a space id that is not an address, without asking', async () => {
       await expect(resolveSpaceAvatar('ens.eth', 1, 'eth')).resolves.toBe(false);
-      expect(mockedAxios).not.toHaveBeenCalled();
+      expect(mockedFetch).not.toHaveBeenCalled();
     });
 
     it('answers false for an onchain logo instead of asking for a field that is not there', async () => {
       await expect(resolveSpaceLogo(ADDRESS, 1, 'eth')).resolves.toBe(false);
-      expect(mockedAxios).not.toHaveBeenCalled();
+      expect(mockedFetch).not.toHaveBeenCalled();
     });
   });
 
   describe('lens', () => {
     it('answers false for an empty local name, without asking', async () => {
       await expect(lens('.lens')).resolves.toBe(false);
-      expect(mockedAxios).not.toHaveBeenCalled();
+      expect(mockedFetch).not.toHaveBeenCalled();
     });
 
     it('answers false for a local name longer than the API parses, without asking', async () => {
       await expect(lens(`${'a'.repeat(255)}.lens`)).resolves.toBe(false);
-      expect(mockedAxios).not.toHaveBeenCalled();
+      expect(mockedFetch).not.toHaveBeenCalled();
     });
 
     it('counts what the API counts, which is bytes and not characters', async () => {
@@ -138,54 +138,46 @@ describe('resolvers answer false rather than throwing when there is no data', ()
       expect(Buffer.byteLength(localName)).toBe(255);
 
       await expect(lens(`${localName}.lens`)).resolves.toBe(false);
-      expect(mockedAxios).not.toHaveBeenCalled();
+      expect(mockedFetch).not.toHaveBeenCalled();
     });
 
     it('still asks for the longest local name the API parses', async () => {
-      mockedAxios.mockResolvedValue({ status: 200, data: { data: { account: null } } });
+      mockedFetch.mockResolvedValue(graphQlResponse({ account: null }));
 
       await expect(lens(`${'a'.repeat(254)}.lens`)).resolves.toBe(false);
-      expect(mockedAxios).toHaveBeenCalledTimes(1);
+      expect(mockedFetch).toHaveBeenCalledTimes(1);
     });
 
     it('queries the text before the last .lens, not the text before the first one', async () => {
-      mockedAxios.mockResolvedValue({ status: 200, data: { data: { account: null } } });
+      mockedFetch.mockResolvedValue(graphQlResponse({ account: null }));
 
       await lens('a.lensb.lens');
 
-      expect(mockedAxios.mock.calls[0][0].data.variables.request.username.localName).toBe(
-        'a.lensb'
-      );
+      expect(sentVariables().request.username.localName).toBe('a.lensb');
     });
   });
 
   describe('coingecko', () => {
     const apiKey = process.env.COINGECKO_API_KEY;
-    const globalFetch = global.fetch;
 
     afterEach(() => {
       process.env.COINGECKO_API_KEY = apiKey;
-      global.fetch = globalFetch;
     });
 
-    const respondWith = (response: any) => {
-      global.fetch = jest.fn().mockResolvedValue(response) as any;
-    };
-
     it('answers false for a token the API does not have', async () => {
-      respondWith({ ok: false, status: 404 });
+      mockedFetch.mockResolvedValue({ ok: false, status: 404 });
 
       await expect(loadCoingecko()(ADDRESS, '1')).resolves.toBe(false);
     });
 
     it('answers false for a token the API has no image for', async () => {
-      respondWith({ ok: true, status: 200, json: async () => ({ image: {} }) });
+      mockedFetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({ image: {} }) });
 
       await expect(loadCoingecko()(ADDRESS, '1')).resolves.toBe(false);
     });
 
     it('rejects on any other non-2xx, carrying the status', async () => {
-      respondWith({ ok: false, status: 401, statusText: 'Unauthorized' });
+      mockedFetch.mockResolvedValue({ ok: false, status: 401, statusText: 'Unauthorized' });
 
       await expect(loadCoingecko()(ADDRESS, '1')).rejects.toMatchObject({ status: 401 });
     });

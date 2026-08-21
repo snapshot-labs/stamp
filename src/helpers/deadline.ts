@@ -1,5 +1,7 @@
 const UPSTREAM_TIMEOUT = 10000;
 
+export const FETCH_BUDGET = 5e3;
+
 // `isSilencedError` reads the error name, and the two ways to abort raise
 // different ones: `AbortController` gives `AbortError`, `AbortSignal.timeout`
 // gives `TimeoutError`.
@@ -14,6 +16,7 @@ export async function withDeadline<T>(
     return await fn(controller.signal);
   } finally {
     clearTimeout(timeout);
+    controller.abort();
   }
 }
 

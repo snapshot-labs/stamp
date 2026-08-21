@@ -28,9 +28,7 @@ async function fetchDomainNames(domains: Domain[], chainId: string): Promise<Han
 
   if (!hashes.length) return domains.map(domain => domain.name);
 
-  const {
-    data: { data }
-  } = await graphQlCall<{ registrations: Registration[] }>(
+  const { data } = await graphQlCall<{ registrations: Registration[] }>(
     constants.ensSubgraph[chainId],
     `query Registrations($ids: [String!]!, $first: Int!) {
       registrations(first: $first, where: { id_in: $ids }) {
@@ -64,9 +62,7 @@ export default async function lookupDomains(
   if (!constants.ensSubgraph[chainId]) return [];
 
   const {
-    data: {
-      data: { account }
-    }
+    data: { account }
   } = await graphQlCall(
     constants.ensSubgraph[chainId],
     `query Domain($id: String!) {

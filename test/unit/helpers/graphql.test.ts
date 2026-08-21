@@ -1,21 +1,14 @@
-import axios from 'axios';
 import { isSilencedError } from '../../../src/helpers/errors';
 import { graphQlCall } from '../../../src/helpers/graphql';
+import { incompleteJsonResponse, jsonResponse, mockGlobalFetch } from '../../helpers/fetch';
 
-jest.mock('axios', () => {
-  const mock: any = jest.fn();
-  mock.get = jest.fn();
-  mock.post = jest.fn();
-  return { __esModule: true, default: mock };
-});
-
-const mockedAxios = axios as unknown as jest.Mock;
+const mockedFetch = mockGlobalFetch();
 
 const URL = 'https://hub.snapshot.org/graphql';
 const QUERY = 'query users { users { id } }';
 
 function respondWith(body: any, status = 200) {
-  mockedAxios.mockResolvedValue({ status, data: body });
+  mockedFetch.mockResolvedValue(jsonResponse(body, status));
 }
 
 async function errorFrom(body: any, status = 200) {
@@ -35,17 +28,44 @@ describe('graphQlCall', () => {
     it('returns the response', async () => {
       respondWith({ data: { users: [{ id: '0x1' }] } });
 
-      const { data } = await graphQlCall(URL, QUERY);
+      const body = await graphQlCall(URL, QUERY);
 
-      expect(data.data.users).toEqual([{ id: '0x1' }]);
+      expect(body.data.users).toEqual([{ id: '0x1' }]);
+    });
+
+    it('returns a response prefixed by a UTF-8 BOM', async () => {
+      respondWith(`\uFEFF${JSON.stringify({ data: { users: [{ id: '0x1' }] } })}`);
+
+      const body = await graphQlCall(URL, QUERY);
+
+      expect(body.data.users).toEqual([{ id: '0x1' }]);
+    });
+
+    it('still rejects when the upstream answers a non-2xx', async () => {
+      respondWith({ data: { users: [] } }, 500);
+
+      await expect(graphQlCall(URL, QUERY)).rejects.toMatchObject({
+        message: '[hub.snapshot.org] status code 500: Upstream Error',
+        status: 500
+      });
     });
 
     it('does not throw on a field that resolved to null', async () => {
       respondWith({ data: { account: null } });
 
-      const { data } = await graphQlCall(URL, QUERY);
+      const body = await graphQlCall(URL, QUERY);
 
-      expect(data.data.account).toBeNull();
+      expect(body.data.account).toBeNull();
+    });
+  });
+
+  it('aborts an incomplete response body at the total deadline', async () => {
+    mockedFetch.mockImplementation(async (_url, init) =>
+      incompleteJsonResponse('{"data":', (init as RequestInit | undefined)?.signal)
+    );
+
+    await expect(graphQlCall(URL, QUERY)).rejects.toMatchObject({
+      name: 'AbortError'
     });
   });
 
@@ -76,12 +96,24 @@ describe('graphQlCall', () => {
     it.each<[string, any]>([
       ['no data key at all', { errors: [{ message: 'boom' }] }],
       ['a null data envelope', { data: null }],
-      ['an empty body', {}],
-      ['a body that is not a GraphQL response', 'Bad Gateway']
+      ['an empty body', {}]
     ])('throws on %s', async (_, body) => {
       const err = await errorFrom(body);
 
       expect(err.message).toMatch(/^\[hub\.snapshot\.org\] /);
+    });
+
+    it.each([
+      ['an empty 204 response', undefined, 204],
+      ['a malformed 200 response', 'Bad Gateway', 200]
+    ])('attributes %s to its upstream', async (_, body, status) => {
+      const err = await errorFrom(body, status);
+
+      expect(err).toMatchObject({
+        message: '[hub.snapshot.org] GraphQL response has no data envelope',
+        status,
+        response: { status }
+      });
     });
 
     it('names the failure when there is no upstream message to quote', async () => {
@@ -100,11 +132,11 @@ describe('graphQlCall', () => {
   });
 
   describe('the thrown error', () => {
-    it('carries the http status in both places isSilencedError reads', async () => {
+    it('carries the HTTP status', async () => {
       const err = await errorFrom({ errors: [{ message: 'boom' }], data: null }, 429);
 
       expect(err.status).toBe(429);
-      expect(err.response.status).toBe(429);
+      expect(err.response).toEqual({ status: 429 });
     });
 
     it.each([429, 504])('is silenced on a %i', async status => {

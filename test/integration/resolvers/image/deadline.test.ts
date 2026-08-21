@@ -6,16 +6,6 @@ const ADDRESS = '0x91fd2c8d24767db4ece7069aa27832ffaf8590f3';
 
 type Stall = 'headers' | 'body';
 
-// Both resolvers hold their upstream as a module constant, so the only place a
-// server that never answers can be substituted is the transport.
-let mockHangingUrl: string;
-
-jest.mock('node-fetch', () => {
-  const actual = jest.requireActual('node-fetch');
-
-  return jest.fn((_url: string, init: unknown) => actual(mockHangingUrl, init));
-});
-
 let server: http.Server;
 const sockets = new Set<Socket>();
 let stall: Stall;
@@ -38,7 +28,7 @@ beforeAll(async () => {
   });
   server.on('connection', socket => sockets.add(socket));
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', () => resolve()));
-  mockHangingUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}/`;
+  const mockHangingUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}/`;
 
   const realFetch = global.fetch;
   jest.spyOn(global, 'fetch').mockImplementation((_url, init) => realFetch(mockHangingUrl, init));
@@ -63,13 +53,10 @@ afterAll(async () => {
 // Reaching into the timer would abort the signal even where the code under test
 // had already cleared it, which is exactly the case these need to be able to
 // fail on.
-// Both raise the abort rather than answering: neither discards its own errors,
-// and withFailureContract in the resolver map is what turns it into a false for
-// the caller.
 //
 // The body case is the one that needs the deadline to cover more than the
-// request: both transports hand back a response as soon as the headers land, so
-// a 200 whose body then stops is the shape that outlives a budget ending at the
+// request: a response settles for the caller as soon as the headers land, so a
+// 200 whose body then stops is the shape that outlives a budget ending at the
 // request.
 describe('resolvers, against an upstream that never finishes answering', () => {
   describe.each([

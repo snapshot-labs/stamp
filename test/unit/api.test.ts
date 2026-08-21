@@ -20,17 +20,43 @@ jest.mock('../../src/resolvers/getOwner', () => ({
 
 const ADDRESS = '0xE6D0Dd18C6C3a9Af8C2FaB57d6e6A38E29d513cC';
 const app = createTestApp();
+const originalFetch = global.fetch;
 
 function lookupDomains() {
   return request(app).post('/').send({ method: 'lookup_domains', params: ADDRESS, network: '1' });
 }
+
+afterEach(() => {
+  global.fetch = originalFetch;
+});
+
+describe('GET /space-cover/:id', () => {
+  it('returns the fallback when the configured cover is missing', async () => {
+    (graphQlCall as jest.Mock).mockResolvedValue({
+      data: { entry: { cover: 'https://example.com/missing.png' } }
+    });
+    global.fetch = jest.fn().mockResolvedValue(
+      new Response('<html>not found</html>', {
+        status: 404,
+        statusText: 'Not Found'
+      })
+    ) as unknown as typeof global.fetch;
+
+    const response = await request(app).get(`/space-cover/${ADDRESS}`);
+
+    expect(response.status).toBe(200);
+    expect(response.headers['content-type']).toMatch(/^image\/webp/);
+    expect(response.headers['cache-control']).toBe('public, max-age=3600');
+    expect(response.body.length).toBeGreaterThan(0);
+  });
+});
 
 describe('POST /', () => {
   describe('on lookup_domains', () => {
     describe('when a resolver fails', () => {
       it('captures the resolver error only once', async () => {
         (graphQlCall as jest.Mock).mockRejectedValue(
-          new Error('Request failed with status code 500')
+          new Error('[hub.snapshot.org] status code 500: Internal Server Error')
         );
 
         const response = await lookupDomains();
@@ -38,7 +64,9 @@ describe('POST /', () => {
         expect(response.status).toBe(200);
         expect(capture).toHaveBeenCalledTimes(1);
         expect(capture).toHaveBeenCalledWith(
-          expect.objectContaining({ message: 'Request failed with status code 500' }),
+          expect.objectContaining({
+            message: '[hub.snapshot.org] status code 500: Internal Server Error'
+          }),
           expect.anything()
         );
       });
@@ -47,7 +75,10 @@ describe('POST /', () => {
     describe('when a resolver fails with a silenced error', () => {
       it('does not capture anything', async () => {
         (graphQlCall as jest.Mock).mockRejectedValue(
-          new Error('Request failed with status=504, no body')
+          Object.assign(new Error('[hub.snapshot.org] status code 504: Gateway Timeout'), {
+            status: 504,
+            response: { status: 504 }
+          })
         );
 
         const response = await lookupDomains();

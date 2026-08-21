@@ -1,5 +1,4 @@
 import { getAddress } from '@ethersproject/address';
-import fetch from 'node-fetch';
 import { max } from '../../constants.json';
 import { withDeadline } from '../../helpers/deadline';
 import { httpError } from '../../helpers/errors';
@@ -27,9 +26,6 @@ function normalizeAddress(address: Address): Address | null {
   }
 }
 
-// The body read is inside the deadline, not just the request: node-fetch hands
-// back a response as soon as the headers land, so a budget ending at the request
-// would leave a stalled body unbounded.
 async function fetchAddressImageUrl(normalizedAddress: string): Promise<string | null> {
   return withDeadline(async signal => {
     const response = await fetch(`${NEYNAR_API_URL}?addresses=${normalizedAddress}`, {

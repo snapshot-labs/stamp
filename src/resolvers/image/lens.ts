@@ -36,9 +36,7 @@ export default async function resolve(domainOrAddress: string) {
   }
 
   const {
-    data: {
-      data: { account }
-    }
+    data: { account }
   } = await graphQlCall(
     `${API_URL}/graphql`,
     `query Account($request: AccountRequest!) {

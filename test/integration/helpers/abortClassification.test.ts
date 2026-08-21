@@ -1,5 +1,4 @@
 import http from 'http';
-import nodeFetch from 'node-fetch';
 import { isSilencedError } from '../../../src/helpers/errors';
 
 let server: http.Server;
@@ -7,7 +6,9 @@ let url: string;
 const sockets = new Set<any>();
 
 beforeAll(async () => {
-  server = http.createServer(() => {
+  server = http.createServer(req => {
+    if (req.url === '/reset') return req.socket.destroy();
+
     // Accepts the connection and never answers, so the abort is what ends the request.
   });
   server.on('connection', socket => {
@@ -23,41 +24,26 @@ afterAll(async () => {
   await new Promise<void>(resolve => server.close(() => resolve()));
 });
 
-async function abortAgainstAHangingServer(request: (u: string, init: any) => Promise<unknown>) {
-  const controller = new AbortController();
-  setTimeout(() => controller.abort(), 100);
-
-  try {
-    await request(url, { signal: controller.signal });
-  } catch (err: any) {
-    return err;
-  }
-
-  return undefined;
-}
-
 describe('isSilencedError, on a request we aborted ourselves', () => {
-  it('silences an abort raised by node-fetch', async () => {
-    const error = await abortAgainstAHangingServer(nodeFetch as any);
+  it('silences an abort raised by fetch', async () => {
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 100);
 
-    expect(error).toBeDefined();
+    const error = await fetch(url, { signal: controller.signal }).catch(err => err);
+
     expect(error.name).toBe('AbortError');
     expect(isSilencedError(error)).toBe(true);
   });
+});
 
-  it('silences an abort raised by the global fetch', async () => {
-    const error = await abortAgainstAHangingServer(fetch as any);
+describe('isSilencedError, on a peer reset', () => {
+  it('silences the native fetch socket error', async () => {
+    const error = await fetch(`${url}reset`, { method: 'POST' }).catch(err => err);
 
-    expect(error).toBeDefined();
-    expect(error.name).toBe('AbortError');
+    expect(error).toMatchObject({
+      name: 'TypeError',
+      cause: { code: 'UND_ERR_SOCKET' }
+    });
     expect(isSilencedError(error)).toBe(true);
-  });
-
-  it('matches on the name because the two transports word the message differently', async () => {
-    const viaNodeFetch = await abortAgainstAHangingServer(nodeFetch as any);
-    const viaGlobalFetch = await abortAgainstAHangingServer(fetch as any);
-
-    expect(viaNodeFetch.message).not.toEqual(viaGlobalFetch.message);
-    expect(viaNodeFetch.name).toBe(viaGlobalFetch.name);
   });
 });

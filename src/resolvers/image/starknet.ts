@@ -1,6 +1,5 @@
-import axios from 'axios';
 import { isStarkDomain } from '../../helpers/address';
-import { axiosDefaultParams, fetchHttpImage, getUrl } from '../../helpers/http';
+import { fetchHttpImage, fetchWithDeadline, getUrl } from '../../helpers/http';
 import { getProvider } from '../../helpers/provider';
 
 const DEFAULT_IMG_URL = 'https://starknet.id/api/identicons/0';
@@ -26,18 +25,12 @@ async function getImage(domainOrAddress: string): Promise<string | null> {
   return (await provider.getStarkProfile(address))?.profilePicture ?? null;
 }
 
-async function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: string }> {
-  const response = await axios({
-    url,
-    responseType: 'arraybuffer',
-    ...axiosDefaultParams
-  });
-  const contentType: string = response.headers['content-type'] || '';
-  const data = Buffer.from(response.data);
-  if (contentType.includes('application/json')) {
-    return JSON.parse(data.toString('utf-8'));
-  }
-  return data;
+function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: string }> {
+  return fetchWithDeadline(url, async response =>
+    response.headers.get('content-type')?.includes('application/json')
+      ? await response.json()
+      : Buffer.from(await response.arrayBuffer())
+  );
 }
 
 export default async function resolve(domainOrAddress: string) {

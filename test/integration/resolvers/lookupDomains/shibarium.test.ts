@@ -1,19 +1,17 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
-import fetch from 'node-fetch';
 import { timeLookupDomainsResponse } from '../../../../src/helpers/metrics';
 import { Address, Handle } from '../../../../src/helpers/types';
+import { mockGlobalFetch } from '../../../helpers/fetch';
 
 jest.mock('@snapshot-labs/snapshot-sentry', () => ({
   capture: jest.fn()
 }));
 
-jest.mock('node-fetch', () => jest.fn());
+const mockedFetch = mockGlobalFetch();
 
 const ADDRESS = '0x220bc93D88C0aF11f1159eA89a885d5ADd3A7Cf6';
 const CHAIN_ID = '109';
 const PAGE_SIZE = 25;
-
-const mockedFetch = fetch as unknown as jest.Mock;
 
 let lookupDomains: (address: Address, chainId?: string) => Promise<Handle[]>;
 let lookupDomainsThroughIndex: (address: Address, chains?: string | string[]) => Promise<Handle[]>;
@@ -24,6 +22,10 @@ beforeAll(async () => {
   process.env.D3_API_KEY_MAINNET = 'test-key';
   lookupDomains = (await import('../../../../src/resolvers/lookupDomains/shibarium')).default;
   lookupDomainsThroughIndex = (await import('../../../../src/resolvers/lookupDomains')).default;
+});
+
+beforeEach(() => {
+  mockedFetch.mockReset();
 });
 
 afterAll(() => {
