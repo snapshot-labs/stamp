@@ -1,5 +1,6 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import { resolveNames } from '../../../../src/resolvers/address/ens';
+import { jsonResponse, mockGlobalFetch } from '../../../helpers/fetch';
 
 jest.mock('@snapshot-labs/snapshot-sentry', () => ({
   capture: jest.fn()
@@ -13,25 +14,14 @@ jest.mock('../../../../src/helpers/provider', () => ({
   }))
 }));
 
-const originalFetch = global.fetch;
-const mockedFetch = jest.fn();
-global.fetch = mockedFetch as unknown as typeof global.fetch;
+const mockedFetch = mockGlobalFetch();
 
 const HANDLE = 'test.eth';
 const ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
 
 function respondWith(body: any) {
-  mockedFetch.mockResolvedValue(
-    new Response(JSON.stringify(body), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    })
-  );
+  mockedFetch.mockResolvedValue(jsonResponse(body));
 }
-
-afterAll(() => {
-  global.fetch = originalFetch;
-});
 
 describe('resolvers/address/ens - resolveNames', () => {
   it('reports the subgraph failure instead of a TypeError naming our own field', async () => {

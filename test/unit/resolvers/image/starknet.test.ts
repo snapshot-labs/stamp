@@ -1,5 +1,5 @@
 import starknet from '../../../../src/resolvers/image/starknet';
-import { incompleteJsonResponse } from '../../../helpers/stalledResponse';
+import { incompleteJsonResponse, mockGlobalFetch } from '../../../helpers/fetch';
 
 jest.mock('../../../../src/helpers/provider', () => ({
   getProvider: () => ({
@@ -7,13 +7,9 @@ jest.mock('../../../../src/helpers/provider', () => ({
   })
 }));
 
-const mockedFetch = jest.spyOn(global, 'fetch');
+const mockedFetch = mockGlobalFetch();
 
 const ADDRESS = '0x07ff6b17f07c4d83236e3fc5f94259a19d1ed41bbcf1822397ea17882e9b038d';
-
-afterAll(() => {
-  mockedFetch.mockRestore();
-});
 
 describe('starknet image resolver', () => {
   it('rejects a non-2xx image response with its HTTP status', async () => {
