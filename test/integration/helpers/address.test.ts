@@ -59,11 +59,20 @@ describe('address helpers', () => {
       expect(isStarknetFelt(EVM)).toBe(false);
     });
 
-    it('rejects values outside the felt range, and anything not 0x-prefixed hex', () => {
+    it('rejects values outside the address bound, and anything not 0x-prefixed hex', () => {
       expect(isStarknetFelt(UPPER_BOUND)).toBe(false);
       expect(isStarknetFelt(PROPOSAL_ID)).toBe(false);
       expect(isStarknetFelt(UNPADDED.slice(2))).toBe(false);
+    });
+
+    it('rejects padding wider than the 32 bytes an address occupies', () => {
+      expect(isStarknetFelt(`0x${'0'.repeat(63)}1`)).toBe(true);
+      expect(isStarknetFelt(`0x${'0'.repeat(64)}1`)).toBe(false);
+    });
+
+    it('rejects non-string input without throwing', () => {
       const offType = [undefined, null, 1, true, [], {}, ''] as unknown as string[];
+
       offType.forEach(value => expect(isStarknetFelt(value)).toBe(false));
     });
   });
