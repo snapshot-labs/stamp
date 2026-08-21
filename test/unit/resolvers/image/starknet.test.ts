@@ -12,10 +12,6 @@ const EVM_ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
 const UNPADDED_ADDRESS = '0xa00373a00352aa367058555149b573322910d54fcdf3a926e3e56d0dcb4b0c';
 
 describe('Starknet image resolver', () => {
-  beforeEach(() => {
-    mockGetStarkProfile.mockReset();
-  });
-
   it.each([OVER_PRIME_ADDRESS, UNPREFIXED_ADDRESS, EVM_ADDRESS])(
     'does not query a profile for %s, which is not a Starknet address',
     async address => {
