@@ -47,6 +47,25 @@ describe('lookupDomains/ens', () => {
     );
   });
 
+  it('resolves every hashed label of a multi-level name', async () => {
+    mockedGraphQlCall
+      .mockResolvedValueOnce(accountResponse([{ name: '[aaa].[bbb].[ccc].eth' }]))
+      .mockResolvedValueOnce(
+        graphQlResponse({
+          registrations: [
+            { id: '0xaaa', domain: { labelName: 'alice' } },
+            { id: '0xccc', domain: { labelName: 'aragonid' } }
+          ]
+        })
+      );
+
+    await expect(lookupDomains(ADDRESS)).resolves.toEqual(['alice.[bbb].aragonid.eth']);
+    expect(mockedGraphQlCall.mock.calls[1][2]).toEqual({
+      ids: ['0xaaa', '0xbbb', '0xccc'],
+      first: 3
+    });
+  });
+
   it('requests every registration beyond the subgraph default page size', async () => {
     const domains = Array.from({ length: 101 }, (_, index) => ({ name: `[${index}].eth` }));
     mockedGraphQlCall
