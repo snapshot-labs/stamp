@@ -11,14 +11,11 @@ export function mockGlobalFetch(): jest.Mock {
 }
 
 export function jsonResponse(body: any, status = 200) {
-  return new Response(
-    body === undefined ? null : typeof body === 'string' ? body : JSON.stringify(body),
-    {
-      status,
-      statusText: status === 200 ? 'OK' : 'Upstream Error',
-      headers: { 'Content-Type': 'application/json' }
-    }
-  );
+  return new Response(typeof body === 'string' ? body : JSON.stringify(body), {
+    status,
+    statusText: status === 200 ? 'OK' : 'Upstream Error',
+    headers: { 'Content-Type': 'application/json' }
+  });
 }
 
 export function incompleteJsonResponse(prefix: string, signal?: AbortSignal | null) {
