@@ -24,24 +24,13 @@ afterAll(async () => {
   await new Promise<void>(resolve => server.close(() => resolve()));
 });
 
-async function abortAgainstAHangingServer() {
-  const controller = new AbortController();
-  setTimeout(() => controller.abort(), 100);
-
-  try {
-    await fetch(url, { signal: controller.signal });
-  } catch (err: any) {
-    return err;
-  }
-
-  return undefined;
-}
-
 describe('isSilencedError, on a request we aborted ourselves', () => {
   it('silences an abort raised by fetch', async () => {
-    const error = await abortAgainstAHangingServer();
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 100);
 
-    expect(error).toBeDefined();
+    const error = await fetch(url, { signal: controller.signal }).catch(err => err);
+
     expect(error.name).toBe('AbortError');
     expect(isSilencedError(error)).toBe(true);
   });
