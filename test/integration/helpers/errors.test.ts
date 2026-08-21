@@ -29,10 +29,17 @@ describe('isSilencedError', () => {
     expect(isSilencedError(value)).toBe(true);
   });
 
+  it('silences a transient errno carried on error.code', () => {
+    expect(isSilencedError({ message: 'socket hang up', code: 'ECONNRESET' })).toBe(true);
+  });
+
+  it('silences a transient errno carried on a nested error.error.code', () => {
+    expect(isSilencedError({ message: 'wrapped', error: { code: 'ETIMEDOUT' } })).toBe(true);
+  });
+
   it('silences a 504 carried on error.response', () => {
     const upstreamError = {
       message: '[hub.snapshot.org] status code 504: Gateway Timeout',
-      status: 504,
       response: { status: 504 }
     };
 
@@ -89,7 +96,6 @@ describe('isSilencedError', () => {
   it('silences a 429 carried on error.response', () => {
     const upstreamError = {
       message: '[api.lens.xyz] status code 429: Too Many Requests',
-      status: 429,
       response: { status: 429 }
     };
 

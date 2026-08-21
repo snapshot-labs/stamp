@@ -49,6 +49,15 @@ afterAll(async () => {
   await new Promise<void>(resolve => server.close(() => resolve()));
 });
 
+// These wait out the real deadline rather than firing its timer by hand.
+// Reaching into the timer would abort the signal even where the code under test
+// had already cleared it, which is exactly the case these need to be able to
+// fail on.
+//
+// The body case is the one that needs the deadline to cover more than the
+// request: a response settles for the caller as soon as the headers land, so a
+// 200 whose body then stops is the shape that outlives a budget ending at the
+// request.
 describe('resolvers, against an upstream that never finishes answering', () => {
   describe.each([
     ['no headers at all', 'headers'],

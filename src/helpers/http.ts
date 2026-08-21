@@ -1,7 +1,7 @@
 import { getAddress } from '@ethersproject/address';
 import snapshot from '@snapshot-labs/snapshot.js';
 import { isStarknetAddress } from './address';
-import { withDeadline } from './deadline';
+import { FETCH_BUDGET, withDeadline } from './deadline';
 import { httpError } from './errors';
 
 // Spaces are keyed by address on the onchain APIs, and both accept the raw id
@@ -17,8 +17,6 @@ export function spaceIds(id: string): string[] | null {
   }
 }
 
-const IMAGE_FETCH_BUDGET = 5e3;
-
 export async function fetchHttpImage(url: string): Promise<Buffer> {
   return withDeadline(async signal => {
     const response = await fetch(url, { signal });
@@ -26,7 +24,7 @@ export async function fetchHttpImage(url: string): Promise<Buffer> {
     if (!response.ok) throw httpError(new URL(url).host, response.status, response.statusText);
 
     return Buffer.from(await response.arrayBuffer());
-  }, IMAGE_FETCH_BUDGET);
+  }, FETCH_BUDGET);
 }
 
 export function getUrl(url) {

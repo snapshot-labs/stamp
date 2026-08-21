@@ -1,5 +1,5 @@
 import { isStarkDomain, isStarknetFelt } from '../../helpers/address';
-import { withDeadline } from '../../helpers/deadline';
+import { FETCH_BUDGET, withDeadline } from '../../helpers/deadline';
 import { httpError } from '../../helpers/errors';
 import { fetchHttpImage, getUrl } from '../../helpers/http';
 import { getProvider } from '../../helpers/provider';
@@ -34,7 +34,7 @@ async function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: str
     return response.headers.get('content-type')?.includes('application/json')
       ? await response.json()
       : Buffer.from(await response.arrayBuffer());
-  }, 5e3);
+  }, FETCH_BUDGET);
 }
 
 export default async function resolve(domainOrAddress: string) {
