@@ -14,9 +14,8 @@ function graphQlEnvelopeError(url: string, status: number, message: string) {
 }
 
 function parseGraphQlResponse(body: string): any {
-  const decoded = body.startsWith('\uFEFF') ? body.slice(1) : body;
   try {
-    return JSON.parse(decoded);
+    return JSON.parse(body);
   } catch {
     return body;
   }
@@ -27,11 +26,11 @@ export async function graphQlCall<T = any>(
   query: string,
   variables?: Record<string, any>,
   options: any = { headers: {} }
-): Promise<{ data: GraphQlResponse<T>; status: number }> {
+): Promise<GraphQlResponse<T>> {
   const data: { query: string; variables?: Record<string, any> } = { query };
   if (variables) data.variables = variables;
 
-  const { response, responseBody } = await withDeadline(async signal => {
+  return withDeadline(async signal => {
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -45,32 +44,28 @@ export async function graphQlCall<T = any>(
       body: JSON.stringify(data),
       signal
     });
-    const responseBody = Buffer.from(await response.arrayBuffer());
 
-    return { response, responseBody };
+    if (!response.ok) {
+      throw graphQlEnvelopeError(
+        url,
+        response.status,
+        `status code ${response.status}: ${response.statusText}`
+      );
+    }
+
+    const body = parseGraphQlResponse(await response.text());
+
+    if (body?.errors?.length) {
+      throw graphQlEnvelopeError(
+        url,
+        response.status,
+        body.errors[0]?.message || 'GraphQL request failed'
+      );
+    }
+    if (!body?.data) {
+      throw graphQlEnvelopeError(url, response.status, 'GraphQL response has no data envelope');
+    }
+
+    return body;
   }, 5e3);
-
-  if (!response.ok) {
-    const error: any = graphQlEnvelopeError(
-      url,
-      response.status,
-      `status code ${response.status}: ${response.statusText}`
-    );
-    error.response.data = responseBody.toString();
-    throw error;
-  }
-
-  const body = parseGraphQlResponse(responseBody.toString());
-
-  if (body?.errors?.length) {
-    throw graphQlEnvelopeError(
-      url,
-      response.status,
-      body.errors[0]?.message || 'GraphQL request failed'
-    );
-  }
-  if (!body?.data) {
-    throw graphQlEnvelopeError(url, response.status, 'GraphQL response has no data envelope');
-  }
-  return { data: body, status: response.status };
 }

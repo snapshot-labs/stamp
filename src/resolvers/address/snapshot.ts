@@ -6,9 +6,7 @@ export const NAME = 'Snapshot';
 
 export async function lookupAddresses(addresses: Address[]): Promise<Record<Address, Handle>> {
   const {
-    data: {
-      data: { users }
-    }
+    data: { users }
   } = await graphQlCall(
     `${HUB_URL}/graphql`,
     `query users($addresses: [String!]!) {
