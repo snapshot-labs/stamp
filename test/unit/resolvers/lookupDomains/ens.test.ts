@@ -9,7 +9,7 @@ const mockedGraphQlCall = graphQlCall as jest.Mock;
 const ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
 
 function graphQlResponse<T>(data: T) {
-  return { data: { data } };
+  return { data };
 }
 
 function accountResponse(domains: { name: string }[]) {

@@ -54,25 +54,25 @@ describe('graphQlCall', () => {
     it('returns the response', async () => {
       respondWith({ data: { users: [{ id: '0x1' }] } });
 
-      const { data } = await graphQlCall(URL, QUERY);
+      const body = await graphQlCall(URL, QUERY);
 
-      expect(data.data.users).toEqual([{ id: '0x1' }]);
+      expect(body.data.users).toEqual([{ id: '0x1' }]);
     });
 
     it('returns a response prefixed by a UTF-8 BOM', async () => {
       respondWith(`\uFEFF${JSON.stringify({ data: { users: [{ id: '0x1' }] } })}`);
 
-      const { data } = await graphQlCall(URL, QUERY);
+      const body = await graphQlCall(URL, QUERY);
 
-      expect(data.data.users).toEqual([{ id: '0x1' }]);
+      expect(body.data.users).toEqual([{ id: '0x1' }]);
     });
 
     it('does not throw on a field that resolved to null', async () => {
       respondWith({ data: { account: null } });
 
-      const { data } = await graphQlCall(URL, QUERY);
+      const body = await graphQlCall(URL, QUERY);
 
-      expect(data.data.account).toBeNull();
+      expect(body.data.account).toBeNull();
     });
   });
 
@@ -149,12 +149,11 @@ describe('graphQlCall', () => {
   });
 
   describe('the thrown error', () => {
-    it('carries the HTTP status and upstream body', async () => {
-      const body = { errors: [{ message: 'boom' }], data: null };
-      const err = await errorFrom(body, 429);
+    it('carries the HTTP status', async () => {
+      const err = await errorFrom({ errors: [{ message: 'boom' }], data: null }, 429);
 
       expect(err.status).toBe(429);
-      expect(err.response).toEqual({ status: 429, data: JSON.stringify(body) });
+      expect(err.response).toEqual({ status: 429 });
     });
 
     it.each([429, 504])('is silenced on a %i', async status => {
