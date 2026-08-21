@@ -21,9 +21,7 @@ async function apiCall(filterName: string, filters: string[]) {
   }`;
 
   const {
-    data: {
-      data: { accountsBulk }
-    }
+    data: { accountsBulk }
   } = await graphQlCall(API_URL, query, { request: { [filterName]: filterValue } });
 
   return accountsBulk;

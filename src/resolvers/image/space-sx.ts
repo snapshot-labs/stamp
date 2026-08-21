@@ -9,9 +9,7 @@ async function getSpaceProperty(
   property: 'avatar' | 'cover'
 ): Promise<string | null> {
   const {
-    data: {
-      data: { spaces }
-    }
+    data: { spaces }
   } = await graphQlCall(
     url,
     `query GetSpaces($ids: [String!]!) {

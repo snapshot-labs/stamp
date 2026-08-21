@@ -28,20 +28,15 @@ async function getImage(domainOrAddress: string): Promise<string | null> {
 }
 
 async function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: string }> {
-  const { response, data } = await withDeadline(async signal => {
+  return withDeadline(async signal => {
     const response = await fetch(url, { signal });
-    const data = Buffer.from(await response.arrayBuffer());
 
-    return { response, data };
+    if (!response.ok) throw httpError(new URL(url).host, response.status, response.statusText);
+
+    return response.headers.get('content-type')?.includes('application/json')
+      ? await response.json()
+      : Buffer.from(await response.arrayBuffer());
   }, 5e3);
-
-  if (!response.ok) throw httpError(new URL(url).host, response.status, response.statusText);
-
-  const contentType = response.headers.get('content-type') || '';
-  if (contentType.includes('application/json')) {
-    return JSON.parse(data.toString('utf-8'));
-  }
-  return data;
 }
 
 export default async function resolve(domainOrAddress: string) {

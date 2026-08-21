@@ -51,9 +51,7 @@ async function getOffchainProperty(
   property: Property
 ) {
   const {
-    data: {
-      data: { entry }
-    }
+    data: { entry }
   } = await graphQlCall(
     API_URLS[networkId],
     `query GetEntry($id: String!) {
@@ -84,9 +82,7 @@ async function getOnchainProperty(
   if (!ids) return null;
 
   const {
-    data: {
-      data: { spaces }
-    }
+    data: { spaces }
   } = await graphQlCall(
     API_URLS[networkId],
     `query GetSpaces($ids: [String!]!) {

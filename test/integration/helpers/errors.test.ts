@@ -29,18 +29,16 @@ describe('isSilencedError', () => {
     expect(isSilencedError(value)).toBe(true);
   });
 
-  it('silences an axios 504 (status on error.response)', () => {
-    // Shape observed from Sentry STAMP-7: axios throws with the HTTP status
-    // on error.response.status, while error.code is 'ERR_BAD_RESPONSE'.
-    // The previous `||` chain short-circuited on error.code and never
-    // reached error.response.status.
-    const axiosError = {
-      message: 'Request failed with status code 504',
-      code: 'ERR_BAD_RESPONSE',
+  it('silences a 504 carried on error.response', () => {
+    // Shape observed from Sentry STAMP-7. The previous `||` chain
+    // short-circuited on error.code and never reached error.response.status.
+    const upstreamError = {
+      message: '[hub.snapshot.org] status code 504: Gateway Timeout',
+      status: 504,
       response: { status: 504 }
     };
 
-    expect(isSilencedError(axiosError)).toBe(true);
+    expect(isSilencedError(upstreamError)).toBe(true);
   });
 
   it('silences undici fetch failures with transient socket causes', () => {
@@ -90,24 +88,24 @@ describe('isSilencedError', () => {
     expect(isSilencedError(unauthorized)).toBe(false);
   });
 
-  it('silences an axios 429', () => {
-    const axiosError = {
-      message: 'Request failed with status code 429',
-      code: 'ERR_BAD_REQUEST',
+  it('silences a 429 carried on error.response', () => {
+    const upstreamError = {
+      message: '[api.lens.xyz] status code 429: Too Many Requests',
+      status: 429,
       response: { status: 429 }
     };
 
-    expect(isSilencedError(axiosError)).toBe(true);
+    expect(isSilencedError(upstreamError)).toBe(true);
   });
 
-  it('does not silence a non-504 axios error', () => {
-    const axiosError = {
-      message: 'Request failed with status code 500',
-      code: 'ERR_BAD_RESPONSE',
+  it('does not silence a non-transient status carried on error.response', () => {
+    const upstreamError = {
+      message: '[hub.snapshot.org] status code 500: Internal Server Error',
+      status: 500,
       response: { status: 500 }
     };
 
-    expect(isSilencedError(axiosError)).toBe(false);
+    expect(isSilencedError(upstreamError)).toBe(false);
   });
 
   it('silences transient SERVFAIL DNS server status (2)', () => {

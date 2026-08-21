@@ -78,9 +78,7 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
 
   try {
     const {
-      data: {
-        data: { domains: items }
-      }
+      data: { domains: items }
     } = await graphQlCall(
       constants.ensSubgraph[NETWORK],
       `query Domains($handles: [String!]!) {
