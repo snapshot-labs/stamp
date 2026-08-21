@@ -7,6 +7,10 @@ const LENS_IPFS_GATEWAY = 'https://gw.ipfs-lens.dev/ipfs/';
 const LENS_EXTENSION = '.lens';
 const LOCAL_NAME_MAX_BYTES = 254;
 
+// Lens is a public dependency, so its transient availability/rate-limit errors
+// are not actionable resolver defects. Read by resolvers/image/index.ts.
+export const MUTED_ERRORS = ['status code 503', 'status code 429'];
+
 function normalizeImageUrl(url: string) {
   if (!url) return false;
 
