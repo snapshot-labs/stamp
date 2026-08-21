@@ -19,6 +19,10 @@ let lookupDomainsThroughIndex: (address: Address, chains?: string | string[]) =>
 
 const apiKey = process.env.D3_API_KEY_MAINNET;
 
+beforeEach(() => {
+  mockedFetch.mockReset();
+});
+
 beforeAll(async () => {
   process.env.D3_API_KEY_MAINNET = 'test-key';
   lookupDomains = (await import('../../../../src/resolvers/lookupDomains/shibarium')).default;
