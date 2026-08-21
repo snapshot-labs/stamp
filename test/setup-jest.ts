@@ -15,6 +15,6 @@ jest.spyOn(console, 'log').mockImplementation(() => {});
 jest.retryTimes(3);
 
 afterAll(async () => {
-  if (client?.isReady) await client.flushDb().catch(() => undefined);
+  await client?.flushDb().catch(() => undefined);
   await closeRedis();
 });
