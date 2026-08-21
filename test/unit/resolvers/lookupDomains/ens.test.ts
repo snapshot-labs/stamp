@@ -49,7 +49,9 @@ describe('lookupDomains/ens', () => {
 
   it('resolves every hashed label of a multi-level name', async () => {
     mockedGraphQlCall
-      .mockResolvedValueOnce(accountResponse([{ name: '[aaa].[bbb].[ccc].eth' }]))
+      .mockResolvedValueOnce(
+        accountResponse([{ name: '[aaa].[bbb].[ccc].eth' }, { name: '[ccc].eth' }])
+      )
       .mockResolvedValueOnce(
         graphQlResponse({
           registrations: [
@@ -59,7 +61,10 @@ describe('lookupDomains/ens', () => {
         })
       );
 
-    await expect(lookupDomains(ADDRESS)).resolves.toEqual(['alice.[bbb].aragonid.eth']);
+    await expect(lookupDomains(ADDRESS)).resolves.toEqual([
+      'alice.[bbb].aragonid.eth',
+      'aragonid.eth'
+    ]);
     expect(mockedGraphQlCall.mock.calls[1][2]).toEqual({
       ids: ['0xaaa', '0xbbb', '0xccc'],
       first: 3
