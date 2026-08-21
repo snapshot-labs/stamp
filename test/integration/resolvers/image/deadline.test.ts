@@ -6,8 +6,6 @@ const ADDRESS = '0x91fd2c8d24767db4ece7069aa27832ffaf8590f3';
 
 type Stall = 'headers' | 'body';
 
-let mockHangingUrl: string;
-
 let server: http.Server;
 const sockets = new Set<Socket>();
 let stall: Stall;
@@ -30,7 +28,7 @@ beforeAll(async () => {
   });
   server.on('connection', socket => sockets.add(socket));
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', () => resolve()));
-  mockHangingUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}/`;
+  const mockHangingUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}/`;
 
   const realFetch = global.fetch;
   jest.spyOn(global, 'fetch').mockImplementation((_url, init) => realFetch(mockHangingUrl, init));

@@ -1,5 +1,6 @@
 import { isSilencedError } from '../../../src/helpers/errors';
 import { graphQlCall } from '../../../src/helpers/graphql';
+import { incompleteJsonResponse } from '../../helpers/stalledResponse';
 
 const originalFetch = global.fetch;
 const mockedFetch = jest.fn();
@@ -18,18 +19,6 @@ function respondWith(body: any, status = 200) {
         headers: { 'Content-Type': 'application/json' }
       }
     )
-  );
-}
-
-function incompleteJsonResponse(signal?: AbortSignal | null) {
-  return new Response(
-    new ReadableStream({
-      start(controller) {
-        controller.enqueue(new TextEncoder().encode('{"data":'));
-        signal?.addEventListener('abort', () => controller.error(signal.reason), { once: true });
-      }
-    }),
-    { headers: { 'Content-Type': 'application/json' } }
   );
 }
 
@@ -78,7 +67,7 @@ describe('graphQlCall', () => {
 
   it('aborts an incomplete response body at the total deadline', async () => {
     mockedFetch.mockImplementation(async (_url, init) =>
-      incompleteJsonResponse((init as RequestInit | undefined)?.signal)
+      incompleteJsonResponse('{"data":', (init as RequestInit | undefined)?.signal)
     );
 
     await expect(graphQlCall(URL, QUERY)).rejects.toMatchObject({
