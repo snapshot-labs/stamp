@@ -1,25 +1,14 @@
 import { isSilencedError } from '../../../src/helpers/errors';
 import { graphQlCall } from '../../../src/helpers/graphql';
-import { incompleteJsonResponse } from '../../helpers/stalledResponse';
+import { incompleteJsonResponse, jsonResponse, mockGlobalFetch } from '../../helpers/fetch';
 
-const originalFetch = global.fetch;
-const mockedFetch = jest.fn();
-global.fetch = mockedFetch as unknown as typeof global.fetch;
+const mockedFetch = mockGlobalFetch();
 
 const URL = 'https://hub.snapshot.org/graphql';
 const QUERY = 'query users { users { id } }';
 
 function respondWith(body: any, status = 200) {
-  mockedFetch.mockResolvedValue(
-    new Response(
-      body === undefined ? null : typeof body === 'string' ? body : JSON.stringify(body),
-      {
-        status,
-        statusText: status === 200 ? 'OK' : 'Upstream Error',
-        headers: { 'Content-Type': 'application/json' }
-      }
-    )
-  );
+  mockedFetch.mockResolvedValue(jsonResponse(body, status));
 }
 
 async function errorFrom(body: any, status = 200) {
@@ -33,10 +22,6 @@ async function errorFrom(body: any, status = 200) {
 
   throw new Error('graphQlCall resolved, expected it to throw');
 }
-
-afterAll(() => {
-  global.fetch = originalFetch;
-});
 
 describe('graphQlCall', () => {
   describe('when the envelope is intact', () => {
@@ -54,6 +39,15 @@ describe('graphQlCall', () => {
       const body = await graphQlCall(URL, QUERY);
 
       expect(body.data.users).toEqual([{ id: '0x1' }]);
+    });
+
+    it('still rejects when the upstream answers a non-2xx', async () => {
+      respondWith({ data: { users: [] } }, 500);
+
+      await expect(graphQlCall(URL, QUERY)).rejects.toMatchObject({
+        message: '[hub.snapshot.org] status code 500: Upstream Error',
+        status: 500
+      });
     });
 
     it('does not throw on a field that resolved to null', async () => {

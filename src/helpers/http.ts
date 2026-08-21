@@ -17,14 +17,21 @@ export function spaceIds(id: string): string[] | null {
   }
 }
 
-export async function fetchHttpImage(url: string): Promise<Buffer> {
+export function fetchWithDeadline<T>(
+  url: string,
+  read: (response: Response) => Promise<T>
+): Promise<T> {
   return withDeadline(async signal => {
     const response = await fetch(url, { signal });
 
     if (!response.ok) throw httpError(new URL(url).host, response.status, response.statusText);
 
-    return Buffer.from(await response.arrayBuffer());
+    return read(response);
   }, FETCH_BUDGET);
+}
+
+export function fetchHttpImage(url: string): Promise<Buffer> {
+  return fetchWithDeadline(url, async response => Buffer.from(await response.arrayBuffer()));
 }
 
 export function getUrl(url) {

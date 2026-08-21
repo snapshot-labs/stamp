@@ -16,8 +16,6 @@ export async function withDeadline<T>(
     return await fn(controller.signal);
   } finally {
     clearTimeout(timeout);
-    // Callers throw on a non-2xx before reading the body, which leaves the
-    // response unconsumed and its socket stranded until GC.
     controller.abort();
   }
 }
