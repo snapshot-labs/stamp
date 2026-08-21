@@ -13,7 +13,7 @@ const UNPADDED_ADDRESS = '0xa00373a00352aa367058555149b573322910d54fcdf3a926e3e5
 
 describe('Starknet image resolver', () => {
   it.each([OVER_PRIME_ADDRESS, UNPREFIXED_ADDRESS, EVM_ADDRESS])(
-    'does not query a profile for %s, which is not a Starknet address',
+    'does not query a profile for %s',
     async address => {
       await expect(starknet(address)).resolves.toBe(false);
       expect(mockGetStarkProfile).not.toHaveBeenCalled();
