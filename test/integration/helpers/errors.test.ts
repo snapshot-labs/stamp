@@ -30,8 +30,6 @@ describe('isSilencedError', () => {
   });
 
   it('silences a 504 carried on error.response', () => {
-    // Shape observed from Sentry STAMP-7. The previous `||` chain
-    // short-circuited on error.code and never reached error.response.status.
     const upstreamError = {
       message: '[hub.snapshot.org] status code 504: Gateway Timeout',
       status: 504,

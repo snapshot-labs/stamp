@@ -5,6 +5,7 @@ jest.mock('../../../../src/helpers/provider', () => ({
 }));
 
 import starknet from '../../../../src/resolvers/image/starknet';
+import { incompleteJsonResponse } from '../../../helpers/stalledResponse';
 
 const mockedFetch = jest.spyOn(global, 'fetch');
 
@@ -19,18 +20,6 @@ beforeEach(() => {
     profilePicture: 'https://example.com/profile.png'
   });
 });
-
-function incompleteJsonResponse(signal?: AbortSignal | null) {
-  return new Response(
-    new ReadableStream({
-      start(controller) {
-        controller.enqueue(new TextEncoder().encode('{"image":'));
-        signal?.addEventListener('abort', () => controller.error(signal.reason), { once: true });
-      }
-    }),
-    { headers: { 'Content-Type': 'application/json' } }
-  );
-}
 
 afterAll(() => {
   mockedFetch.mockRestore();
@@ -66,7 +55,7 @@ describe('Starknet image resolver', () => {
 
   it('aborts an incomplete metadata body at the total deadline', async () => {
     mockedFetch.mockImplementation(async (_url, init) =>
-      incompleteJsonResponse((init as RequestInit | undefined)?.signal)
+      incompleteJsonResponse('{"image":', (init as RequestInit | undefined)?.signal)
     );
 
     await expect(starknet(ADDRESS)).rejects.toMatchObject({
