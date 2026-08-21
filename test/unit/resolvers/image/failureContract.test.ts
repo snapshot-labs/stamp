@@ -146,6 +146,14 @@ describe('resolvers - failure contract', () => {
     expect(capture).toHaveBeenCalledWith(error, expect.anything());
   });
 
+  it('does not report a Lens 503 that the resolver declares transient', async () => {
+    const error = new Error('Request failed with status code 503');
+    (lens as jest.Mock).mockRejectedValue(error);
+
+    await expect(resolvers.lens(ADDRESS)).resolves.toBe(false);
+    expect(capture).not.toHaveBeenCalled();
+  });
+
   it.each(RESIZED)('attributes %s bytes sharp cannot process to itself', async (name, fn) => {
     (fn as jest.Mock).mockResolvedValue(Buffer.from('not an image'));
 
