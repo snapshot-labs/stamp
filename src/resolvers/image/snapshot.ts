@@ -1,6 +1,6 @@
 import { getAddress } from '@ethersproject/address';
-import snapshot from '@snapshot-labs/snapshot.js';
 import { defaultOffchainNetwork, offchainNetworks } from '../../constants.json';
+import { isStarknetFelt } from '../../helpers/address';
 import { graphQlCall } from '../../helpers/graphql';
 import { fetchHttpImage, getUrl, spaceIds } from '../../helpers/http';
 
@@ -107,7 +107,7 @@ function normalizeUserId(value: string): string | null {
   try {
     return getAddress(trimmed);
   } catch {
-    return trimmed.startsWith('0x') && snapshot.utils.isStarknetAddress(trimmed) ? trimmed : null;
+    return isStarknetFelt(trimmed) ? trimmed : null;
   }
 }
 

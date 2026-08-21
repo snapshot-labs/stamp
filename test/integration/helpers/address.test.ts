@@ -1,5 +1,7 @@
+import snapshot from '@snapshot-labs/snapshot.js';
 import {
   isStarknetAddress,
+  isStarknetFelt,
   normalizeAddresses,
   normalizeHandles,
   withoutEmptyAddress
@@ -39,6 +41,30 @@ describe('address helpers', () => {
       const offType = [undefined, null, 1, true, [], {}, ''] as unknown as string[];
 
       offType.forEach(value => expect(isStarknetAddress(value)).toBe(false));
+    });
+  });
+
+  describe('isStarknetFelt', () => {
+    const UNPADDED = '0xa00373a00352aa367058555149b573322910d54fcdf3a926e3e56d0dcb4b0c';
+    const EVM = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045';
+
+    it('accepts a felt whether or not it is zero-padded', () => {
+      expect(isStarknetFelt(UNPADDED)).toBe(true);
+      expect(isStarknetFelt(`0x${UNPADDED.slice(2).padStart(64, '0')}`)).toBe(true);
+      expect(isStarknetFelt('0x1')).toBe(true);
+    });
+
+    it('rejects an EVM address, which the felt range accepts', () => {
+      expect(snapshot.utils.isStarknetAddress(EVM)).toBe(true);
+      expect(isStarknetFelt(EVM)).toBe(false);
+    });
+
+    it('rejects values outside the felt range, and anything not 0x-prefixed hex', () => {
+      expect(isStarknetFelt(UPPER_BOUND)).toBe(false);
+      expect(isStarknetFelt(PROPOSAL_ID)).toBe(false);
+      expect(isStarknetFelt(UNPADDED.slice(2))).toBe(false);
+      const offType = [undefined, null, 1, true, [], {}, ''] as unknown as string[];
+      offType.forEach(value => expect(isStarknetFelt(value)).toBe(false));
     });
   });
 

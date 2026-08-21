@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { isStarkDomain, isStarknetAddress } from '../../helpers/address';
+import { isStarkDomain, isStarknetFelt } from '../../helpers/address';
 import { axiosDefaultParams, fetchHttpImage, getUrl } from '../../helpers/http';
 import { getProvider } from '../../helpers/provider';
 
@@ -15,7 +15,7 @@ async function getStarknetAddress(domain: string): Promise<string | null> {
 async function getImage(domainOrAddress: string): Promise<string | null> {
   const address = isStarkDomain(domainOrAddress)
     ? await getStarknetAddress(domainOrAddress)
-    : isStarknetAddress(domainOrAddress)
+    : isStarknetFelt(domainOrAddress)
       ? domainOrAddress
       : null;
 
