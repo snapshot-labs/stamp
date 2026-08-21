@@ -15,6 +15,14 @@ export function isStarknetAddress(address: Address): boolean {
   return /^0x[a-fA-F0-9]{64}$/.test(address) && snapshot.utils.isStarknetAddress(address);
 }
 
+export function isStarknetFelt(address: Address): boolean {
+  return (
+    /^0x[a-fA-F0-9]+$/.test(address) &&
+    !isEvmAddress(address) &&
+    snapshot.utils.isStarknetAddress(address)
+  );
+}
+
 // StarknetID's encoder skips characters outside its alphabet instead of rejecting them, so
 // `a!b.stark` encodes exactly like `ab.stark` and would resolve to that owner. Every label has
 // to match, subdomains included. The alphabet is starknet.js's `basicAlphabet` plus the two
