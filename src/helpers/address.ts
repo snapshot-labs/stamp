@@ -17,7 +17,7 @@ export function isStarknetAddress(address: Address): boolean {
 
 export function isStarknetFelt(address: Address): boolean {
   return (
-    /^0x[a-fA-F0-9]+$/.test(address) &&
+    /^0x[a-fA-F0-9]{1,64}$/.test(address) &&
     !isEvmAddress(address) &&
     snapshot.utils.isStarknetAddress(address)
   );
