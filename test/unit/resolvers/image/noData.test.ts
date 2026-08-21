@@ -7,22 +7,17 @@ import {
 } from '../../../../src/resolvers/image/snapshot';
 import { resolveAvatar as resolveSxAvatar } from '../../../../src/resolvers/image/space-sx';
 import starknet from '../../../../src/resolvers/image/starknet';
+import { jsonResponse, mockGlobalFetch } from '../../../helpers/fetch';
 
 jest.mock('../../../../src/helpers/http', () => ({
   ...jest.requireActual('../../../../src/helpers/http'),
   fetchHttpImage: jest.fn()
 }));
 
-const originalFetch = global.fetch;
-const mockedFetch = jest.fn();
-global.fetch = mockedFetch as unknown as typeof global.fetch;
+const mockedFetch = mockGlobalFetch();
 
 beforeEach(() => {
   mockedFetch.mockReset();
-});
-
-afterAll(() => {
-  global.fetch = originalFetch;
 });
 
 // coingecko reads its key at module load and answers false without one, so the
@@ -43,14 +38,12 @@ const STARKNET_ADDRESS = '0x07ff6b17f07c4d83236e3fc5f94259a19d1ed41bbcf1822397ea
 const UNPADDED_STARKNET_ADDRESS = `0x${STARKNET_ADDRESS.slice(3)}`;
 const NOT_AN_ADDRESS = '0x00006ba9855965EeEc09B5D43B113944c27F45aD3Ce';
 
-const graphQlResponse = (data: Record<string, any>) =>
-  new Response(JSON.stringify({ data }), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' }
-  });
+const graphQlResponse = (data: Record<string, any>) => jsonResponse({ data });
 
 const entry = (found: any) => graphQlResponse({ entry: found });
 const spaces = (found: any[]) => graphQlResponse({ spaces: found });
+
+const sentVariables = () => JSON.parse(mockedFetch.mock.calls[0][1].body).variables;
 
 describe('resolvers answer false rather than throwing when there is no data', () => {
   describe('starknet', () => {
@@ -104,7 +97,7 @@ describe('resolvers answer false rather than throwing when there is no data', ()
       mockedFetch.mockResolvedValue(entry({ avatar: null }));
 
       await expect(resolveUserAvatar(id)).resolves.toBe(false);
-      expect(JSON.parse(mockedFetch.mock.calls[0][1].body).variables).toEqual({ id: expected });
+      expect(sentVariables()).toEqual({ id: expected });
     });
 
     it.each([
@@ -114,7 +107,7 @@ describe('resolvers answer false rather than throwing when there is no data', ()
       mockedFetch.mockResolvedValue(entry({ avatar: null }));
 
       await expect(resolveSpaceAvatar(id, 1, 's')).resolves.toBe(false);
-      expect(JSON.parse(mockedFetch.mock.calls[0][1].body).variables).toEqual({ id: expected });
+      expect(sentVariables()).toEqual({ id: expected });
     });
 
     it('answers false for a space id that is not an address, without asking', async () => {
@@ -160,9 +153,7 @@ describe('resolvers answer false rather than throwing when there is no data', ()
 
       await lens('a.lensb.lens');
 
-      expect(
-        JSON.parse(mockedFetch.mock.calls[0][1].body).variables.request.username.localName
-      ).toBe('a.lensb');
+      expect(sentVariables().request.username.localName).toBe('a.lensb');
     });
   });
 

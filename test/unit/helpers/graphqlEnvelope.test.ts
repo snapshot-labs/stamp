@@ -8,40 +8,27 @@ import lensResolve from '../../../src/resolvers/image/lens';
 import { resolveSpaceAvatar, resolveUserAvatar } from '../../../src/resolvers/image/snapshot';
 import { resolveAvatar as resolveSxSpaceAvatar } from '../../../src/resolvers/image/space-sx';
 import ensLookupDomains from '../../../src/resolvers/lookupDomains/ens';
+import { jsonResponse, mockGlobalFetch } from '../../helpers/fetch';
 
 jest.mock('../../../src/helpers/http', () => ({
   ...jest.requireActual('../../../src/helpers/http'),
   fetchHttpImage: jest.fn()
 }));
 
-const originalFetch = global.fetch;
-const mockedFetch = jest.fn();
-global.fetch = mockedFetch as unknown as typeof global.fetch;
+const mockedFetch = mockGlobalFetch();
 
 const ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
 const IMAGE_URL = 'https://example.com/avatar.png';
 
 const ENS_SUBGRAPH = '[subgrapher.snapshot.org]';
 
-function response(body: any, status = 200) {
-  return new Response(typeof body === 'string' ? body : JSON.stringify(body), {
-    status,
-    statusText: status === 200 ? 'OK' : 'Upstream Error',
-    headers: { 'Content-Type': 'application/json' }
-  });
-}
-
 function respondWith(body: any, status = 200) {
-  mockedFetch.mockResolvedValue(response(body, status));
+  mockedFetch.mockResolvedValue(jsonResponse(body, status));
 }
 
 function upstreamFailure(message: string, data: any = null) {
   return { errors: [{ message }], data };
 }
-
-afterAll(() => {
-  global.fetch = originalFetch;
-});
 
 describe('graphQlCall callers surface an envelope failure', () => {
   describe('src/resolvers/address/lens.ts - accountsBulk', () => {
@@ -85,8 +72,8 @@ describe('graphQlCall callers surface an envelope failure', () => {
 
     function answerWith(second: any) {
       mockedFetch
-        .mockResolvedValueOnce(response(hashedDomain))
-        .mockResolvedValueOnce(response(second));
+        .mockResolvedValueOnce(jsonResponse(hashedDomain))
+        .mockResolvedValueOnce(jsonResponse(second));
     }
 
     it('decodes the label when the subgraph answers', async () => {
@@ -135,7 +122,7 @@ describe('graphQlCall callers surface an envelope failure', () => {
   describe('src/resolvers/image/space-sx.ts - spaces', () => {
     it('does not use a payload the upstream flagged as an error', async () => {
       mockedFetch.mockImplementation(async () =>
-        response(
+        jsonResponse(
           upstreamFailure('subgraph is down', { spaces: [{ metadata: { avatar: IMAGE_URL } }] })
         )
       );
