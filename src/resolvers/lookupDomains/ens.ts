@@ -17,14 +17,14 @@ type Registration = {
   domain?: Pick<Domain, 'labelName'>;
 };
 
-function getLabelHash(domain: Domain) {
-  return domain.name.match(/\[(.*?)\]/)?.[1];
+const HASHED_LABEL = /\[(.*?)\]/g;
+
+function getLabelHashes(domain: Domain) {
+  return [...domain.name.matchAll(HASHED_LABEL)].map(([, hash]) => hash);
 }
 
 async function fetchDomainNames(domains: Domain[], chainId: string): Promise<Handle[]> {
-  const hashes = [
-    ...new Set(domains.map(getLabelHash).filter((hash): hash is string => Boolean(hash)))
-  ];
+  const hashes = [...new Set(domains.flatMap(getLabelHashes))];
 
   if (!hashes.length) return domains.map(domain => domain.name);
 
@@ -49,12 +49,9 @@ async function fetchDomainNames(domains: Domain[], chainId: string): Promise<Han
     data.registrations.map(registration => [registration.id, registration.domain?.labelName])
   );
 
-  return domains.map(domain => {
-    const hash = getLabelHash(domain);
-    const labelName = hash ? labelNames.get(`0x${hash}`) : undefined;
-
-    return labelName ? domain.name.replace(`[${hash}]`, () => labelName) : domain.name;
-  });
+  return domains.map(domain =>
+    domain.name.replace(HASHED_LABEL, (label, hash) => labelNames.get(`0x${hash}`) || label)
+  );
 }
 
 export default async function lookupDomains(
