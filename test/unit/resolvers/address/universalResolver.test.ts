@@ -10,9 +10,10 @@ import {
   parseAbi
 } from 'viem';
 import * as deadline from '../../../../src/helpers/deadline';
-import { MAX_LOOKUP_ADDRESSES } from '../../../../src/resolvers/address';
+import { MAX_LOOKUP_ADDRESSES, MAX_RESOLVE_NAMES } from '../../../../src/resolvers/address';
 import {
   BatchError,
+  forwardLookup,
   isSilencedReverseError,
   reverseLookup
 } from '../../../../src/resolvers/address/universalResolver';
@@ -20,6 +21,11 @@ import {
 const reverseAbi = parseAbi([
   'function reverseWithGateways(bytes reverseName, uint256 coinType, string[] gateways) view returns (string resolvedName, address resolver, address reverseResolver)'
 ]);
+const forwardAbi = parseAbi([
+  'function resolveWithGateways(bytes name, bytes data, string[] gateways) view returns (bytes result, address resolver)'
+]);
+const addressAbi = parseAbi(['function addr(bytes32 node) view returns (address)']);
+const resolverNotFoundAbi = parseAbi(['error ResolverNotFound(bytes name)']);
 const httpErrorAbi = parseAbi(['error HttpError(uint16 status, string message)']);
 const resolverErrorAbi = parseAbi(['error ResolverError(bytes errorData)']);
 const solidityErrorAbi = parseAbi(['error Error(string message)']);
@@ -32,6 +38,12 @@ const ADDRESSES = Array.from(
   { length: MAX_LOOKUP_ADDRESSES },
   (_, index) => `0x${(index + 1).toString(16).padStart(40, '0')}` as Address
 );
+const NAMES = Array.from({ length: MAX_RESOLVE_NAMES }, (_, index) => `name${index}.eth`);
+const RESOLVER_NOT_FOUND = encodeErrorResult({
+  abi: resolverNotFoundAbi,
+  errorName: 'ResolverNotFound',
+  args: ['0x03666f6f046c656e7300']
+});
 const OFFCHAIN_LOOKUP = encodeErrorResult({
   abi: [offchainLookupAbiItem],
   errorName: 'OffchainLookup',
@@ -85,6 +97,20 @@ function encodeName(name: string): Hex {
     abi: reverseAbi,
     functionName: 'reverseWithGateways',
     result: [name, ZERO_ADDRESS, ZERO_ADDRESS]
+  });
+}
+
+function encodeAddress(address: Address): Hex {
+  const result = encodeFunctionResult({
+    abi: addressAbi,
+    functionName: 'addr',
+    result: address
+  });
+
+  return encodeFunctionResult({
+    abi: forwardAbi,
+    functionName: 'resolveWithGateways',
+    result: [result, ZERO_ADDRESS]
   });
 }
 
@@ -364,5 +390,103 @@ describe('Universal Resolver reverse lookup', () => {
     expectRejectedGateway(errors, addresses[0]);
     expect(batchSizes).toEqual([addresses.length]);
     expect(transport).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('Universal Resolver forward lookup', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('sends the maximum name batch in one eth_call and omits a missing resolver', async () => {
+    const resolvableNames = NAMES.slice(0, -1);
+    const names = [...resolvableNames, 'foo.lens'];
+    const batchSizes: number[] = [];
+    let resultIndex = 0;
+    const transport = jest.spyOn(global, 'fetch').mockImplementation(async (_input, init) => {
+      const { id, calls } = decodeBatch(init);
+      batchSizes.push(calls.length);
+      return rpcResponse(
+        id,
+        calls.map(() => {
+          const index = resultIndex++;
+          return index === names.length - 1
+            ? { success: false, returnData: RESOLVER_NOT_FOUND }
+            : { success: true, returnData: encodeAddress(ADDRESSES[index]) };
+        })
+      );
+    });
+
+    const { values, errors } = await forwardLookup(names);
+
+    expect(errors).toEqual([]);
+    expect(values).toEqual(
+      Object.fromEntries(resolvableNames.map((name, index) => [name, ADDRESSES[index]]))
+    );
+    expect(batchSizes).toEqual([MAX_RESOLVE_NAMES]);
+    expect(transport).toHaveBeenCalledTimes(1);
+  });
+
+  it('resolves an offchain name without splitting the initial batch', async () => {
+    const name = 'jesse.base.eth';
+    let gatewayRequestCount = 0;
+    const batchSizes: number[] = [];
+
+    jest.spyOn(global, 'fetch').mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (url.startsWith('https://gateway.test/')) {
+        gatewayRequestCount += 1;
+        return jsonResponse({ data: '0xabcd' });
+      }
+
+      const { id, calls } = decodeBatch(init);
+      batchSizes.push(calls.length);
+      return rpcResponse(id, [
+        batchSizes.length === 1
+          ? { success: false, returnData: OFFCHAIN_LOOKUP }
+          : { success: true, returnData: encodeAddress(ADDRESSES[0]) }
+      ]);
+    });
+
+    await expect(forwardLookup([name])).resolves.toEqual({
+      values: { [name]: ADDRESSES[0] },
+      errors: []
+    });
+    expect(batchSizes).toEqual([1, 1]);
+    expect(gatewayRequestCount).toBe(1);
+  });
+
+  it('keeps a successful sibling when an offchain gateway returns a transient failure', async () => {
+    const names = NAMES.slice(0, 2);
+    const batchSizes: number[] = [];
+
+    jest.spyOn(global, 'fetch').mockImplementation(async (_input, init) => {
+      const { id, calls } = decodeBatch(init);
+      batchSizes.push(calls.length);
+      if (batchSizes.length === 1) {
+        return rpcResponse(id, [
+          { success: false, returnData: BATCH_OFFCHAIN_LOOKUP },
+          { success: true, returnData: encodeAddress(ADDRESSES[1]) }
+        ]);
+      }
+
+      return rpcResponse(id, [{ success: false, returnData: BATCH_HTTP_ERROR }]);
+    });
+
+    const { values, errors } = await forwardLookup(names);
+
+    expect(errors).toHaveLength(1);
+    const reverted = (errors[0].error as any).walk(
+      cause => cause instanceof Error && cause.name === 'ContractFunctionRevertedError'
+    );
+
+    expect(values).toEqual({ [names[1]]: ADDRESSES[1] });
+    expect(errors[0].name).toBe(names[0]);
+    expect(reverted.data).toMatchObject({
+      errorName: 'HttpError',
+      args: [503, 'HTTP request failed.']
+    });
+    expect(isSilencedReverseError(errors[0].error)).toBe(true);
+    expect(batchSizes).toEqual([names.length, 1]);
   });
 });
