@@ -1,7 +1,7 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import snapshot from '@snapshot-labs/snapshot.js';
 import Resolution, { NamingServiceName } from '@unstoppabledomains/resolution';
-import { isEvmAddress } from '../../helpers/address';
+import { hasOwnedTld, isEvmAddress } from '../../helpers/address';
 import { isSilencedError } from '../../helpers/errors';
 import { withoutEmptyValues } from '../../helpers/object';
 import { batchContractCalls, getProvider } from '../../helpers/provider';
@@ -21,7 +21,7 @@ function normalizeAddresses(addresses: Address[]): Address[] {
 }
 
 function normalizeHandles(handles: Handle[]): Handle[] {
-  return handles.map(h => (/^[.a-z0-9-]+$/.test(h) ? h : '')).filter(h => h);
+  return handles.filter(h => /^[.a-z0-9-]+$/.test(h) && !hasOwnedTld(h));
 }
 
 export async function lookupAddresses(addresses: Address[]): Promise<Record<Address, Handle>> {
