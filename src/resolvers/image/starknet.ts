@@ -121,8 +121,10 @@ async function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: str
     const type = response.headers.get('content-type') ?? '';
 
     if (response.ok && type.toLowerCase().startsWith('application/json')) {
+      const body = await response.text();
+
       try {
-        const metadata = JSON.parse(await response.text());
+        const metadata = JSON.parse(body);
         return typeof metadata?.image === 'string' ? { image: metadata.image } : {};
       } catch {
         return {};
