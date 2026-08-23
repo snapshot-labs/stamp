@@ -12,6 +12,8 @@ let missingUrl: string;
 let nonImageUrl: string;
 let mixedCaseUrl: string;
 let undeclaredUrl: string;
+let emptyUrl: string;
+let emptyUndeclaredUrl: string;
 let neverEndingUrl: string;
 let oversizedDeclaredUrl: string;
 let oversizedStreamedUrl: string;
@@ -100,6 +102,16 @@ beforeAll(async () => {
       return res.end(BODY);
     }
 
+    if (req.url === '/empty.png') {
+      res.writeHead(200, { 'Content-Type': 'image/png' });
+      return res.end();
+    }
+
+    if (req.url === '/empty-undeclared.png') {
+      res.writeHead(200);
+      return res.end();
+    }
+
     res.writeHead(200, { 'Content-Type': 'image/png' });
 
     if (req.url === '/image.png') return res.end(BODY);
@@ -119,6 +131,8 @@ beforeAll(async () => {
   nonImageUrl = `${origin}/not-an-image.png`;
   mixedCaseUrl = `${origin}/mixed-case.png`;
   undeclaredUrl = `${origin}/undeclared.png`;
+  emptyUrl = `${origin}/empty.png`;
+  emptyUndeclaredUrl = `${origin}/empty-undeclared.png`;
   neverEndingUrl = `${origin}/never-ends.png`;
   oversizedDeclaredUrl = `${origin}/oversized-declared.png`;
   oversizedStreamedUrl = `${origin}/oversized-streamed.png`;
@@ -190,6 +204,16 @@ describe('fetchHttpImage', () => {
 
   it('returns a body that declares no media type at all', async () => {
     await expect(fetchHttpImage(undeclaredUrl)).resolves.toEqual(BODY);
+  });
+
+  it.each([
+    ['an image media type', () => emptyUrl],
+    ['no media type at all', () => emptyUndeclaredUrl]
+  ])('raises a routine miss on a zero-length body declaring %s', async (_name, target) => {
+    await expect(fetchHttpImage(target())).rejects.toMatchObject({
+      status: 404,
+      message: expect.stringContaining('empty body')
+    });
   });
 
   it('raises a silenced abort against an upstream that never stops sending', async () => {

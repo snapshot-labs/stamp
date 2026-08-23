@@ -22,15 +22,18 @@ const NFT_CONTRACT = '0x123';
 const IMAGE_URL = 'https://example.com/avatar/token-12345.png';
 const IMAGE = Buffer.from('as much of an image as the fetch cares about');
 
+let fetchSpy: jest.SpyInstance;
+
 beforeEach(() => {
   mockCallContract.mockReset();
   mockGetStarkProfile.mockReset().mockResolvedValue({
     profilePicture: 'https://example.com/avatar'
   });
+  fetchSpy = jest.spyOn(global, 'fetch').mockRejectedValue(new Error('unexpected fetch'));
 });
 
 afterEach(() => {
-  jest.restoreAllMocks();
+  fetchSpy.mockRestore();
 });
 
 describe('Starknet image resolver', () => {
@@ -233,6 +236,20 @@ describe('Starknet image resolver', () => {
     );
 
     await expect(starknet(ADDRESS)).rejects.toMatchObject({ status: 504 });
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['null', 'null'],
+    ['an image that is not a string', '{"image":42}'],
+    ['a body that is not JSON', 'not json at all'],
+    ['no image field', '{"name":"nft"}']
+  ])('reads a JSON metadata response carrying %s as no data', async (_name, body) => {
+    fetchSpy.mockResolvedValue(
+      new Response(body, { headers: { 'Content-Type': 'application/json' } })
+    );
+
+    await expect(starknet(ADDRESS)).resolves.toBe(false);
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 });
