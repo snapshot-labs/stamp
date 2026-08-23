@@ -1,7 +1,13 @@
 const mockGetStarkProfile = jest.fn();
+const mockGetChainId = jest.fn();
+const mockCallContract = jest.fn();
 
 jest.mock('../../../../src/helpers/provider', () => ({
-  getProvider: () => ({ getStarkProfile: mockGetStarkProfile })
+  getProvider: () => ({
+    getStarkProfile: mockGetStarkProfile,
+    getChainId: mockGetChainId,
+    callContract: mockCallContract
+  })
 }));
 
 import starknet from '../../../../src/resolvers/image/starknet';
@@ -14,8 +20,11 @@ const OVER_PRIME_ADDRESS = '0x21212121212121212121212121212121212121212121212121
 const UNPREFIXED_ADDRESS = '07ff6b17f07c4d83236e3fc5f94259a19d1ed41bbcf1822397ea17882e9b038d';
 const EVM_ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
 const UNPADDED_ADDRESS = '0xa00373a00352aa367058555149b573322910d54fcdf3a926e3e56d0dcb4b0c';
+const NFT_CONTRACT = '0x123';
+const IMAGE_URL = 'https://example.com/avatar.png';
 
 beforeEach(() => {
+  jest.clearAllMocks();
   mockGetStarkProfile.mockReset().mockResolvedValue({
     profilePicture: 'https://example.com/profile.png'
   });
@@ -57,5 +66,42 @@ describe('Starknet image resolver', () => {
     await expect(starknet(ADDRESS)).rejects.toMatchObject({
       name: 'AbortError'
     });
+  });
+
+  it('falls back to token_uri when the profile multicall uses an unsupported entrypoint', async () => {
+    mockGetStarkProfile.mockRejectedValue(
+      new Error('starknetid/multicall-failed: ENTRYPOINT_NOT_FOUND')
+    );
+    mockGetChainId.mockResolvedValue('0x534e5f4d41494e');
+    mockedFetch.mockResolvedValue(new Response(Buffer.from('image')));
+    const urlFelts = [IMAGE_URL.slice(0, 31), IMAGE_URL.slice(31)].map(
+      part => `0x${Buffer.from(part).toString('hex')}`
+    );
+    mockCallContract
+      .mockResolvedValueOnce(['0x1', '0xabc'])
+      .mockResolvedValueOnce(['0x42'])
+      .mockResolvedValueOnce([NFT_CONTRACT])
+      .mockResolvedValueOnce(['0x2', '0x4e20', '0x0'])
+      .mockResolvedValueOnce(['0x2', ...urlFelts]);
+
+    await expect(starknet(UNPADDED_ADDRESS)).resolves.toBeInstanceOf(Buffer);
+    expect(mockCallContract.mock.calls[1][0]).toEqual({
+      contractAddress: expect.any(String),
+      entrypoint: 'domain_to_id',
+      calldata: ['0x1', '0xabc']
+    });
+    expect(mockCallContract).toHaveBeenLastCalledWith({
+      contractAddress: NFT_CONTRACT,
+      entrypoint: 'token_uri',
+      calldata: ['0x4e20', '0x0']
+    });
+  });
+
+  it('does not hide unrelated profile errors', async () => {
+    const error = new Error('RPC timeout');
+    mockGetStarkProfile.mockRejectedValue(error);
+
+    await expect(starknet(UNPADDED_ADDRESS)).rejects.toBe(error);
+    expect(mockCallContract).not.toHaveBeenCalled();
   });
 });
