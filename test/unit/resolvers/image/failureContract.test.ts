@@ -158,6 +158,19 @@ describe('resolvers - failure contract', () => {
     expect(capture).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['library metadata', { library: 'SSL routines' }],
+    [
+      'message metadata',
+      { message: 'error:0A000458:SSL routines:ssl3_read_bytes:tlsv1 unrecognized name' }
+    ]
+  ])('does not report an OpenSSL failure identified by %s', async (_label, cause) => {
+    (ens as jest.Mock).mockRejectedValue(Object.assign(new TypeError('fetch failed'), { cause }));
+
+    await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
+    expect(capture).not.toHaveBeenCalled();
+  });
+
   it.each([520, 521, 522, 523, 524])(
     'does not report Cloudflare origin failure %i',
     async status => {

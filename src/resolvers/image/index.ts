@@ -49,6 +49,8 @@ function isRoutineMiss(error: any): boolean {
     (status >= 400 && status < 500) ||
     (status >= 520 && status <= 524) ||
     ROUTINE_NETWORK_ERROR_CODES.includes(code) ||
+    error?.cause?.library === 'SSL routines' ||
+    error?.cause?.message?.includes(':SSL routines:') ||
     error?.code === 'INVALID_ARGUMENT'
   );
 }
