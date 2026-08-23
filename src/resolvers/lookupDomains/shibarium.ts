@@ -1,5 +1,6 @@
 import constants from '../../constants.json';
 import { withDeadline } from '../../helpers/deadline';
+import { httpError } from '../../helpers/errors';
 import { Address, Handle } from '../../helpers/types';
 
 const MAINNET = '109';
@@ -40,16 +41,16 @@ export default async function lookupDomains(
       }
 
       if (!response.ok) {
-        throw Object.assign(new Error(`HTTP ${response.status}: ${response.statusText}`), {
-          status: response.status
-        });
+        throw httpError('shibarium', response.status, response.statusText);
       }
 
       let data: { pageItems?: Array<{ sld: string; tld: string }> };
       try {
         data = await response.json();
       } catch (err) {
-        throw new Error(`Invalid JSON response: ${(err as any).message}`);
+        throw Object.assign(new Error(`Invalid JSON response: ${(err as any).message}`), {
+          cause: err
+        });
       }
 
       const domains = data.pageItems?.map(item => `${item.sld}.${item.tld}`) || [];

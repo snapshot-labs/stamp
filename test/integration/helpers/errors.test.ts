@@ -57,6 +57,17 @@ describe('isSilencedError', () => {
     expect(isSilencedError(fetchError)).toBe(true);
   });
 
+  it('silences undici premature socket closes', () => {
+    const fetchError = new TypeError('fetch failed') as TypeError & {
+      cause?: Error & { code?: string };
+    };
+    fetchError.cause = Object.assign(new Error('Premature close'), {
+      code: 'UND_ERR_SOCKET'
+    });
+
+    expect(isSilencedError(fetchError)).toBe(true);
+  });
+
   it('silences errors matched by cause message', () => {
     const fetchError = new TypeError('fetch failed') as TypeError & {
       cause?: Error;
