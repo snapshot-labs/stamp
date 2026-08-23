@@ -1,4 +1,4 @@
-import { FETCH_BUDGET, withDeadline } from './deadline';
+import { withDeadline } from './deadline';
 import { httpError } from './errors';
 import { GraphQlResponse } from './types';
 
@@ -67,5 +67,5 @@ export async function graphQlCall<T = any>(
     }
 
     return body;
-  }, FETCH_BUDGET);
+  }, 5e3);
 }

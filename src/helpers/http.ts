@@ -1,7 +1,7 @@
 import { getAddress } from '@ethersproject/address';
 import snapshot from '@snapshot-labs/snapshot.js';
 import { isStarknetAddress } from './address';
-import { FETCH_BUDGET, withDeadline } from './deadline';
+import { withDeadline } from './deadline';
 import { httpError } from './errors';
 
 // Spaces are keyed by address on the onchain APIs, and both accept the raw id
@@ -27,7 +27,7 @@ export function fetchWithDeadline<T>(
     if (!response.ok) throw httpError(new URL(url).host, response.status, response.statusText);
 
     return read(response);
-  }, FETCH_BUDGET);
+  }, 5e3);
 }
 
 export function fetchHttpImage(url: string): Promise<Buffer> {
