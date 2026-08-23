@@ -31,13 +31,24 @@ type Resolver = {
   mutedErrors?: string[];
 };
 
+const ROUTINE_NETWORK_ERROR_CODES = [
+  'ENOTFOUND',
+  'EAI_AGAIN',
+  'ECONNREFUSED',
+  'ERR_TLS_CERT_ALTNAME_INVALID',
+  'CERT_HAS_EXPIRED',
+  'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
+  'DEPTH_ZERO_SELF_SIGNED_CERT'
+];
+
 function isRoutineMiss(error: any): boolean {
   const status = Number(error?.status ?? error?.response?.status);
   const code = error?.cause?.code ?? error?.code;
 
   return (
     (status >= 400 && status < 500) ||
-    ['ENOTFOUND', 'EAI_AGAIN', 'ECONNREFUSED'].includes(code) ||
+    (status >= 520 && status <= 524) ||
+    ROUTINE_NETWORK_ERROR_CODES.includes(code) ||
     error?.code === 'INVALID_ARGUMENT'
   );
 }
@@ -117,7 +128,11 @@ export default Object.fromEntries(
     return [
       entry.name,
       entry.failureContract
-        ? withFailureContract(entry.name, resolve, 'mutedErrors' in entry ? entry.mutedErrors : undefined)
+        ? withFailureContract(
+            entry.name,
+            resolve,
+            'mutedErrors' in entry ? entry.mutedErrors : undefined
+          )
         : resolve
     ];
   })

@@ -18,7 +18,11 @@ jest.mock('../../../../src/resolvers/image/basename', () => ({
   __esModule: true,
   default: jest.fn()
 }));
-jest.mock('../../../../src/resolvers/image/lens', () => ({ __esModule: true, default: jest.fn() }));
+jest.mock('../../../../src/resolvers/image/lens', () => ({
+  __esModule: true,
+  default: jest.fn(),
+  MUTED_ERRORS: ['status code 503', 'status code 429']
+}));
 jest.mock('../../../../src/resolvers/image/starknet', () => ({
   __esModule: true,
   default: jest.fn()
@@ -58,6 +62,13 @@ const UNRESIZED = [
 ] as const;
 
 const NOT_FOUND = '[metadata.ens.domains] Not Found';
+
+const BROKEN_TLS_CODES = [
+  'ERR_TLS_CERT_ALTNAME_INVALID',
+  'CERT_HAS_EXPIRED',
+  'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
+  'DEPTH_ZERO_SELF_SIGNED_CERT'
+] as const;
 
 const NOT_REPORTED = [
   [
@@ -137,6 +148,30 @@ describe('resolvers - failure contract', () => {
     await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
     expect(capture).not.toHaveBeenCalled();
   });
+
+  it.each(BROKEN_TLS_CODES)('does not report an avatar host TLS failure (%s)', async code => {
+    (ens as jest.Mock).mockRejectedValue(
+      Object.assign(new TypeError('fetch failed'), { cause: { code } })
+    );
+
+    await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it.each([520, 521, 522, 523, 524])(
+    'does not report Cloudflare origin failure %i',
+    async status => {
+      (ens as jest.Mock).mockRejectedValue(
+        Object.assign(new Error('[profile host]'), {
+          status,
+          response: { status }
+        })
+      );
+
+      await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
+      expect(capture).not.toHaveBeenCalled();
+    }
+  );
 
   it('still reports an upstream 500', async () => {
     const error = Object.assign(new Error('[profile host]'), {
