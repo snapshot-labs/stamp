@@ -57,15 +57,18 @@ const UNRESIZED = [
   ['space-cover-sx', resolveCover]
 ] as const;
 
-const UPSTREAM_404 = Object.assign(new Error('Request failed with status code 404'), {
-  response: { status: 404 }
-});
+const NOT_FOUND = '[metadata.ens.domains] Not Found';
 
 const NOT_REPORTED = [
-  ['an upstream 404', UPSTREAM_404],
+  [
+    'a 404 carried on error.response',
+    Object.assign(new Error(NOT_FOUND), {
+      response: { status: 404 }
+    })
+  ],
   [
     'a 404 carried on the error itself',
-    Object.assign(new Error('[trustwallet] Not Found'), {
+    Object.assign(new Error(NOT_FOUND), {
       status: 404
     })
   ],
