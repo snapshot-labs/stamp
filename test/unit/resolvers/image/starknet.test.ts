@@ -9,6 +9,7 @@ jest.mock('../../../../src/helpers/provider', () => ({
   })
 }));
 
+import { isSilencedError } from '../../../../src/helpers/errors';
 import { MAX_IMAGE_BYTES } from '../../../../src/helpers/http';
 import starknet from '../../../../src/resolvers/image/starknet';
 import { incompleteJsonResponse } from '../../../helpers/fetch';
@@ -251,5 +252,23 @@ describe('Starknet image resolver', () => {
 
     await expect(starknet(ADDRESS)).resolves.toBe(false);
     expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('raises the deadline abort on a metadata body that never ends', async () => {
+    fetchSpy.mockImplementation(async (_input, init) => {
+      const signal = init?.signal;
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(Buffer.from('{"'));
+          signal?.addEventListener('abort', () => controller.error(signal.reason), { once: true });
+        }
+      });
+      return new Response(body, { headers: { 'Content-Type': 'application/json' } });
+    });
+
+    const error = await starknet(ADDRESS).catch(err => err);
+
+    expect(error.name).toBe('AbortError');
+    expect(isSilencedError(error)).toBe(true);
   });
 });
