@@ -1,7 +1,7 @@
 import { byteArray, CallData, constants, shortString, starknetId } from 'starknet';
 import { isStarkDomain, isStarknetFelt } from '../../helpers/address';
 import { untilAborted, withDeadline } from '../../helpers/deadline';
-import { fetchHttpImage, getUrl, IMAGE_FETCH_BUDGET, readHttpImage } from '../../helpers/http';
+import { fetchHttpImage, getUrl, readHttpImage } from '../../helpers/http';
 import { getProvider } from '../../helpers/provider';
 
 const DEFAULT_IMG_URL = 'https://starknet.id/api/identicons/0';
@@ -121,11 +121,16 @@ async function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: str
     const type = response.headers.get('content-type') ?? '';
 
     if (response.ok && type.toLowerCase().startsWith('application/json')) {
-      return JSON.parse(await response.text());
+      try {
+        const metadata = JSON.parse(await response.text());
+        return typeof metadata?.image === 'string' ? { image: metadata.image } : {};
+      } catch {
+        return {};
+      }
     }
 
     return readHttpImage(url, response);
-  }, IMAGE_FETCH_BUDGET);
+  }, 5e3);
 }
 
 async function fetchMetadataImage(image: string): Promise<Buffer | null> {

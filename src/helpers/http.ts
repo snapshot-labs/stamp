@@ -45,7 +45,11 @@ export async function readHttpImage(url: string, response: Response): Promise<Bu
     throw httpError(host, 404, `image too large: ${declared} bytes`);
   }
 
-  if (!response.body) return Buffer.from(await response.arrayBuffer());
+  if (!response.body) {
+    const buffer = Buffer.from(await response.arrayBuffer());
+    if (buffer.length === 0) throw httpError(host, 404, 'empty body');
+    return buffer;
+  }
 
   const chunks: Uint8Array[] = [];
   let total = 0;
@@ -59,6 +63,8 @@ export async function readHttpImage(url: string, response: Response): Promise<Bu
     chunks.push(chunk);
   }
 
+  if (total === 0) throw httpError(host, 404, 'empty body');
+
   return Buffer.concat(chunks);
 }
 
@@ -67,10 +73,7 @@ export async function fetchHttpImage(url: string): Promise<Buffer> {
     throw httpError('url', 404, `url too large: over ${MAX_URL_BYTES} bytes`);
   }
 
-  return withDeadline(
-    async signal => readHttpImage(url, await fetch(url, { signal })),
-    IMAGE_FETCH_BUDGET
-  );
+  return withDeadline(async signal => readHttpImage(url, await fetch(url, { signal })), 5e3);
 }
 
 export function isHttpUrl(value: string): boolean {
