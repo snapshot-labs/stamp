@@ -1,10 +1,12 @@
-import { CallData, shortString, starknetId } from 'starknet';
+import { byteArray, CallData, constants, shortString, starknetId } from 'starknet';
 import { isStarkDomain, isStarknetFelt } from '../../helpers/address';
+import { untilAborted, withDeadline } from '../../helpers/deadline';
 import { fetchHttpImage, fetchWithDeadline, getUrl } from '../../helpers/http';
 import { getProvider } from '../../helpers/provider';
 
 const DEFAULT_IMG_URL = 'https://starknet.id/api/identicons/0';
-const provider = getProvider('0x534e5f4d41494e');
+const CHAIN_ID = constants.StarknetChainId.SN_MAIN;
+const provider = getProvider(CHAIN_ID);
 
 function isUnsupportedTokenUriError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
@@ -15,10 +17,9 @@ function isUnsupportedTokenUriError(error: unknown): boolean {
 }
 
 async function getNftProfilePicture(address: string): Promise<string | null> {
-  const chainId = await provider.getChainId();
-  const starknetIdContract = starknetId.getStarknetIdContract(chainId);
-  const identityContract = starknetId.getStarknetIdIdentityContract(chainId);
-  const pfpContract = starknetId.getStarknetIdPfpContract(chainId);
+  const starknetIdContract = starknetId.getStarknetIdContract(CHAIN_ID);
+  const identityContract = starknetId.getStarknetIdIdentityContract(CHAIN_ID);
+  const pfpContract = starknetId.getStarknetIdPfpContract(CHAIN_ID);
 
   const domain = await provider.callContract({
     contractAddress: starknetIdContract,
@@ -60,7 +61,29 @@ async function getNftProfilePicture(address: string): Promise<string | null> {
     calldata: nftId.slice(1, 3)
   });
 
-  return metadata.slice(1).map(shortString.decodeShortString).join('') || null;
+  return decodeTokenUri(metadata);
+}
+
+// `token_uri` replies as [len, ...felts] (Cairo 0 Array<felt252>) or as
+// [num_full_words, ...full_words, pending_word, pending_word_len] (Cairo 1 ByteArray).
+function decodeTokenUri(raw: string[]): string | null {
+  const len = Number(raw[0]);
+
+  if (raw.length === 3 + len) {
+    return (
+      byteArray.stringFromByteArray({
+        data: raw.slice(1, 1 + len),
+        pending_word: raw[1 + len],
+        pending_word_len: raw[2 + len]
+      }) || null
+    );
+  }
+
+  if (raw.length === 1 + len) {
+    return raw.slice(1).map(shortString.decodeShortString).join('') || null;
+  }
+
+  return null;
 }
 
 async function getStarknetAddress(domain: string): Promise<string | null> {
@@ -83,7 +106,12 @@ async function getImage(domainOrAddress: string): Promise<string | null> {
   } catch (err) {
     if (!isUnsupportedTokenUriError(err)) throw err;
 
-    return getNftProfilePicture(address);
+    try {
+      return await withDeadline(signal => untilAborted(signal, getNftProfilePicture(address)));
+    } catch (fallbackErr) {
+      if (fallbackErr instanceof Error) fallbackErr.cause = err;
+      throw fallbackErr;
+    }
   }
 }
 
