@@ -19,9 +19,9 @@ jest.mock('../../../../src/resolvers/image/basename', () => ({
   default: jest.fn()
 }));
 jest.mock('../../../../src/resolvers/image/lens', () => ({
+  ...jest.requireActual('../../../../src/resolvers/image/lens'),
   __esModule: true,
-  default: jest.fn(),
-  MUTED_ERRORS: ['status code 503', 'status code 429']
+  default: jest.fn()
 }));
 jest.mock('../../../../src/resolvers/image/starknet', () => ({
   __esModule: true,
@@ -158,31 +158,14 @@ describe('resolvers - failure contract', () => {
     expect(capture).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ['library metadata', { library: 'SSL routines' }],
-    [
-      'message metadata',
-      { message: 'error:0A000458:SSL routines:ssl3_read_bytes:tlsv1 unrecognized name' }
-    ]
-  ])('does not report an OpenSSL failure identified by %s', async (_label, cause) => {
-    (ens as jest.Mock).mockRejectedValue(Object.assign(new TypeError('fetch failed'), { cause }));
-
-    await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
-    expect(capture).not.toHaveBeenCalled();
-  });
-
-  it.each([520, 521, 522, 523, 524])(
-    'does not report Cloudflare origin failure %i',
+  it.each([401, 402, 403])(
+    'still reports an upstream %i from a resolver-owned authenticated call',
     async status => {
-      (ens as jest.Mock).mockRejectedValue(
-        Object.assign(new Error('[profile host]'), {
-          status,
-          response: { status }
-        })
-      );
+      const error = Object.assign(new Error('[api host]'), { status, response: { status } });
+      (ens as jest.Mock).mockRejectedValue(error);
 
       await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
-      expect(capture).not.toHaveBeenCalled();
+      expect(capture).toHaveBeenCalledWith(error, expect.anything());
     }
   );
 
@@ -198,11 +181,28 @@ describe('resolvers - failure contract', () => {
   });
 
   it('does not report a Lens 503 that the resolver declares transient', async () => {
-    const error = new Error('Request failed with status code 503');
+    const error = Object.assign(new Error('[api.lens.xyz] status code 503: Service Unavailable'), {
+      status: 503,
+      response: { status: 503 }
+    });
     (lens as jest.Mock).mockRejectedValue(error);
 
     await expect(resolvers.lens(ADDRESS)).resolves.toBe(false);
     expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('does not leak lens MUTED_ERRORS to a resolver that does not export it', async () => {
+    const error = Object.assign(new Error('[api.lens.xyz] status code 503: Service Unavailable'), {
+      status: 503,
+      response: { status: 503 }
+    });
+    (ens as jest.Mock).mockRejectedValue(error);
+
+    await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
+    expect(capture).toHaveBeenCalledWith(error, {
+      tags: { provider: 'ens' },
+      contexts: { input: { args: [ADDRESS] } }
+    });
   });
 
   it.each(RESIZED)('attributes %s bytes sharp cannot process to itself', async (name, fn) => {

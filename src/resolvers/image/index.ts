@@ -41,16 +41,20 @@ const ROUTINE_NETWORK_ERROR_CODES = [
   'DEPTH_ZERO_SELF_SIGNED_CERT'
 ];
 
+// 401/402/403 are excluded from the routine band: withFailureContract wraps a
+// resolver's own authenticated API calls (Neynar, Snapshot Hub, CoinGecko Pro)
+// as well as its third-party avatar download, and those statuses are how a
+// dead/rotated credential shows up there — silencing them hides a real outage
+// instead of a missing avatar.
+const AUTH_STATUS_CODES = [401, 402, 403];
+
 function isRoutineMiss(error: any): boolean {
   const status = Number(error?.status ?? error?.response?.status);
   const code = error?.cause?.code ?? error?.code;
 
   return (
-    (status >= 400 && status < 500) ||
-    (status >= 520 && status <= 524) ||
+    (status >= 400 && status < 500 && !AUTH_STATUS_CODES.includes(status)) ||
     ROUTINE_NETWORK_ERROR_CODES.includes(code) ||
-    error?.cause?.library === 'SSL routines' ||
-    error?.cause?.message?.includes(':SSL routines:') ||
     error?.code === 'INVALID_ARGUMENT'
   );
 }
