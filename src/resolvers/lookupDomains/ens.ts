@@ -8,7 +8,7 @@ export const CHAIN_IDS = Object.keys(constants.ensSubgraph);
 
 type Domain = {
   name: string;
-  expiryDate?: number;
+  expiryDate?: string;
 };
 
 type ResolvedLabel = {
@@ -78,15 +78,15 @@ export default async function lookupDomains(
     { id: address.toLowerCase() }
   );
 
-  const now = (Date.now() / 1000).toFixed(0);
+  const now = Date.now() / 1000;
   const domains: Domain[] = [
     ...(account?.domains || []),
     ...(account?.wrappedDomains || [])
-  ].filter(
-    domain =>
-      (!domain.expiryDate || domain.expiryDate === '0' || domain.expiryDate > now) &&
-      !domain.name.endsWith('.addr.reverse')
-  );
+  ].filter(domain => {
+    const expiry = Number(domain.expiryDate ?? 0);
+
+    return (!expiry || expiry > now) && !domain.name.endsWith('.addr.reverse');
+  });
 
   return fetchDomainNames(domains, chainId);
 }
