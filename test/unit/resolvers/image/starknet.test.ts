@@ -1,11 +1,9 @@
 const mockGetStarkProfile = jest.fn();
-const mockGetChainId = jest.fn();
 const mockCallContract = jest.fn();
 
 jest.mock('../../../../src/helpers/provider', () => ({
   getProvider: () => ({
     getStarkProfile: mockGetStarkProfile,
-    getChainId: mockGetChainId,
     callContract: mockCallContract
   })
 }));
@@ -21,10 +19,10 @@ const UNPREFIXED_ADDRESS = '07ff6b17f07c4d83236e3fc5f94259a19d1ed41bbcf1822397ea
 const EVM_ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
 const UNPADDED_ADDRESS = '0xa00373a00352aa367058555149b573322910d54fcdf3a926e3e56d0dcb4b0c';
 const NFT_CONTRACT = '0x123';
-const IMAGE_URL = 'https://example.com/avatar.png';
+const IMAGE_URL = 'https://example.com/avatar/token-12345.png';
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  mockCallContract.mockReset();
   mockGetStarkProfile.mockReset().mockResolvedValue({
     profilePicture: 'https://example.com/profile.png'
   });
@@ -72,7 +70,6 @@ describe('Starknet image resolver', () => {
     mockGetStarkProfile.mockRejectedValue(
       new Error('starknetid/multicall-failed: ENTRYPOINT_NOT_FOUND')
     );
-    mockGetChainId.mockResolvedValue('0x534e5f4d41494e');
     mockedFetch.mockResolvedValue(new Response(Buffer.from('image')));
     const urlFelts = [IMAGE_URL.slice(0, 31), IMAGE_URL.slice(31)].map(
       part => `0x${Buffer.from(part).toString('hex')}`
@@ -85,6 +82,7 @@ describe('Starknet image resolver', () => {
       .mockResolvedValueOnce(['0x2', ...urlFelts]);
 
     await expect(starknet(UNPADDED_ADDRESS)).resolves.toBeInstanceOf(Buffer);
+    expect(mockedFetch).toHaveBeenCalledWith(IMAGE_URL, expect.anything());
     expect(mockCallContract.mock.calls[1][0]).toEqual({
       contractAddress: expect.any(String),
       entrypoint: 'domain_to_id',
@@ -95,6 +93,39 @@ describe('Starknet image resolver', () => {
       entrypoint: 'token_uri',
       calldata: ['0x4e20', '0x0']
     });
+  });
+
+  it('decodes a Cairo 1 ByteArray token_uri', async () => {
+    mockGetStarkProfile.mockRejectedValue(
+      new Error('starknetid/multicall-failed: ENTRYPOINT_NOT_FOUND')
+    );
+    mockedFetch.mockResolvedValue(new Response(Buffer.from('image')));
+    const fullWord = IMAGE_URL.slice(0, 31);
+    const pendingWord = IMAGE_URL.slice(31);
+    mockCallContract
+      .mockResolvedValueOnce(['0x1', '0xabc'])
+      .mockResolvedValueOnce(['0x42'])
+      .mockResolvedValueOnce([NFT_CONTRACT])
+      .mockResolvedValueOnce(['0x2', '0x4e20', '0x0'])
+      .mockResolvedValueOnce([
+        '0x1',
+        `0x${Buffer.from(fullWord).toString('hex')}`,
+        `0x${Buffer.from(pendingWord).toString('hex')}`,
+        `0x${pendingWord.length.toString(16)}`
+      ]);
+
+    await expect(starknet(UNPADDED_ADDRESS)).resolves.toBeInstanceOf(Buffer);
+    expect(mockedFetch).toHaveBeenCalledWith(IMAGE_URL, expect.anything());
+  });
+
+  it('links a fallback failure to the original profile error', async () => {
+    const profileError = new Error('starknetid/multicall-failed: ENTRYPOINT_NOT_FOUND');
+    const fallbackError = new Error('fallback RPC failed');
+    mockGetStarkProfile.mockRejectedValue(profileError);
+    mockCallContract.mockRejectedValue(fallbackError);
+
+    await expect(starknet(UNPADDED_ADDRESS)).rejects.toBe(fallbackError);
+    expect(fallbackError.cause).toBe(profileError);
   });
 
   it('does not hide unrelated profile errors', async () => {
