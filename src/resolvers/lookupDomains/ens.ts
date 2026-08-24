@@ -17,11 +17,14 @@ type ResolvedLabel = {
   labelName: string;
 };
 
-const HASHED_LABEL = /\[(.*?)\]/g;
+const HASHED_LABEL = /\[([0-9a-f]{64})\]/g;
+// A labelhash isn't unique across domains, so the row count isn't bounded by
+// the number of hashes queried; 1000 is what every indexer in the subgraph's
+// pool accepts, not a value derived from the query itself.
 const DOMAINS_PAGE_SIZE = 1000;
 
 function getLabelHashes(domain: Domain) {
-  return [...domain.name.matchAll(HASHED_LABEL)].map(([, hash]) => hash).filter(Boolean);
+  return [...domain.name.matchAll(HASHED_LABEL)].map(([, hash]) => hash);
 }
 
 async function fetchDomainNames(domains: Domain[], chainId: string): Promise<Handle[]> {
