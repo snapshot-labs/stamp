@@ -8,7 +8,6 @@ export const CHAIN_IDS = Object.keys(constants.ensSubgraph);
 
 type Domain = {
   name: string;
-  labelName?: string;
   expiryDate?: number;
 };
 
