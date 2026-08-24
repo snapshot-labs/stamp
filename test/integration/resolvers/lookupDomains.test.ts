@@ -21,6 +21,12 @@ describe('lookupDomains', () => {
     expect(result).toContain('chaitu.eth');
   });
 
+  it('should include ENSv2 domains on sepolia', async () => {
+    const result = await lookupDomains('0x220bc93D88C0aF11f1159eA89a885d5ADd3A7Cf6', '11155111');
+
+    expect(result).toContain('testspace.eth');
+  });
+
   it('should return an empty array if the address is not provided', async () => {
     const result = await lookupDomains('');
 

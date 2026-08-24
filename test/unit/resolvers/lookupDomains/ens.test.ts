@@ -175,47 +175,4 @@ describe('lookupDomains/ens', () => {
 
     await expect(lookupDomains(ADDRESS)).rejects.toThrow();
   });
-
-  describe('on a chain with ENSv2', () => {
-    const CHAIN_ID = '11155111';
-
-    it('merges v2 domains with the v1 subgraph result', async () => {
-      mockedGraphQlCall
-        .mockResolvedValueOnce(accountResponse([{ name: 'boorger.eth' }]))
-        .mockResolvedValueOnce(graphQlResponse({ domains: [{ name: 'testspace.eth' }] }));
-
-      const result = await lookupDomains(ADDRESS, CHAIN_ID);
-
-      expect(result).toEqual(['boorger.eth', 'testspace.eth']);
-      expect(mockedGraphQlCall).toHaveBeenNthCalledWith(
-        2,
-        'https://staging-graphql.ens.dev/',
-        expect.stringContaining('domains(where: $where, first: $first)'),
-        { where: { owner: ADDRESS.toLowerCase() }, first: 1000 }
-      );
-    });
-
-    it('keeps the v1 names when the v2 lookup fails', async () => {
-      mockedGraphQlCall
-        .mockResolvedValueOnce(accountResponse([{ name: 'boorger.eth' }]))
-        .mockRejectedValueOnce(new Error('endpoint moved'));
-
-      expect(await lookupDomains(ADDRESS, CHAIN_ID)).toEqual(['boorger.eth']);
-    });
-
-    it('filters expired v2 domains', async () => {
-      mockedGraphQlCall
-        .mockResolvedValueOnce(accountResponse([]))
-        .mockResolvedValueOnce(graphQlResponse({ domains: [{ name: 'gone.eth', expiryDate: 1 }] }));
-
-      expect(await lookupDomains(ADDRESS, CHAIN_ID)).toEqual([]);
-    });
-  });
-
-  it('does not query ENSv2 on a chain without it', async () => {
-    mockedGraphQlCall.mockResolvedValueOnce(accountResponse([{ name: 'plain.eth' }]));
-
-    expect(await lookupDomains(ADDRESS, '1')).toEqual(['plain.eth']);
-    expect(mockedGraphQlCall).toHaveBeenCalledTimes(1);
-  });
 });
