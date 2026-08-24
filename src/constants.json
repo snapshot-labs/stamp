@@ -17,6 +17,9 @@
     "1": "https://subgrapher.snapshot.org/subgraph/arbitrum/5XqPmWe6gjyrJtFn9cLy237i4cWw2j9HcUJEXsP5qGtH",
     "11155111": "https://subgrapher.snapshot.org/subgraph/arbitrum/CA5t8ep58QKXBdLrjJHaREETHpCsy63kro9Eem6zBQAD"
   },
+  "ensV2Graphql": {
+    "11155111": "https://staging-graphql.ens.dev/"
+  },
   "d3": {
     "109": {
       "apiUrl": "https://api-public.interstellar.xyz",
