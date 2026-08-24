@@ -12,7 +12,7 @@ jest.mock('../../../../src/helpers/provider', () => ({
 import { isSilencedError } from '../../../../src/helpers/errors';
 import { MAX_IMAGE_BYTES } from '../../../../src/helpers/http';
 import starknet from '../../../../src/resolvers/image/starknet';
-import { incompleteJsonResponse } from '../../../helpers/fetch';
+import { incompleteJsonResponse, jsonResponse } from '../../../helpers/fetch';
 
 const ADDRESS = '0x07ff6b17f07c4d83236e3fc5f94259a19d1ed41bbcf1822397ea17882e9b038d';
 const OVER_PRIME_ADDRESS = '0x2121212121212121212121212121212121212121212121212121212121212121';
@@ -57,19 +57,19 @@ describe('Starknet image resolver', () => {
     mockGetStarkProfile.mockResolvedValue({ profilePicture: 'http://' });
 
     await expect(starknet(ADDRESS)).resolves.toBe(false);
-    expect(mockedFetch).not.toHaveBeenCalled();
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('answers false for on-chain metadata whose image cannot become a fetchable URL', async () => {
     mockGetStarkProfile.mockResolvedValue({ profilePicture: 'https://example.com/metadata.json' });
-    mockedFetch.mockResolvedValue(
+    fetchSpy.mockResolvedValue(
       new Response(JSON.stringify({ image: 'http://' }), {
         headers: { 'Content-Type': 'application/json' }
       })
     );
 
     await expect(starknet(ADDRESS)).resolves.toBe(false);
-    expect(mockedFetch).toHaveBeenCalledTimes(1);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 
   it('rejects a non-2xx image response with its HTTP status', async () => {
@@ -85,7 +85,7 @@ describe('Starknet image resolver', () => {
   });
 
   it('rejects a profile picture over the size cap', async () => {
-    mockedFetch.mockResolvedValue(
+    fetchSpy.mockResolvedValue(
       new Response(new Uint8Array(MAX_IMAGE_BYTES + 1), {
         headers: { 'Content-Type': 'image/png' }
       })
@@ -270,5 +270,22 @@ describe('Starknet image resolver', () => {
 
     expect(error.name).toBe('AbortError');
     expect(isSilencedError(error)).toBe(true);
+  });
+
+  it('fetches a data: URI profile picture directly rather than through the IPFS gateway', async () => {
+    const metadataUri =
+      'data:application/json;base64,eyJpbWFnZSI6ImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5In0=';
+    const imageUri = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0i';
+    mockGetStarkProfile.mockResolvedValue({ profilePicture: metadataUri });
+    fetchSpy
+      .mockResolvedValueOnce(jsonResponse({ image: imageUri }))
+      .mockResolvedValueOnce(
+        new Response('svg-bytes', { headers: { 'Content-Type': 'image/svg+xml' } })
+      );
+
+    await expect(starknet(ADDRESS)).resolves.toBeInstanceOf(Buffer);
+
+    expect(fetchSpy).toHaveBeenNthCalledWith(1, metadataUri, expect.anything());
+    expect(fetchSpy).toHaveBeenNthCalledWith(2, imageUri, expect.anything());
   });
 });
