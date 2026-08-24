@@ -21,6 +21,7 @@ const ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
 const IMAGE_URL = 'https://example.com/avatar.png';
 
 const ENS_SUBGRAPH = '[subgrapher.snapshot.org]';
+const ENS_HASH = 'e691d0079f79eca4304219d11ee5e5ff3df65a87c2595597cc15b4efd1dfda2b';
 
 function respondWith(body: any, status = 200) {
   mockedFetch.mockResolvedValue(jsonResponse(body, status));
@@ -66,7 +67,7 @@ describe('graphQlCall callers surface an envelope failure', () => {
   describe('src/resolvers/lookupDomains/ens.ts - registration', () => {
     const hashedDomain = {
       data: {
-        account: { domains: [{ name: '[7f3a].eth' }], wrappedDomains: [] }
+        account: { domains: [{ name: `[${ENS_HASH}].eth` }], wrappedDomains: [] }
       }
     };
 
@@ -78,7 +79,7 @@ describe('graphQlCall callers surface an envelope failure', () => {
 
     it('decodes the label when the subgraph answers', async () => {
       answerWith({
-        data: { domains: [{ labelhash: '0x7f3a', labelName: 'vitalik' }] }
+        data: { domains: [{ labelhash: `0x${ENS_HASH}`, labelName: 'vitalik' }] }
       });
 
       await expect(ensLookupDomains(ADDRESS)).resolves.toEqual(['vitalik.eth']);
@@ -87,7 +88,7 @@ describe('graphQlCall callers surface an envelope failure', () => {
     it('keeps the hashed name when the label is genuinely unknown', async () => {
       answerWith({ data: { domains: [] } });
 
-      await expect(ensLookupDomains(ADDRESS)).resolves.toEqual(['[7f3a].eth']);
+      await expect(ensLookupDomains(ADDRESS)).resolves.toEqual([`[${ENS_HASH}].eth`]);
     });
 
     it('rejects rather than returning the undecoded name when the subgraph fails', async () => {

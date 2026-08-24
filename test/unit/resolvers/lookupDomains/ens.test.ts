@@ -7,6 +7,9 @@ jest.mock('../../../../src/helpers/graphql', () => ({
 
 const mockedGraphQlCall = graphQlCall as jest.Mock;
 const ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
+const HASH_A = '9834876dcfb05cb167a5c24953eba58c4ac89b1adf57f28f2f9d09af107ee8f0';
+const HASH_B = '3e744b9dc39389baf0c5a0660589b8402f3dbb49b89b3e75f2c9355852a3c677';
+const HASH_C = '64daa44ad493ff28a96effab6e77f1732a3d97d83241581b37dbd70a7a4900fe';
 
 function graphQlResponse<T>(data: T) {
   return { data };
@@ -24,13 +27,17 @@ describe('lookupDomains/ens', () => {
   it('loads all hashed labels in one domains query', async () => {
     mockedGraphQlCall
       .mockResolvedValueOnce(
-        accountResponse([{ name: '[aaa].eth' }, { name: 'plain.eth' }, { name: '[bbb].eth' }])
+        accountResponse([
+          { name: `[${HASH_A}].eth` },
+          { name: 'plain.eth' },
+          { name: `[${HASH_B}].eth` }
+        ])
       )
       .mockResolvedValue(
         graphQlResponse({
           domains: [
-            { labelhash: '0xbbb', labelName: '$&' },
-            { labelhash: '0xaaa', labelName: 'alice' }
+            { labelhash: `0x${HASH_B}`, labelName: '$&' },
+            { labelhash: `0x${HASH_A}`, labelName: 'alice' }
           ]
         })
       );
@@ -45,18 +52,18 @@ describe('lookupDomains/ens', () => {
       expect.stringContaining(
         'domains(first: $first, where: { labelhash_in: $hashes, labelName_not: null })'
       ),
-      { hashes: ['0xaaa', '0xbbb'], first: 1000 }
+      { hashes: [`0x${HASH_A}`, `0x${HASH_B}`], first: 1000 }
     );
   });
 
   it('resolves a label from duplicate rows sharing one labelhash', async () => {
     mockedGraphQlCall
-      .mockResolvedValueOnce(accountResponse([{ name: '[aaa].sub.eth' }]))
+      .mockResolvedValueOnce(accountResponse([{ name: `[${HASH_A}].sub.eth` }]))
       .mockResolvedValueOnce(
         graphQlResponse({
           domains: [
-            { labelhash: '0xaaa', labelName: 'alice' },
-            { labelhash: '0xaaa', labelName: 'alice' }
+            { labelhash: `0x${HASH_A}`, labelName: 'alice' },
+            { labelhash: `0x${HASH_A}`, labelName: 'alice' }
           ]
         })
       );
@@ -67,29 +74,34 @@ describe('lookupDomains/ens', () => {
   it('resolves every hashed label of a multi-level name', async () => {
     mockedGraphQlCall
       .mockResolvedValueOnce(
-        accountResponse([{ name: '[aaa].[bbb].[ccc].eth' }, { name: '[ccc].eth' }])
+        accountResponse([
+          { name: `[${HASH_A}].[${HASH_B}].[${HASH_C}].eth` },
+          { name: `[${HASH_C}].eth` }
+        ])
       )
       .mockResolvedValueOnce(
         graphQlResponse({
           domains: [
-            { labelhash: '0xaaa', labelName: 'alice' },
-            { labelhash: '0xccc', labelName: 'aragonid' }
+            { labelhash: `0x${HASH_A}`, labelName: 'alice' },
+            { labelhash: `0x${HASH_C}`, labelName: 'aragonid' }
           ]
         })
       );
 
     await expect(lookupDomains(ADDRESS)).resolves.toEqual([
-      'alice.[bbb].aragonid.eth',
+      `alice.[${HASH_B}].aragonid.eth`,
       'aragonid.eth'
     ]);
     expect(mockedGraphQlCall.mock.calls[1][2]).toEqual({
-      hashes: ['0xaaa', '0xbbb', '0xccc'],
+      hashes: [`0x${HASH_A}`, `0x${HASH_B}`, `0x${HASH_C}`],
       first: 1000
     });
   });
 
   it('requests a fixed page size regardless of how many hashes are looked up', async () => {
-    const domains = Array.from({ length: 1500 }, (_, index) => ({ name: `[${index}].eth` }));
+    const domains = Array.from({ length: 1500 }, (_, index) => ({
+      name: `[${String(index).padStart(64, '0')}].eth`
+    }));
     mockedGraphQlCall
       .mockResolvedValueOnce(accountResponse(domains))
       .mockResolvedValueOnce(graphQlResponse({ domains: [] }));
@@ -113,9 +125,22 @@ describe('lookupDomains/ens', () => {
     expect(mockedGraphQlCall).toHaveBeenCalledTimes(1);
   });
 
+  it('leaves a bracket that is not a 64-hex labelhash untouched instead of sending it to the subgraph', async () => {
+    mockedGraphQlCall.mockResolvedValueOnce(
+      accountResponse([{ name: 'a[bbb].c.eth' }, { name: '[AAA].eth' }, { name: '[[aaa]].eth' }])
+    );
+
+    await expect(lookupDomains(ADDRESS)).resolves.toEqual([
+      'a[bbb].c.eth',
+      '[AAA].eth',
+      '[[aaa]].eth'
+    ]);
+    expect(mockedGraphQlCall).toHaveBeenCalledTimes(1);
+  });
+
   it('rejects when the domains list is null', async () => {
     mockedGraphQlCall
-      .mockResolvedValueOnce(accountResponse([{ name: '[aaa].eth' }]))
+      .mockResolvedValueOnce(accountResponse([{ name: `[${HASH_A}].eth` }]))
       .mockResolvedValueOnce(graphQlResponse({ domains: null }));
 
     await expect(lookupDomains(ADDRESS)).rejects.toThrow();
@@ -123,7 +148,7 @@ describe('lookupDomains/ens', () => {
 
   it('rejects when the domains response has no data envelope', async () => {
     mockedGraphQlCall
-      .mockResolvedValueOnce(accountResponse([{ name: '[aaa].eth' }]))
+      .mockResolvedValueOnce(accountResponse([{ name: `[${HASH_A}].eth` }]))
       .mockResolvedValueOnce({ data: {} });
 
     await expect(lookupDomains(ADDRESS)).rejects.toThrow();
