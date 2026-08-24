@@ -1,5 +1,6 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import constants from '../../constants.json';
+import { isSilencedError } from '../../helpers/errors';
 import { graphQlCall } from '../../helpers/graphql';
 import { Address, Handle } from '../../helpers/types';
 
@@ -78,7 +79,9 @@ async function fetchV2Domains(address: Address, chainId: string): Promise<Domain
 
     return data?.domains || [];
   } catch (err) {
-    capture(err, { contexts: { input: { address, chainId } } });
+    if (!isSilencedError(err)) {
+      capture(err, { contexts: { input: { address, chainId } } });
+    }
     return [];
   }
 }
