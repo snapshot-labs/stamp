@@ -17,7 +17,6 @@ export function spaceIds(id: string): string[] | null {
   }
 }
 
-export const IMAGE_FETCH_BUDGET = 5e3;
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
 export async function readHttpImage(url: string, response: Response): Promise<Buffer> {
@@ -79,6 +78,8 @@ export function isHttpUrl(value: string): boolean {
 }
 
 export function getUrl(url: string): string | null {
+  if (url.startsWith('data:')) return url;
+
   const gateway: string = process.env.IPFS_GATEWAY || 'cloudflare-ipfs.com';
   const candidate = snapshot.utils.getUrl(url, gateway);
   if (!candidate) return null;
