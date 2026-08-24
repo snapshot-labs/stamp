@@ -12,15 +12,16 @@ type Domain = {
   expiryDate?: number;
 };
 
-type Registration = {
-  id: string;
-  domain?: Pick<Domain, 'labelName'>;
+type ResolvedLabel = {
+  labelhash: string;
+  labelName: string;
 };
 
 const HASHED_LABEL = /\[(.*?)\]/g;
+const DOMAINS_PAGE_SIZE = 1000;
 
 function getLabelHashes(domain: Domain) {
-  return [...domain.name.matchAll(HASHED_LABEL)].map(([, hash]) => hash);
+  return [...domain.name.matchAll(HASHED_LABEL)].map(([, hash]) => hash).filter(Boolean);
 }
 
 async function fetchDomainNames(domains: Domain[], chainId: string): Promise<Handle[]> {
@@ -28,23 +29,21 @@ async function fetchDomainNames(domains: Domain[], chainId: string): Promise<Han
 
   if (!hashes.length) return domains.map(domain => domain.name);
 
-  const { data } = await graphQlCall<{ registrations: Registration[] }>(
+  const { data } = await graphQlCall<{ domains: ResolvedLabel[] }>(
     constants.ensSubgraph[chainId],
-    `query Registrations($ids: [String!]!, $first: Int!) {
-      registrations(first: $first, where: { id_in: $ids }) {
-        id
-        domain {
-          labelName
-        }
+    `query Labels($hashes: [Bytes!]!, $first: Int!) {
+      domains(first: $first, where: { labelhash_in: $hashes, labelName_not: null }) {
+        labelhash
+        labelName
       }
     }`,
     {
-      ids: hashes.map(hash => `0x${hash}`),
-      first: hashes.length
+      hashes: hashes.map(hash => `0x${hash}`),
+      first: DOMAINS_PAGE_SIZE
     }
   );
   const labelNames = new Map(
-    data.registrations.map(registration => [registration.id, registration.domain?.labelName])
+    data.domains.map(({ labelhash, labelName }) => [labelhash, labelName])
   );
 
   return domains.map(domain =>
