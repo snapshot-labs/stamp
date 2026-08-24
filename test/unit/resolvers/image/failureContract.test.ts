@@ -18,7 +18,11 @@ jest.mock('../../../../src/resolvers/image/basename', () => ({
   __esModule: true,
   default: jest.fn()
 }));
-jest.mock('../../../../src/resolvers/image/lens', () => ({ __esModule: true, default: jest.fn() }));
+jest.mock('../../../../src/resolvers/image/lens', () => ({
+  ...jest.requireActual('../../../../src/resolvers/image/lens'),
+  __esModule: true,
+  default: jest.fn()
+}));
 jest.mock('../../../../src/resolvers/image/starknet', () => ({
   __esModule: true,
   default: jest.fn()
@@ -59,6 +63,13 @@ const UNRESIZED = [
 
 const NOT_FOUND = '[metadata.ens.domains] Not Found';
 
+const BROKEN_TLS_CODES = [
+  'ERR_TLS_CERT_ALTNAME_INVALID',
+  'CERT_HAS_EXPIRED',
+  'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
+  'DEPTH_ZERO_SELF_SIGNED_CERT'
+] as const;
+
 const NOT_REPORTED = [
   [
     'a 404 carried on error.response',
@@ -67,9 +78,28 @@ const NOT_REPORTED = [
     })
   ],
   [
+    'an upstream 400',
+    Object.assign(new Error('[profile host]'), {
+      status: 400,
+      response: { status: 400 }
+    })
+  ],
+  [
+    'an axios-shaped upstream 400',
+    Object.assign(new Error('Request failed with status code 400'), {
+      response: { status: 400 }
+    })
+  ],
+  [
     'a 404 carried on the error itself',
     Object.assign(new Error(NOT_FOUND), {
       status: 404
+    })
+  ],
+  [
+    'an avatar host that no longer resolves',
+    Object.assign(new TypeError('fetch failed'), {
+      cause: { code: 'ENOTFOUND' }
     })
   ],
   [
@@ -117,6 +147,62 @@ describe('resolvers - failure contract', () => {
 
     await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
     expect(capture).not.toHaveBeenCalled();
+  });
+
+  it.each(BROKEN_TLS_CODES)('does not report an avatar host TLS failure (%s)', async code => {
+    (ens as jest.Mock).mockRejectedValue(
+      Object.assign(new TypeError('fetch failed'), { cause: { code } })
+    );
+
+    await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it.each([401, 402, 403])(
+    'still reports an upstream %i from a resolver-owned authenticated call',
+    async status => {
+      const error = Object.assign(new Error('[api host]'), { status, response: { status } });
+      (ens as jest.Mock).mockRejectedValue(error);
+
+      await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
+      expect(capture).toHaveBeenCalledWith(error, expect.anything());
+    }
+  );
+
+  it('still reports an upstream 500', async () => {
+    const error = Object.assign(new Error('[profile host]'), {
+      status: 500,
+      response: { status: 500 }
+    });
+    (ens as jest.Mock).mockRejectedValue(error);
+
+    await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
+    expect(capture).toHaveBeenCalledWith(error, expect.anything());
+  });
+
+  it('does not report a Lens 503 that the resolver declares transient', async () => {
+    const error = Object.assign(new Error('[api.lens.xyz] status code 503: Service Unavailable'), {
+      status: 503,
+      response: { status: 503 }
+    });
+    (lens as jest.Mock).mockRejectedValue(error);
+
+    await expect(resolvers.lens(ADDRESS)).resolves.toBe(false);
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('does not leak lens MUTED_ERRORS to a resolver that does not export it', async () => {
+    const error = Object.assign(new Error('[api.lens.xyz] status code 503: Service Unavailable'), {
+      status: 503,
+      response: { status: 503 }
+    });
+    (ens as jest.Mock).mockRejectedValue(error);
+
+    await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
+    expect(capture).toHaveBeenCalledWith(error, {
+      tags: { provider: 'ens' },
+      contexts: { input: { args: [ADDRESS] } }
+    });
   });
 
   it.each(RESIZED)('attributes %s bytes sharp cannot process to itself', async (name, fn) => {
