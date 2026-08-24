@@ -55,8 +55,6 @@ async function fetchDomainNames(domains: Domain[], chainId: string): Promise<Han
   );
 }
 
-// names registered on ENSv2, whose ownership does not exist in the v1
-// subgraph. A failure only drops the v2 names, never the v1 result
 async function fetchV2Domains(address: Address, chainId: string): Promise<Domain[]> {
   const endpoint = constants.ensV2Graphql[chainId];
 
@@ -77,7 +75,7 @@ async function fetchV2Domains(address: Address, chainId: string): Promise<Domain
       }
     );
 
-    return data?.domains || [];
+    return data.domains || [];
   } catch (err) {
     if (!isSilencedError(err)) {
       capture(err, { contexts: { input: { address, chainId } } });
