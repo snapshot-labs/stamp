@@ -119,5 +119,5 @@ export default async function lookupDomains(
     return (!expiry || expiry > now) && !domain.name.endsWith('.addr.reverse');
   });
 
-  return [...new Set(await fetchDomainNames(domains, chainId))];
+  return fetchDomainNames(domains, chainId);
 }

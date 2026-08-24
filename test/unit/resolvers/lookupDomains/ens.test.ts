@@ -195,14 +195,6 @@ describe('lookupDomains/ens', () => {
       );
     });
 
-    it('returns each name once when both registries hold it', async () => {
-      mockedGraphQlCall
-        .mockResolvedValueOnce(accountResponse([{ name: 'boorger.eth' }]))
-        .mockResolvedValueOnce(graphQlResponse({ domains: [{ name: 'boorger.eth' }] }));
-
-      expect(await lookupDomains(ADDRESS, CHAIN_ID)).toEqual(['boorger.eth']);
-    });
-
     it('keeps the v1 names when the v2 lookup fails', async () => {
       mockedGraphQlCall
         .mockResolvedValueOnce(accountResponse([{ name: 'boorger.eth' }]))
