@@ -15,13 +15,35 @@ function graphQlResponse<T>(data: T) {
   return { data };
 }
 
-function accountResponse(domains: { name: string }[]) {
+function accountResponse(domains: { name: string; expiryDate?: string }[]) {
   return graphQlResponse({ account: { domains, wrappedDomains: [] } });
 }
 
 describe('lookupDomains/ens', () => {
   beforeEach(() => {
     mockedGraphQlCall.mockReset();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('compares expiry dates numerically and preserves names without an expiry', async () => {
+    jest.spyOn(Date, 'now').mockReturnValue(1_787_572_496_000);
+    mockedGraphQlCall.mockResolvedValueOnce(
+      accountResponse([
+        { name: 'expired.eth', expiryDate: '1787572495' },
+        { name: 'permanent.eth', expiryDate: '0' },
+        { name: 'subdomain.eth' },
+        { name: 'far-future.eth', expiryDate: '13293458883' }
+      ])
+    );
+
+    await expect(lookupDomains(ADDRESS)).resolves.toEqual([
+      'permanent.eth',
+      'subdomain.eth',
+      'far-future.eth'
+    ]);
   });
 
   it('loads all hashed labels in one domains query', async () => {
