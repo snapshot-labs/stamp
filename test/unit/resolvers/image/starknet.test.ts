@@ -5,7 +5,7 @@ jest.mock('../../../../src/helpers/provider', () => ({
 }));
 
 import starknet from '../../../../src/resolvers/image/starknet';
-import { incompleteJsonResponse, mockGlobalFetch } from '../../../helpers/fetch';
+import { incompleteJsonResponse, jsonResponse, mockGlobalFetch } from '../../../helpers/fetch';
 
 const mockedFetch = mockGlobalFetch();
 
@@ -57,5 +57,20 @@ describe('Starknet image resolver', () => {
     await expect(starknet(ADDRESS)).rejects.toMatchObject({
       name: 'AbortError'
     });
+  });
+
+  it('fetches a data: URI profile picture directly rather than through the IPFS gateway', async () => {
+    const metadataUri =
+      'data:application/json;base64,eyJpbWFnZSI6ImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5In0=';
+    const imageUri = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0i';
+    mockGetStarkProfile.mockResolvedValue({ profilePicture: metadataUri });
+    mockedFetch
+      .mockResolvedValueOnce(jsonResponse({ image: imageUri }))
+      .mockResolvedValueOnce(new Response('svg-bytes'));
+
+    await expect(starknet(ADDRESS)).resolves.toBeInstanceOf(Buffer);
+
+    expect(mockedFetch).toHaveBeenNthCalledWith(1, metadataUri, expect.anything());
+    expect(mockedFetch).toHaveBeenNthCalledWith(2, imageUri, expect.anything());
   });
 });

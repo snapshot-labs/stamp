@@ -35,6 +35,8 @@ export function fetchHttpImage(url: string): Promise<Buffer> {
 }
 
 export function getUrl(url) {
+  if (url.startsWith('data:')) return url;
+
   const gateway: string = process.env.IPFS_GATEWAY || 'cloudflare-ipfs.com';
   return snapshot.utils.getUrl(url, gateway);
 }
