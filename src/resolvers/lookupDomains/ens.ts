@@ -85,7 +85,7 @@ export default async function lookupDomains(
   ].filter(domain => {
     const expiry = Number(domain.expiryDate ?? 0);
 
-    return (!expiry || expiry > now) && !domain.name.endsWith('.addr.reverse');
+    return domain.name && (!expiry || expiry > now) && !domain.name.endsWith('.addr.reverse');
   });
 
   return fetchDomainNames(domains, chainId);

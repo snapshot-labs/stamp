@@ -15,7 +15,7 @@ function graphQlResponse<T>(data: T) {
   return { data };
 }
 
-function accountResponse(domains: { name: string; expiryDate?: string }[]) {
+function accountResponse(domains: { name: string | null; expiryDate?: string | null }[]) {
   return graphQlResponse({ account: { domains, wrappedDomains: [] } });
 }
 
@@ -44,6 +44,14 @@ describe('lookupDomains/ens', () => {
       'subdomain.eth',
       'far-future.eth'
     ]);
+  });
+
+  it('drops a nameless row instead of throwing', async () => {
+    mockedGraphQlCall.mockResolvedValueOnce(
+      accountResponse([{ name: null, expiryDate: null }, { name: 'alice.eth' }])
+    );
+
+    await expect(lookupDomains(ADDRESS)).resolves.toEqual(['alice.eth']);
   });
 
   it('loads all hashed labels in one domains query', async () => {
