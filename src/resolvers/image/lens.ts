@@ -7,6 +7,13 @@ const LENS_IPFS_GATEWAY = 'https://gw.ipfs-lens.dev/ipfs/';
 const LENS_EXTENSION = '.lens';
 const LOCAL_NAME_MAX_BYTES = 254;
 
+// Lens is a public dependency, so its transient availability errors are not
+// actionable resolver defects. Read by resolvers/image/index.ts. A 429 is
+// already muted by isSilencedError's shared code list (helpers/errors.ts) and
+// isRoutineMiss's 4xx band (resolvers/image/index.ts), so only the 503 needs a
+// message-based mute.
+export const MUTED_ERRORS = ['status code 503'];
+
 function normalizeImageUrl(url: string) {
   if (!url) return false;
 

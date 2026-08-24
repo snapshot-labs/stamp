@@ -5,7 +5,7 @@ import coingecko from './coingecko';
 import ens from './ens';
 import farcaster from './farcaster';
 import jazzicon from './jazzicon';
-import lens from './lens';
+import lens, { MUTED_ERRORS as lensMutedErrors } from './lens';
 import selfid from './selfid';
 import {
   resolveSpaceAvatar as sResolveSpaceAvatar,
@@ -28,20 +28,47 @@ type Resolver = {
   fn: ResolverFn;
   resize: boolean;
   failureContract: boolean;
+  mutedErrors?: string[];
 };
 
+const ROUTINE_NETWORK_ERROR_CODES = [
+  'ENOTFOUND',
+  'EAI_AGAIN',
+  'ECONNREFUSED',
+  'ERR_TLS_CERT_ALTNAME_INVALID',
+  'CERT_HAS_EXPIRED',
+  'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
+  'DEPTH_ZERO_SELF_SIGNED_CERT'
+];
+
+// 401/402/403 are excluded from the routine band: withFailureContract wraps a
+// resolver's own authenticated API calls (Neynar, Snapshot Hub, CoinGecko Pro)
+// as well as its third-party avatar download, and those statuses are how a
+// dead/rotated credential shows up there — silencing them hides a real outage
+// instead of a missing avatar.
+const AUTH_STATUS_CODES = [401, 402, 403];
+
 function isRoutineMiss(error: any): boolean {
+  const status = Number(error?.status ?? error?.response?.status);
+  const code = error?.cause?.code ?? error?.code;
+
   return (
-    error?.status === 404 || error?.response?.status === 404 || error?.code === 'INVALID_ARGUMENT'
+    (status >= 400 && status < 500 && !AUTH_STATUS_CODES.includes(status)) ||
+    ROUTINE_NETWORK_ERROR_CODES.includes(code) ||
+    error?.code === 'INVALID_ARGUMENT'
   );
 }
 
-function withFailureContract(name: string, resolve: ResolverFn): ResolverFn {
+function withFailureContract(
+  name: string,
+  resolve: ResolverFn,
+  mutedErrors?: string[]
+): ResolverFn {
   return async (...args) => {
     try {
       return await resolve(...args);
     } catch (err) {
-      if (!isSilencedError(err) && !isRoutineMiss(err)) {
+      if (!isSilencedError(err, mutedErrors) && !isRoutineMiss(err)) {
         capture(err, { tags: { provider: name }, contexts: { input: { args } } });
       }
       return false;
@@ -80,7 +107,13 @@ export const RESOLVERS = [
   { name: 'space-sx', fn: sxResolveAvatar, resize: true, failureContract: true },
   { name: 'space-cover-sx', fn: sxResolveCover, resize: false, failureContract: true },
   { name: 'selfid', fn: selfid, resize: true, failureContract: true },
-  { name: 'lens', fn: lens, resize: true, failureContract: true },
+  {
+    name: 'lens',
+    fn: lens,
+    resize: true,
+    failureContract: true,
+    mutedErrors: lensMutedErrors
+  },
   { name: 'starknet', fn: starknet, resize: true, failureContract: true },
   { name: 'farcaster', fn: farcaster, resize: true, failureContract: true }
 ] as const satisfies readonly Resolver[];
@@ -98,6 +131,15 @@ export default Object.fromEntries(
   RESOLVERS.map(entry => {
     const resolve = entry.resize ? withResize(entry.name, entry.fn) : entry.fn;
 
-    return [entry.name, entry.failureContract ? withFailureContract(entry.name, resolve) : resolve];
+    return [
+      entry.name,
+      entry.failureContract
+        ? withFailureContract(
+            entry.name,
+            resolve,
+            'mutedErrors' in entry ? entry.mutedErrors : undefined
+          )
+        : resolve
+    ];
   })
 ) as ResolverMap;
