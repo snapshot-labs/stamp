@@ -6,10 +6,12 @@ const DEFAULT_PROVIDER_TIMEOUT = 5e3;
 
 export function getProviderOptions(timeout = DEFAULT_PROVIDER_TIMEOUT): {
   broviderUrl: string;
+  clientName: string;
   timeout: number;
 } {
   return {
     broviderUrl: process.env.BROVIDER_URL || 'https://rpc.snapshot.org',
+    clientName: 'stamp',
     timeout
   };
 }
