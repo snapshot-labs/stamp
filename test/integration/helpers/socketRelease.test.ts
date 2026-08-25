@@ -1,11 +1,10 @@
 import http from 'http';
 import { AddressInfo, Socket } from 'net';
-import { Agent } from 'undici';
 import { fetchHttpImage } from '../../../src/helpers/http';
+import { unguardedDispatcher } from '../../helpers/fetch';
 
 const ANNOUNCED = 5_000_000;
 const WRITTEN = 200_000;
-const unguarded = new Agent();
 
 let server: http.Server;
 let url: string;
@@ -40,7 +39,7 @@ afterAll(async () => {
 
 describe('a response rejected before its body is read', () => {
   it('ends the request rather than leaving the upstream writing', async () => {
-    await expect(fetchHttpImage(url, unguarded)).rejects.toMatchObject({ status: 500 });
+    await expect(fetchHttpImage(url, unguardedDispatcher)).rejects.toMatchObject({ status: 500 });
 
     await expect(within(hungUp, 2000, false)).resolves.toBe(true);
   });

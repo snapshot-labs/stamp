@@ -1,6 +1,8 @@
-import { fetch as undiciFetch } from 'undici';
+import { Agent, fetch as undiciFetch } from 'undici';
 
 const undici: { fetch: typeof undiciFetch } = jest.requireActual('undici');
+
+export const unguardedDispatcher = new Agent();
 
 export function mockGlobalFetch(): jest.Mock {
   const originalFetch = global.fetch;
