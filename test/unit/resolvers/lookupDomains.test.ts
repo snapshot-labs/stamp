@@ -1,6 +1,7 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import lookupDomains from '../../../src/resolvers/lookupDomains';
 import ens from '../../../src/resolvers/lookupDomains/ens';
+import ensV2 from '../../../src/resolvers/lookupDomains/ensV2';
 import shibarium from '../../../src/resolvers/lookupDomains/shibarium';
 import unstoppableDomains from '../../../src/resolvers/lookupDomains/unstoppableDomains';
 
@@ -13,6 +14,13 @@ jest.mock('../../../src/resolvers/lookupDomains/ens', () => ({
   NAME: 'Ens',
   DEFAULT_CHAIN_ID: '1',
   CHAIN_IDS: ['1', '11155111'],
+  default: jest.fn()
+}));
+jest.mock('../../../src/resolvers/lookupDomains/ensV2', () => ({
+  __esModule: true,
+  NAME: 'Ens V2',
+  DEFAULT_CHAIN_ID: '1',
+  CHAIN_IDS: ['11155111'],
   default: jest.fn()
 }));
 jest.mock('../../../src/resolvers/lookupDomains/shibarium', () => ({
@@ -37,6 +45,7 @@ const ENS_CHAINS = ['1', '11155111'];
 describe('lookupDomains - default chains', () => {
   it('calls every provider on its own default chain when no chain is given', async () => {
     (ens as jest.Mock).mockResolvedValue([]);
+    (ensV2 as jest.Mock).mockResolvedValue([]);
     (shibarium as jest.Mock).mockResolvedValue([]);
     (unstoppableDomains as jest.Mock).mockResolvedValue([]);
 
@@ -46,11 +55,24 @@ describe('lookupDomains - default chains', () => {
     expect(shibarium).toHaveBeenCalledWith(VALID_ADDRESS, '109');
     expect(unstoppableDomains).toHaveBeenCalledWith(VALID_ADDRESS, '146');
   });
+
+  it('does not widen the default chain set to a chain no provider defaults to', async () => {
+    (ens as jest.Mock).mockResolvedValue([]);
+    (ensV2 as jest.Mock).mockResolvedValue([]);
+    (shibarium as jest.Mock).mockResolvedValue([]);
+    (unstoppableDomains as jest.Mock).mockResolvedValue([]);
+
+    await lookupDomains(VALID_ADDRESS);
+
+    expect(ensV2).not.toHaveBeenCalled();
+    expect(ens).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('lookupDomains - chain routing', () => {
   beforeEach(() => {
     (ens as jest.Mock).mockResolvedValue([]);
+    (ensV2 as jest.Mock).mockResolvedValue([]);
     (shibarium as jest.Mock).mockResolvedValue([]);
     (unstoppableDomains as jest.Mock).mockResolvedValue([]);
   });
@@ -95,6 +117,7 @@ describe('lookupDomains - resolver failures', () => {
 
 describe('lookupDomains - error reporting', () => {
   beforeEach(() => {
+    (ensV2 as jest.Mock).mockResolvedValue([]);
     (shibarium as jest.Mock).mockResolvedValue([]);
     (unstoppableDomains as jest.Mock).mockResolvedValue([]);
   });

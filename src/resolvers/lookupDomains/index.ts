@@ -1,6 +1,7 @@
 import { isAddress } from '@ethersproject/address';
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import * as ens from './ens';
+import * as ensV2 from './ensV2';
 import * as shibarium from './shibarium';
 import * as unstoppableDomains from './unstoppableDomains';
 import { isSilencedError } from '../../helpers/errors';
@@ -15,7 +16,7 @@ type Provider = {
 };
 
 // Without the annotation a provider missing NAME still compiles.
-const PROVIDERS: Provider[] = [ens, shibarium, unstoppableDomains];
+const PROVIDERS: Provider[] = [ens, ensV2, shibarium, unstoppableDomains];
 
 const DEFAULT_CHAIN_IDS = PROVIDERS.map(provider => provider.DEFAULT_CHAIN_ID);
 
