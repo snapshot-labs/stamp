@@ -1,17 +1,17 @@
-import * as undici from 'undici';
+import { fetch as undiciFetch } from 'undici';
 
-const mutableUndici = undici as { fetch: typeof undici.fetch };
+const undici: { fetch: typeof undiciFetch } = jest.requireActual('undici');
 
 export function mockGlobalFetch(): jest.Mock {
   const originalFetch = global.fetch;
-  const originalUndiciFetch = mutableUndici.fetch;
+  const originalUndiciFetch = undici.fetch;
   const mockedFetch = jest.fn();
 
   global.fetch = mockedFetch as unknown as typeof global.fetch;
-  mutableUndici.fetch = mockedFetch;
+  undici.fetch = mockedFetch;
   afterAll(() => {
     global.fetch = originalFetch;
-    mutableUndici.fetch = originalUndiciFetch;
+    undici.fetch = originalUndiciFetch;
   });
 
   return mockedFetch;
