@@ -17,9 +17,7 @@ jest.mock('../../../../src/helpers/provider', () => ({
 
 const mockedFetch = mockGlobalFetch();
 
-// getProvider is called once, at module load, so this is the same instance
-// resolveNames holds onto: overriding its methods here reaches the module under test.
-const provider = (getProvider as jest.Mock).mock.results[0].value;
+const providerInstanceHeldByEns = (getProvider as jest.Mock).mock.results[0].value;
 
 const HANDLE = 'test.eth';
 const ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
@@ -60,7 +58,7 @@ describe('resolvers/address/ens - resolveNames', () => {
 
   it('does not report the provider fallback resolving a malformed address', async () => {
     respondWith({ data: { domains: [] } });
-    provider.resolveName.mockResolvedValueOnce('not-a-valid-address');
+    providerInstanceHeldByEns.resolveName.mockResolvedValueOnce('not-a-valid-address');
 
     await expect(resolveNames([HANDLE])).resolves.toEqual({});
     expect(capture).not.toHaveBeenCalled();
