@@ -26,7 +26,7 @@ export default async function resolve(nameOrAddress: string) {
 
   let url = await snapshot.utils.getEnsTextRecord(ensName, 'avatar', '1', getProviderOptions());
   url =
-    url?.startsWith('http') || url?.startsWith('data:')
+    url?.startsWith('http') || (url && /^data:[^,]*,/.test(url))
       ? url
       : `https://metadata.ens.domains/mainnet/avatar/${encodeURIComponent(ensName)}`;
 
