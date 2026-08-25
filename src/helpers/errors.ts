@@ -25,6 +25,7 @@ export function isSilencedError(error: any, additionalMessages?: string[]): bool
     // visible as they may signal a real problem (e.g. FORMERR 1 = malformed query);
     // NXDOMAIN (3) never reaches here (dns-connect returns it as an empty result).
     'Received error status from DNS server: 2.',
+    'The request took too long to respond.',
     ...(additionalMessages || [])
   ];
   const codes = [

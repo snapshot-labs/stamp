@@ -123,4 +123,23 @@ describe('isSilencedError', () => {
     // Status 1 (FORMERR) indicates a malformed query on our side — keep it visible.
     expect(isSilencedError(new Error('Received error status from DNS server: 1.'))).toBe(false);
   });
+
+  it('silences a viem RPC timeout nested under ContractFunctionExecutionError', () => {
+    const timeoutError = Object.assign(
+      new Error('The request took too long to respond.\n\nDetails: The request timed out.'),
+      { name: 'TimeoutError' }
+    );
+    const callExecutionError = Object.assign(
+      new Error('The request took too long to respond.\n\nDetails: The request timed out.'),
+      { name: 'CallExecutionError', cause: timeoutError }
+    );
+    const contractFunctionExecutionError = Object.assign(
+      new Error(
+        'The request took too long to respond.\n\nContract Call:\n  function:  resolveWithGateways(bytes name, bytes data, string[] gateways)'
+      ),
+      { name: 'ContractFunctionExecutionError', cause: callExecutionError }
+    );
+
+    expect(isSilencedError(contractFunctionExecutionError)).toBe(true);
+  });
 });
