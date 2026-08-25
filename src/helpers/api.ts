@@ -9,7 +9,7 @@ export function sha256(str) {
   return createHash('sha256').update(str).digest('hex');
 }
 
-export async function parseQuery(id: string, type: ResolverType, query) {
+export function parseQuery(id: string, type: ResolverType, query) {
   let address = id;
   let network = '1';
   let networkId: string | undefined = undefined;
@@ -22,11 +22,9 @@ export async function parseQuery(id: string, type: ResolverType, query) {
     address = chunks[2];
     network = chunks[1];
     networkId = chainIdToShortName(network) || 'eth';
-  } else if (id.startsWith('did:')) {
-    address = id.slice(4);
   }
 
-  address = address.toLowerCase();
+  address = address.trim().toLowerCase();
   const size = 64;
   const maxSize = type.includes('-cover') ? constants.maxCover : constants.max;
   let s = query.s ? parseInt(query.s) : size;
