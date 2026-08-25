@@ -35,6 +35,13 @@ export function isSilencedError(error: any, additionalMessages?: string[]): bool
     error.response?.status,
     error.cause?.code
   ];
+
+  // ethers v5 re-labels a non-JSON response from an RPC as CALL_EXCEPTION.
+  // The nested HTTP status is the reliable signal that this was an upstream
+  // endpoint outage rather than a contract revert.
+  const upstreamStatus = Number(error.error?.status);
+  if (upstreamStatus >= 500 && upstreamStatus < 600) return true;
+
   return (
     messages.some(
       m =>
