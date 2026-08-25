@@ -56,11 +56,22 @@ describe('resolvers/address/ens - resolveNames', () => {
     expect(capture).not.toHaveBeenCalled();
   });
 
-  it('does not report the provider fallback resolving a malformed address', async () => {
+  it('classifies a malformed provider-fallback result as routine, defensively', async () => {
     respondWith({ data: { domains: [] } });
     providerInstanceHeldByEns.resolveName.mockResolvedValueOnce('not-a-valid-address');
 
     await expect(resolveNames([HANDLE])).resolves.toEqual({});
     expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('still reports a malformed address returned by the subgraph itself', async () => {
+    respondWith({
+      data: { domains: [{ name: HANDLE, resolvedAddress: { id: 'not-a-valid-address' } }] }
+    });
+
+    await expect(resolveNames([HANDLE])).resolves.toEqual({});
+    expect(capture).toHaveBeenCalledWith(expect.objectContaining({ code: 'INVALID_ARGUMENT' }), {
+      input: { handles: [HANDLE] }
+    });
   });
 });

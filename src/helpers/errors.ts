@@ -57,7 +57,7 @@ export function isSilencedError(error: any, additionalMessages?: string[]): bool
   );
 }
 
-export const ROUTINE_NETWORK_ERROR_CODES = [
+const ROUTINE_NETWORK_ERROR_CODES = [
   'ENOTFOUND',
   'EAI_AGAIN',
   'ECONNREFUSED',
