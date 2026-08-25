@@ -23,6 +23,12 @@ function closesWithin(ms: number): Promise<boolean> {
   ]);
 }
 
+function armClosedWatcher(): void {
+  closed = new Promise<void>(resolve => {
+    resolveClosed = resolve;
+  });
+}
+
 beforeAll(async () => {
   server = http.createServer((req, res) => {
     if (req.url === '/missing.png') {
@@ -91,9 +97,7 @@ describe('fetchHttpImage', () => {
   });
 
   it('rejects a declared length over the cap without reading the body', async () => {
-    closed = new Promise<void>(resolve => {
-      resolveClosed = resolve;
-    });
+    armClosedWatcher();
 
     await expect(fetchHttpImage(oversizedDeclaredUrl)).rejects.toMatchObject({
       status: 404,
@@ -103,9 +107,7 @@ describe('fetchHttpImage', () => {
   });
 
   it('rejects a body that crosses the cap while streaming, with no declared length', async () => {
-    closed = new Promise<void>(resolve => {
-      resolveClosed = resolve;
-    });
+    armClosedWatcher();
 
     await expect(fetchHttpImage(oversizedStreamedUrl)).rejects.toMatchObject({
       status: 404,
