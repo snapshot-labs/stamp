@@ -10,7 +10,7 @@ export function getProviderOptions(timeout = DEFAULT_PROVIDER_TIMEOUT): {
   timeout: number;
 } {
   return {
-    broviderUrl: process.env.BROVIDER_URL || 'https://rpc.snapshot.org',
+    broviderUrl: process.env.BROVIDER_URL || 'https://rpc.brovider.xyz',
     clientName: 'stamp',
     timeout
   };
