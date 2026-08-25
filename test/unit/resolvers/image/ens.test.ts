@@ -60,6 +60,7 @@ describe('resolvers/image/ens', () => {
     await expect(resolve(input)).resolves.toBe(image);
     expect(getEnsTextRecord).toHaveBeenCalledWith(normalized, 'avatar', '1', {
       broviderUrl: 'https://custom.rpc',
+      clientName: 'stamp',
       timeout: 5e3
     });
   });
@@ -86,6 +87,7 @@ describe('resolvers/image/ens', () => {
 
     expect(getEnsTextRecord).toHaveBeenCalledWith('vitalik.eth', 'avatar', '1', {
       broviderUrl: 'https://custom.rpc',
+      clientName: 'stamp',
       timeout: 5e3
     });
     expect(mockedFetchHttpImage).toHaveBeenCalledWith(
@@ -139,6 +141,7 @@ describe('resolvers/image/ens', () => {
 
     expect(getEnsTextRecord).toHaveBeenCalledWith('example.eth', 'avatar', '1', {
       broviderUrl: 'https://custom.rpc',
+      clientName: 'stamp',
       timeout: 5e3
     });
     expect(mockTransportRequest).toHaveBeenCalledTimes(1);
