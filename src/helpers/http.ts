@@ -24,9 +24,6 @@ export function isPublicAddress(rawAddress: string): boolean {
   return address.range() === 'unicast';
 }
 
-// undici's connector asks dns.lookup for every address a name has (`all:
-// true`) rather than just one, so the callback here can land as either shape
-// regardless of what the connect-options type declares.
 function safeLookup(
   hostname: string,
   options: dns.LookupOptions,
