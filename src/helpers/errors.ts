@@ -26,6 +26,7 @@ export function isSilencedError(error: any, additionalMessages?: string[]): bool
     // NXDOMAIN (3) never reaches here (dns-connect returns it as an empty result).
     'Received error status from DNS server: 2.',
     'The request took too long to respond.',
+    'This operation was aborted',
     ...(additionalMessages || [])
   ];
   const codes = [
