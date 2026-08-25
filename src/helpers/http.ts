@@ -84,7 +84,7 @@ export function fetchWithDeadline<T>(
   dispatcher: Dispatcher = safeDispatcher
 ): Promise<T> {
   return withDeadline(async signal => {
-    assertAllowedUrl(url);
+    if (dispatcher === safeDispatcher) assertAllowedUrl(url);
 
     const response = await fetch(url, { signal, dispatcher }).catch(err => {
       if (err.cause instanceof BlockedAddressError)
