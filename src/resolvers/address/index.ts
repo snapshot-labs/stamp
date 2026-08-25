@@ -15,7 +15,7 @@ import {
   normalizeHandles,
   withoutEmptyAddress
 } from '../../helpers/address';
-import { isSilencedError } from '../../helpers/errors';
+import { isRoutineMiss, isSilencedError } from '../../helpers/errors';
 import { timeAddressResolverResponse as timeResponse } from '../../helpers/metrics';
 import { withoutEmptyValues } from '../../helpers/object';
 import { Address, Handle } from '../../helpers/types';
@@ -69,7 +69,7 @@ async function _call(fnName: string, input: string[], maxInputLength: number) {
               result = await r[fnName](_input);
               status = 1;
             } catch (err) {
-              if (!isSilencedError(err, r.MUTED_ERRORS)) {
+              if (!isSilencedError(err, r.MUTED_ERRORS) && !isRoutineMiss(err)) {
                 // A top-level `input` beside `tags` is dropped rather than wrapped.
                 capture(err, {
                   tags: { provider: r.NAME },

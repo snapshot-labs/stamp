@@ -56,3 +56,29 @@ export function isSilencedError(error: any, additionalMessages?: string[]): bool
     )
   );
 }
+
+export const ROUTINE_NETWORK_ERROR_CODES = [
+  'ENOTFOUND',
+  'EAI_AGAIN',
+  'ECONNREFUSED',
+  'ERR_TLS_CERT_ALTNAME_INVALID',
+  'CERT_HAS_EXPIRED',
+  'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
+  'DEPTH_ZERO_SELF_SIGNED_CERT'
+];
+
+// 401/402/403 stay out of the routine band: they are how a dead or rotated
+// credential shows up on a resolver's own authenticated call, and silencing
+// them would hide that outage as a routine miss.
+const AUTH_STATUS_CODES = [401, 402, 403];
+
+export function isRoutineMiss(error: any): boolean {
+  const status = Number(error?.status ?? error?.response?.status);
+  const code = error?.cause?.code ?? error?.code;
+
+  return (
+    (status >= 400 && status < 500 && !AUTH_STATUS_CODES.includes(status)) ||
+    ROUTINE_NETWORK_ERROR_CODES.includes(code) ||
+    error?.code === 'INVALID_ARGUMENT'
+  );
+}

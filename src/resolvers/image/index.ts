@@ -17,7 +17,7 @@ import { resolveAvatar as sxResolveAvatar, resolveCover as sxResolveCover } from
 import starknet from './starknet';
 import trustwallet from './trustwallet';
 import { max } from '../../constants.json';
-import { isSilencedError } from '../../helpers/errors';
+import { isRoutineMiss, isSilencedError } from '../../helpers/errors';
 import { resize } from '../../helpers/image';
 
 type ResolverFn = (...args: any[]) => Promise<Buffer | false>;
@@ -29,34 +29,6 @@ type Resolver = {
   failureContract: boolean;
   mutedErrors?: string[];
 };
-
-const ROUTINE_NETWORK_ERROR_CODES = [
-  'ENOTFOUND',
-  'EAI_AGAIN',
-  'ECONNREFUSED',
-  'ERR_TLS_CERT_ALTNAME_INVALID',
-  'CERT_HAS_EXPIRED',
-  'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
-  'DEPTH_ZERO_SELF_SIGNED_CERT'
-];
-
-// 401/402/403 are excluded from the routine band: withFailureContract wraps a
-// resolver's own authenticated API calls (Neynar, Snapshot Hub, CoinGecko Pro)
-// as well as its third-party avatar download, and those statuses are how a
-// dead/rotated credential shows up there — silencing them hides a real outage
-// instead of a missing avatar.
-const AUTH_STATUS_CODES = [401, 402, 403];
-
-function isRoutineMiss(error: any): boolean {
-  const status = Number(error?.status ?? error?.response?.status);
-  const code = error?.cause?.code ?? error?.code;
-
-  return (
-    (status >= 400 && status < 500 && !AUTH_STATUS_CODES.includes(status)) ||
-    ROUTINE_NETWORK_ERROR_CODES.includes(code) ||
-    error?.code === 'INVALID_ARGUMENT'
-  );
-}
 
 function withFailureContract(
   name: string,

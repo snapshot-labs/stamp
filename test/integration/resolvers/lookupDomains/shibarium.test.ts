@@ -189,6 +189,17 @@ describe('lookupDomains/shibarium through the shared handler', () => {
     expect(capture).not.toHaveBeenCalled();
   });
 
+  it('does not report a host that no longer resolves', async () => {
+    mockedFetch.mockRejectedValue(
+      Object.assign(new Error('getaddrinfo ENOTFOUND api-public.interstellar.xyz'), {
+        code: 'ENOTFOUND'
+      })
+    );
+
+    await expect(lookupDomainsThroughIndex(ADDRESS, CHAIN_ID)).resolves.toEqual([]);
+    expect(capture).not.toHaveBeenCalled();
+  });
+
   it('drops the pages already collected when a later page fails', async () => {
     mockedFetch
       .mockResolvedValueOnce(httpResponse(200, 'OK', page(PAGE_SIZE)))

@@ -4,7 +4,7 @@ import { capture } from '@snapshot-labs/snapshot-sentry';
 import snapshot from '@snapshot-labs/snapshot.js';
 import constants from '../../constants.json';
 import { isEvmAddress } from '../../helpers/address';
-import { isSilencedError } from '../../helpers/errors';
+import { isRoutineMiss, isSilencedError } from '../../helpers/errors';
 import { graphQlCall } from '../../helpers/graphql';
 import { getProvider } from '../../helpers/provider';
 import { Address, Handle } from '../../helpers/types';
@@ -96,7 +96,7 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
       results[item.name] = item.resolvedAddress ? getAddress(item.resolvedAddress.id) : '';
     }
   } catch (err) {
-    if (!isSilencedError(err)) {
+    if (!isSilencedError(err) && !isRoutineMiss(err)) {
       capture(err, { input: { handles: normalizedHandles } });
     }
   }
@@ -117,7 +117,7 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
       }
     });
   } catch (err) {
-    if (!isSilencedError(err)) {
+    if (!isSilencedError(err) && !isRoutineMiss(err)) {
       capture(err, { input: { handles: normalizedHandles } });
     }
   }

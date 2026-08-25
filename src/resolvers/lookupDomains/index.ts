@@ -4,7 +4,7 @@ import * as ens from './ens';
 import * as ensV2 from './ensV2';
 import * as shibarium from './shibarium';
 import * as unstoppableDomains from './unstoppableDomains';
-import { isSilencedError } from '../../helpers/errors';
+import { isRoutineMiss, isSilencedError } from '../../helpers/errors';
 import { timeLookupDomainsResponse as timeResponse } from '../../helpers/metrics';
 import { Address, Handle } from '../../helpers/types';
 
@@ -43,7 +43,7 @@ export default async function lookupDomains(
               status = 1;
               return result;
             } catch (err) {
-              if (!isSilencedError(err)) {
+              if (!isSilencedError(err) && !isRoutineMiss(err)) {
                 capture(err, {
                   tags: { provider: NAME },
                   contexts: { input: { address, chainId } }

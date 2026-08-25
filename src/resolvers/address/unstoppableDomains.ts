@@ -2,7 +2,7 @@ import { capture } from '@snapshot-labs/snapshot-sentry';
 import snapshot from '@snapshot-labs/snapshot.js';
 import Resolution, { NamingServiceName } from '@unstoppabledomains/resolution';
 import { isEvmAddress } from '../../helpers/address';
-import { isSilencedError } from '../../helpers/errors';
+import { isRoutineMiss, isSilencedError } from '../../helpers/errors';
 import { withoutEmptyValues } from '../../helpers/object';
 import { batchContractCalls, getProvider } from '../../helpers/provider';
 import { Address, Handle } from '../../helpers/types';
@@ -57,7 +57,7 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
           blockTag: 'latest'
         });
       } catch (err) {
-        if (!isSilencedError(err)) {
+        if (!isSilencedError(err) && !isRoutineMiss(err)) {
           capture(err, { input: { handles: normalizedHandles } });
         }
         return;

@@ -1,4 +1,5 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
+import { getProvider } from '../../../../src/helpers/provider';
 import { resolveNames } from '../../../../src/resolvers/address/ens';
 import { jsonResponse, mockGlobalFetch } from '../../../helpers/fetch';
 
@@ -15,6 +16,10 @@ jest.mock('../../../../src/helpers/provider', () => ({
 }));
 
 const mockedFetch = mockGlobalFetch();
+
+// getProvider is called once, at module load, so this is the same instance
+// resolveNames holds onto: overriding its methods here reaches the module under test.
+const provider = (getProvider as jest.Mock).mock.results[0].value;
 
 const HANDLE = 'test.eth';
 const ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
@@ -41,6 +46,23 @@ describe('resolvers/address/ens - resolveNames', () => {
     });
 
     await expect(resolveNames([HANDLE])).resolves.toEqual({ [HANDLE]: ADDRESS });
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('does not report a subgraph host that no longer resolves', async () => {
+    mockedFetch.mockRejectedValue(
+      Object.assign(new TypeError('fetch failed'), { cause: { code: 'ENOTFOUND' } })
+    );
+
+    await expect(resolveNames([HANDLE])).resolves.toEqual({});
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('does not report the provider fallback resolving a malformed address', async () => {
+    respondWith({ data: { domains: [] } });
+    provider.resolveName.mockResolvedValueOnce('not-a-valid-address');
+
+    await expect(resolveNames([HANDLE])).resolves.toEqual({});
     expect(capture).not.toHaveBeenCalled();
   });
 });
