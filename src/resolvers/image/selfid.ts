@@ -12,5 +12,7 @@ export default async function resolve(address: string) {
   if (!src) return false;
 
   const url = getUrl(src);
+  if (!url) return false;
+
   return await fetchHttpImage(url);
 }

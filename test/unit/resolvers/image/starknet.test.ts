@@ -44,6 +44,25 @@ describe('Starknet image resolver', () => {
     expect(mockGetStarkProfile).toHaveBeenCalledWith(UNPADDED_ADDRESS);
   });
 
+  it('answers false for a profile picture that cannot become a fetchable URL', async () => {
+    mockGetStarkProfile.mockResolvedValue({ profilePicture: 'http://' });
+
+    await expect(starknet(ADDRESS)).resolves.toBe(false);
+    expect(mockedFetch).not.toHaveBeenCalled();
+  });
+
+  it('answers false for on-chain metadata whose image cannot become a fetchable URL', async () => {
+    mockGetStarkProfile.mockResolvedValue({ profilePicture: 'https://example.com/metadata.json' });
+    mockedFetch.mockResolvedValue(
+      new Response(JSON.stringify({ image: 'http://' }), {
+        headers: { 'Content-Type': 'application/json' }
+      })
+    );
+
+    await expect(starknet(ADDRESS)).resolves.toBe(false);
+    expect(mockedFetch).toHaveBeenCalledTimes(1);
+  });
+
   it('rejects a non-2xx image response with its HTTP status', async () => {
     mockedFetch.mockResolvedValue(
       new Response('missing', { status: 404, statusText: 'Not Found' })

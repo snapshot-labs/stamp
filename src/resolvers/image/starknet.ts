@@ -123,16 +123,24 @@ function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: string }>
   );
 }
 
+async function fetchMetadataImage(image: string): Promise<Buffer | null> {
+  const url = getUrl(image);
+  return url ? fetchHttpImage(url) : null;
+}
+
 export default async function resolve(domainOrAddress: string) {
   const img_url = await getImage(domainOrAddress);
 
   if (!img_url || img_url === DEFAULT_IMG_URL) return false;
 
-  const fetched = await fetchImageOrMetadata(getUrl(img_url));
+  const url = getUrl(img_url);
+  if (!url) return false;
+
+  const fetched = await fetchImageOrMetadata(url);
   const buffer = Buffer.isBuffer(fetched)
     ? fetched
     : fetched.image
-      ? await fetchHttpImage(getUrl(fetched.image))
+      ? await fetchMetadataImage(fetched.image)
       : null;
 
   return buffer ?? false;

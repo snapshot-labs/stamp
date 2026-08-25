@@ -34,7 +34,14 @@ export function fetchHttpImage(url: string): Promise<Buffer> {
   return fetchWithDeadline(url, async response => Buffer.from(await response.arrayBuffer()));
 }
 
-export function getUrl(url) {
+export function getUrl(url: string): string | null {
   const gateway: string = process.env.IPFS_GATEWAY || 'cloudflare-ipfs.com';
-  return snapshot.utils.getUrl(url, gateway);
+  const candidate = snapshot.utils.getUrl(url, gateway);
+  if (!candidate) return null;
+
+  try {
+    return ['http:', 'https:'].includes(new URL(candidate).protocol) ? candidate : null;
+  } catch {
+    return null;
+  }
 }
