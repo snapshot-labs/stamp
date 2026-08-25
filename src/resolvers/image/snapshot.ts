@@ -99,16 +99,17 @@ async function getOnchainProperty(
 }
 
 function normalizeUserId(value: string): string | null {
+  const trimmed = value.trim();
   try {
-    return getAddress(value);
+    return getAddress(trimmed);
   } catch {
-    return isStarknetFelt(value) ? value : null;
+    return isStarknetFelt(trimmed) ? trimmed : null;
   }
 }
 
 function normalizeSpaceId(value: string) {
   try {
-    return getAddress(value);
+    return getAddress(value.trim());
   } catch {
     return value;
   }
