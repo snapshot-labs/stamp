@@ -2,7 +2,7 @@ import { getAddress } from '@ethersproject/address';
 import { max } from '../../constants.json';
 import { withDeadline } from '../../helpers/deadline';
 import { httpError } from '../../helpers/errors';
-import { fetchHttpImage } from '../../helpers/http';
+import { fetchHttpImage, isHttpUrl } from '../../helpers/http';
 import { Address } from '../../helpers/types';
 
 const NEYNAR_API_URL = 'https://api.neynar.com/v2/farcaster/user/bulk-by-address';
@@ -49,7 +49,7 @@ export default async function resolve(address: string): Promise<Buffer | false> 
   if (!normalizedAddress) return false;
 
   const url = await fetchAddressImageUrl(normalizedAddress);
-  if (!url) return false;
+  if (!url || !isHttpUrl(url)) return false;
 
   return await fetchHttpImage(withCache(url));
 }

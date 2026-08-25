@@ -1,4 +1,4 @@
-import { getUrl } from '../../../src/helpers/http';
+import { getUrl, isHttpUrl } from '../../../src/helpers/http';
 
 const GATEWAY = process.env.IPFS_GATEWAY || 'cloudflare-ipfs.com';
 const CIDV0 = 'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG';
@@ -30,5 +30,34 @@ describe('getUrl', () => {
     ['a URL with a port fetch cannot parse', 'https://example.com:abc/pic.png']
   ])('returns null rather than a URL fetch would reject outright (%s)', (_label, input) => {
     expect(getUrl(input)).toBeNull();
+  });
+});
+
+describe('isHttpUrl', () => {
+  it.each(['https://example.com/avatar.png', 'http://example.com/avatar.png'])(
+    'accepts %s',
+    url => {
+      expect(isHttpUrl(url)).toBe(true);
+    }
+  );
+
+  it.each([
+    ['a relative path', '/BEB.jpg'],
+    ['a bare string', 'not a url'],
+    ['a non-http scheme', 'ftp://example.com/avatar.png'],
+    [
+      'a CAIP identifier mistaken for a URL, with a blocked port',
+      'http://eip155:1/erc721:https://etherscan.io/address/0xac5c7493036de60e63eb81c5e9a440b42f47ebf5/5413'
+    ],
+    [
+      'an explicitly blocked port on an otherwise well-formed URL',
+      'http://example.com:25/avatar.png'
+    ]
+  ])('rejects %s (%s)', (_, url) => {
+    expect(isHttpUrl(url)).toBe(false);
+  });
+
+  it('accepts a URL with a normal non-default port', () => {
+    expect(isHttpUrl('https://example.com:8443/avatar.png')).toBe(true);
   });
 });

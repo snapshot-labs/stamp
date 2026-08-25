@@ -196,6 +196,15 @@ describe('resolvers answer false rather than throwing when there is no data', ()
   });
 
   describe('farcaster', () => {
+    it('answers false for a pfp_url that is not a fetchable URL, without downloading it', async () => {
+      mockedFetch.mockResolvedValueOnce(
+        jsonResponse({ [ADDRESS.toLowerCase()]: [{ pfp_url: '/BEB.jpg' }] })
+      );
+
+      await expect(farcaster(ADDRESS)).resolves.toBe(false);
+      expect(mockedFetch).toHaveBeenCalledTimes(1);
+    });
+
     it('answers false for an address with no account', async () => {
       mockedFetch.mockResolvedValue({ ok: false, status: 404 });
 
