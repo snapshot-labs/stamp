@@ -30,8 +30,35 @@ export function fetchWithDeadline<T>(
   }, 5e3);
 }
 
+export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+
+export async function readBoundedImage(url: string, response: Response): Promise<Buffer> {
+  const host = new URL(url).host;
+  const declared = Number(response.headers.get('content-length'));
+  if (declared > MAX_IMAGE_BYTES) {
+    await response.body?.cancel();
+    throw httpError(host, 404, `image too large: ${declared} bytes`);
+  }
+
+  if (!response.body) return Buffer.from(await response.arrayBuffer());
+
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+
+  for await (const chunk of response.body) {
+    total += chunk.length;
+    if (total > MAX_IMAGE_BYTES) {
+      throw httpError(host, 404, `image too large: over ${MAX_IMAGE_BYTES} bytes`);
+    }
+
+    chunks.push(chunk);
+  }
+
+  return Buffer.concat(chunks);
+}
+
 export function fetchHttpImage(url: string): Promise<Buffer> {
-  return fetchWithDeadline(url, async response => Buffer.from(await response.arrayBuffer()));
+  return fetchWithDeadline(url, response => readBoundedImage(url, response));
 }
 
 export function getUrl(url: string): string | null {

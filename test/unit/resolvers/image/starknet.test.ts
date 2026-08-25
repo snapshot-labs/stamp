@@ -8,6 +8,7 @@ jest.mock('../../../../src/helpers/provider', () => ({
   })
 }));
 
+import { MAX_IMAGE_BYTES } from '../../../../src/helpers/http';
 import starknet from '../../../../src/resolvers/image/starknet';
 import { incompleteJsonResponse, mockGlobalFetch } from '../../../helpers/fetch';
 
@@ -72,6 +73,19 @@ describe('Starknet image resolver', () => {
       message: '[example.com] Not Found',
       status: 404,
       response: { status: 404 }
+    });
+  });
+
+  it('rejects a profile picture over the size cap', async () => {
+    mockedFetch.mockResolvedValue(
+      new Response(new Uint8Array(MAX_IMAGE_BYTES + 1), {
+        headers: { 'Content-Type': 'image/png' }
+      })
+    );
+
+    await expect(starknet(ADDRESS)).rejects.toMatchObject({
+      status: 404,
+      message: expect.stringContaining('image too large')
     });
   });
 

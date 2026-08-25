@@ -1,7 +1,7 @@
 import { byteArray, CallData, constants, shortString, starknetId } from 'starknet';
 import { isStarkDomain, isStarknetFelt } from '../../helpers/address';
 import { untilAborted, withDeadline } from '../../helpers/deadline';
-import { fetchHttpImage, fetchWithDeadline, getUrl } from '../../helpers/http';
+import { fetchHttpImage, fetchWithDeadline, getUrl, readBoundedImage } from '../../helpers/http';
 import { getProvider } from '../../helpers/provider';
 
 const DEFAULT_IMG_URL = 'https://starknet.id/api/identicons/0';
@@ -119,7 +119,7 @@ function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: string }>
   return fetchWithDeadline(url, async response =>
     response.headers.get('content-type')?.includes('application/json')
       ? await response.json()
-      : Buffer.from(await response.arrayBuffer())
+      : readBoundedImage(url, response)
   );
 }
 
