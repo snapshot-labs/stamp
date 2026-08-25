@@ -118,7 +118,7 @@ async function getImage(domainOrAddress: string): Promise<string | null> {
 function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: string }> {
   return fetchWithDeadline(url, async response =>
     response.headers.get('content-type')?.includes('application/json')
-      ? await response.json()
+      ? ((await response.json()) as { image?: string })
       : readBoundedImage(url, response)
   );
 }

@@ -1,4 +1,4 @@
-import { getUrl, isHttpUrl } from '../../../src/helpers/http';
+import { getUrl, isHttpUrl, isPublicAddress } from '../../../src/helpers/http';
 
 const GATEWAY = process.env.IPFS_GATEWAY || 'cloudflare-ipfs.com';
 const CIDV0 = 'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG';
@@ -82,5 +82,35 @@ describe('isHttpUrl', () => {
 
   it('accepts a URL with a normal non-default port', () => {
     expect(isHttpUrl('https://example.com:8443/avatar.png')).toBe(true);
+  });
+});
+
+describe('isPublicAddress', () => {
+  it.each([
+    ['127.0.0.1', 'IPv4 loopback'],
+    ['10.0.0.1', 'IPv4 private (RFC1918)'],
+    ['172.16.0.1', 'IPv4 private (RFC1918)'],
+    ['192.168.1.1', 'IPv4 private (RFC1918)'],
+    ['169.254.169.254', 'IPv4 link-local, incl. the cloud metadata address'],
+    ['100.64.0.1', 'IPv4 carrier-grade NAT'],
+    ['0.0.0.0', 'IPv4 unspecified'],
+    ['255.255.255.255', 'IPv4 broadcast'],
+    ['::1', 'IPv6 loopback'],
+    ['::', 'IPv6 unspecified'],
+    ['fe80::1', 'IPv6 link-local'],
+    ['fc00::1', 'IPv6 unique-local'],
+    ['::ffff:127.0.0.1', 'IPv4-mapped IPv6 loopback'],
+    ['::ffff:169.254.169.254', 'IPv4-mapped IPv6 metadata address']
+  ])('rejects %s (%s)', address => {
+    expect(isPublicAddress(address)).toBe(false);
+  });
+
+  it.each([
+    ['8.8.8.8', 'IPv4 unicast'],
+    ['93.184.216.34', 'IPv4 unicast'],
+    ['2001:4860:4860::8888', 'IPv6 unicast'],
+    ['::ffff:8.8.8.8', 'IPv4-mapped IPv6 unicast']
+  ])('allows %s (%s)', address => {
+    expect(isPublicAddress(address)).toBe(true);
   });
 });
