@@ -139,6 +139,8 @@ function createPropertyResolver(entity: Entity, property: Property) {
     if (!value) return false;
 
     const url = getUrl(value);
+    if (!url) return false;
+
     return await fetchHttpImage(url);
   };
 }

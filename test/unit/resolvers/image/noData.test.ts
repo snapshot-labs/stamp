@@ -78,6 +78,12 @@ describe('resolvers answer false rather than throwing when there is no data', ()
 
       await expect(resolveSxAvatar(ADDRESS)).rejects.toThrow('everything is down');
     });
+
+    it('answers false for an avatar reference that cannot become a fetchable URL', async () => {
+      mockedFetch.mockResolvedValue(spaces([{ metadata: { avatar: 'http://' } }]));
+
+      await expect(resolveSxAvatar(ADDRESS)).resolves.toBe(false);
+    });
   });
 
   describe('snapshot', () => {
@@ -118,6 +124,12 @@ describe('resolvers answer false rather than throwing when there is no data', ()
     it('answers false for an onchain logo instead of asking for a field that is not there', async () => {
       await expect(resolveSpaceLogo(ADDRESS, 1, 'eth')).resolves.toBe(false);
       expect(mockedFetch).not.toHaveBeenCalled();
+    });
+
+    it('answers false for an avatar reference that cannot become a fetchable URL', async () => {
+      mockedFetch.mockResolvedValue(entry({ avatar: 'http://' }));
+
+      await expect(resolveUserAvatar(ADDRESS)).resolves.toBe(false);
     });
   });
 

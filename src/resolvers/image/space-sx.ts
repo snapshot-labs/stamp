@@ -44,7 +44,10 @@ function createPropertyResolver(property: 'avatar' | 'cover') {
     const value = answers.find(Boolean);
     if (!value) return false;
 
-    return await fetchHttpImage(getUrl(value));
+    const url = getUrl(value);
+    if (!url) return false;
+
+    return await fetchHttpImage(url);
   };
 }
 
