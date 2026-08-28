@@ -1,11 +1,17 @@
+import { capture } from '@snapshot-labs/snapshot-sentry';
 import { graphQlCall } from '../../../../src/helpers/graphql';
 import lookupDomains from '../../../../src/resolvers/lookupDomains/ens';
+
+jest.mock('@snapshot-labs/snapshot-sentry', () => ({
+  capture: jest.fn()
+}));
 
 jest.mock('../../../../src/helpers/graphql', () => ({
   graphQlCall: jest.fn()
 }));
 
 const mockedGraphQlCall = graphQlCall as jest.Mock;
+const mockedCapture = capture as jest.Mock;
 const ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
 const HASH_A = '9834876dcfb05cb167a5c24953eba58c4ac89b1adf57f28f2f9d09af107ee8f0';
 const HASH_B = '3e744b9dc39389baf0c5a0660589b8402f3dbb49b89b3e75f2c9355852a3c677';
@@ -15,13 +21,21 @@ function graphQlResponse<T>(data: T) {
   return { data };
 }
 
-function accountResponse(domains: { name: string | null; expiryDate?: string | null }[]) {
-  return graphQlResponse({ account: { domains, wrappedDomains: [] } });
+function accountResponse(
+  domains: { name: string | null; expiryDate?: string | null }[],
+  wrappedDomains: { name: string | null; expiryDate?: string | null }[] = []
+) {
+  return graphQlResponse({ account: { domains, wrappedDomains } });
+}
+
+function namedDomains(count: number, prefix: string) {
+  return Array.from({ length: count }, (_, index) => ({ name: `${prefix}${index}.eth` }));
 }
 
 describe('lookupDomains/ens', () => {
   beforeEach(() => {
     mockedGraphQlCall.mockReset();
+    mockedCapture.mockReset();
   });
 
   afterEach(() => {
@@ -52,6 +66,49 @@ describe('lookupDomains/ens', () => {
     );
 
     await expect(lookupDomains(ADDRESS)).resolves.toEqual(['alice.eth']);
+  });
+
+  it('requests both nested domain lists in a single call bounded by the limit', async () => {
+    mockedGraphQlCall.mockResolvedValueOnce(accountResponse([{ name: 'plain.eth' }]));
+
+    await lookupDomains(ADDRESS);
+
+    const [, query, variables] = mockedGraphQlCall.mock.calls[0];
+    expect(query).toContain('domains(first: $first)');
+    expect(query).toContain('wrappedDomains(first: $first)');
+    expect(variables).toEqual({ id: ADDRESS.toLowerCase(), first: 1000 });
+    expect(mockedGraphQlCall).toHaveBeenCalledTimes(1);
+  });
+
+  it('combines both nested lists into one result', async () => {
+    mockedGraphQlCall.mockResolvedValueOnce(
+      accountResponse(namedDomains(2, 'a'), namedDomains(3, 'w'))
+    );
+
+    const result = await lookupDomains(ADDRESS);
+
+    expect(result).toHaveLength(5);
+    expect(result).toContain('a0.eth');
+    expect(result).toContain('w0.eth');
+  });
+
+  it('reports the account whose list hit the request limit', async () => {
+    mockedGraphQlCall.mockResolvedValueOnce(accountResponse(namedDomains(1000, 'a')));
+
+    await lookupDomains(ADDRESS);
+
+    expect(mockedCapture).toHaveBeenCalledTimes(1);
+    expect(mockedCapture.mock.calls[0][1]).toEqual({
+      contexts: { input: { address: ADDRESS, chainId: '1', returned: 1000 } }
+    });
+  });
+
+  it('stays quiet when a list is one short of the request limit', async () => {
+    mockedGraphQlCall.mockResolvedValueOnce(accountResponse(namedDomains(999, 'a')));
+
+    await lookupDomains(ADDRESS);
+
+    expect(mockedCapture).not.toHaveBeenCalled();
   });
 
   it('loads all hashed labels in one domains query', async () => {
