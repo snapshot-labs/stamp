@@ -6,7 +6,6 @@ import ens from './ens';
 import farcaster from './farcaster';
 import jazzicon from './jazzicon';
 import lens, { MUTED_ERRORS as lensMutedErrors } from './lens';
-import selfid from './selfid';
 import {
   resolveSpaceAvatar as sResolveSpaceAvatar,
   resolveSpaceCover as sResolveSpaceCover,
@@ -106,7 +105,6 @@ export const RESOLVERS = [
   { name: 'space-logo', fn: sResolveSpaceLogo, resize: false, failureContract: true },
   { name: 'space-sx', fn: sxResolveAvatar, resize: true, failureContract: true },
   { name: 'space-cover-sx', fn: sxResolveCover, resize: false, failureContract: true },
-  { name: 'selfid', fn: selfid, resize: true, failureContract: true },
   {
     name: 'lens',
     fn: lens,

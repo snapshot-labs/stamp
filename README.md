@@ -60,8 +60,6 @@ Resolves the avatar of a [Basename](https://www.base.org/names) (`*.base.eth`) b
 
 #### [Lens](/src/resolvers/image/lens.ts)
 
-#### [Self.ID](/src/resolvers/image/selfid.ts)
-
 #### [Snapshot](/src/resolvers/image/snapshot.ts)
 
 #### [TrustWallet Assets Info](/src/resolvers/image/trustwallet.ts)

@@ -17,7 +17,6 @@ const NAMES = [
   'space-logo',
   'space-sx',
   'space-cover-sx',
-  'selfid',
   'lens',
   'starknet',
   'farcaster'
