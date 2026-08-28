@@ -58,7 +58,7 @@ router.get(`/clear/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
     if (type === 'address' || type === 'name') {
       result = await clearCache(id, type);
     } else {
-      const { address, network, w, h, fallback, cb, fit } = await parseQuery(id, type, {
+      const { address, network, w, h, fallback, cb, fit } = parseQuery(id, type, {
         s: constants.max,
         fb: req.query.fb,
         cb: req.query.cb,
@@ -76,17 +76,11 @@ router.get(`/clear/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
 
 router.get(`/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
   const { type, id } = req.params as { type: ResolverType; id: string };
-  let address, network, networkId, w, h, fallback, cb, resolver, fit;
-
-  try {
-    ({ address, network, networkId, w, h, fallback, cb, resolver, fit } = await parseQuery(
-      id,
-      type,
-      req.query
-    ));
-  } catch {
-    return res.status(500).json({ status: 'error', error: 'failed to load content' });
-  }
+  const { address, network, networkId, w, h, fallback, cb, resolver, fit } = parseQuery(
+    id,
+    type,
+    req.query
+  );
 
   const disableCache = !!resolver;
 
