@@ -106,6 +106,36 @@ describe('resolvers/image/ens', () => {
     expect(mockedFetchHttpImage).toHaveBeenCalledWith(url);
   });
 
+  it.each([
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+    'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciLz4='
+  ])('uses a data: avatar record directly %s', async record => {
+    const image = Buffer.from('avatar');
+    jest.spyOn(snapshot.utils, 'getEnsTextRecord').mockResolvedValue(record);
+    mockedFetchHttpImage.mockResolvedValue(image);
+
+    await expect(resolve('vitalik.eth')).resolves.toBe(image);
+
+    expect(mockedFetchHttpImage).toHaveBeenCalledWith(record);
+  });
+
+  it.each([
+    'ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi',
+    'eip155:1/erc721:0xac5c7493036de60e63eb81c5e9a440b42f47ebf5/5413',
+    'data:',
+    'data:image/png;base64'
+  ])('falls back to the metadata service for a non-fetchable record %s', async record => {
+    const image = Buffer.from('avatar');
+    jest.spyOn(snapshot.utils, 'getEnsTextRecord').mockResolvedValue(record);
+    mockedFetchHttpImage.mockResolvedValue(image);
+
+    await expect(resolve('vitalik.eth')).resolves.toBe(image);
+
+    expect(mockedFetchHttpImage).toHaveBeenCalledWith(
+      'https://metadata.ens.domains/mainnet/avatar/vitalik.eth'
+    );
+  });
+
   it('keeps a normalized name in one fallback path segment', async () => {
     const image = Buffer.from('avatar');
     jest.spyOn(snapshot.utils, 'getEnsTextRecord').mockResolvedValue(null);

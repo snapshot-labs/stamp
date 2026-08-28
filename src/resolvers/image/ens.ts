@@ -25,9 +25,10 @@ export default async function resolve(nameOrAddress: string) {
   if (!ensName) return false;
 
   let url = await snapshot.utils.getEnsTextRecord(ensName, 'avatar', '1', getProviderOptions());
-  url = url?.startsWith('http')
-    ? url
-    : `https://metadata.ens.domains/mainnet/avatar/${encodeURIComponent(ensName)}`;
+  url =
+    url?.startsWith('http') || (url && /^data:[^,]*,/.test(url))
+      ? url
+      : `https://metadata.ens.domains/mainnet/avatar/${encodeURIComponent(ensName)}`;
 
   return await fetchHttpImage(url);
 }
