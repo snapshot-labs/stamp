@@ -102,7 +102,7 @@ describe('fetchHttpImage', () => {
   it('rejects a declared length over the cap without reading the body', async () => {
     armClosedWatcher();
 
-    await expect(fetchHttpImage(oversizedDeclaredUrl)).rejects.toMatchObject({
+    await expect(fetchHttpImage(oversizedDeclaredUrl, unguardedDispatcher)).rejects.toMatchObject({
       status: 404,
       message: expect.stringContaining('image too large')
     });
@@ -112,7 +112,7 @@ describe('fetchHttpImage', () => {
   it('rejects a body that crosses the cap while streaming, with no declared length', async () => {
     armClosedWatcher();
 
-    await expect(fetchHttpImage(oversizedStreamedUrl)).rejects.toMatchObject({
+    await expect(fetchHttpImage(oversizedStreamedUrl, unguardedDispatcher)).rejects.toMatchObject({
       status: 404,
       message: expect.stringContaining('image too large')
     });
