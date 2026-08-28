@@ -30,7 +30,6 @@
     "@ethersproject/providers": "^5.7.2",
     "@ethersproject/strings": "^5.7.0",
     "@metamask/jazzicon": "^2.0.0",
-    "@self.id/core": "^0.3.0",
     "@snapshot-labs/snapshot-metrics": "^2.0.0",
     "@snapshot-labs/snapshot-sentry": "^3.1.0",
     "@snapshot-labs/snapshot.js": "^0.17.1",

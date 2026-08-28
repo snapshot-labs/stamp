@@ -131,9 +131,6 @@ export const noAvatarInputs = {
   // farcaster
   farcasterInvalidAddress: '0x556B14CbdA79A36dC33FcD461a04A5BCb5dC2A70!',
   farcasterNoAccount: '0x2963fD170E12d748d0A80430DdC090e059f6013F',
-  // selfid
-  selfidMissingDid: '0x290ADCcA6253aCe88b10A6bb34C07a5Ad10fC6B0',
-  selfidNoAvatar: '0xd98420cFB1cd92828D192565A824B5728a566B11',
   // starknet
   starknetMissing: 'test-not-existing.stark',
   // starknet.id serves a DEFAULT identicon for this address; the resolver
