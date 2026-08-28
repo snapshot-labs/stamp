@@ -10,10 +10,11 @@ export function sha256(str) {
 }
 
 export function parseQuery(id: string, type: ResolverType, query) {
+  id = id.trim().toLowerCase();
   let address = id;
   let network = '1';
   let networkId: string | undefined = undefined;
-  const chunks = id.split(':');
+  const chunks = id.split(':').map(chunk => chunk.trim());
   if (chunks.length === 2) {
     address = chunks[1];
     networkId = chunks[0];
@@ -24,7 +25,7 @@ export function parseQuery(id: string, type: ResolverType, query) {
     networkId = chainIdToShortName(network) || 'eth';
   }
 
-  address = address.trim().toLowerCase();
+  address = address.toLowerCase();
   const size = 64;
   const maxSize = type.includes('-cover') ? constants.maxCover : constants.max;
   let s = query.s ? parseInt(query.s) : size;

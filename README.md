@@ -28,7 +28,7 @@ cdn.stamp.fyi/**token**/0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e
 
 ### Identifier
 
-The identifier can be an address (case insensitive), ENS name, Basename, CAIP-10, EIP-3770, DID or Starknet domain.
+The identifier can be an address (case insensitive), ENS name, Basename, CAIP-10, EIP-3770 or Starknet domain.
 
 #### Examples
 
