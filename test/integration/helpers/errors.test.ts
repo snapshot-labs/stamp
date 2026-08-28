@@ -123,4 +123,37 @@ describe('isSilencedError', () => {
     // Status 1 (FORMERR) indicates a malformed query on our side — keep it visible.
     expect(isSilencedError(new Error('Received error status from DNS server: 1.'))).toBe(false);
   });
+
+  it('silences a viem RPC timeout nested under ContractFunctionExecutionError', () => {
+    const timeoutMessage =
+      'The request took too long to respond.\n\nDetails: The request timed out.';
+    const timeoutError = Object.assign(new Error(timeoutMessage), { name: 'TimeoutError' });
+    const callExecutionError = Object.assign(new Error(timeoutMessage), {
+      name: 'CallExecutionError',
+      cause: timeoutError
+    });
+    const contractFunctionExecutionError = Object.assign(
+      new Error(
+        'The request took too long to respond.\n\nContract Call:\n  function:  resolveWithGateways(bytes name, bytes data, string[] gateways)'
+      ),
+      { name: 'ContractFunctionExecutionError', cause: callExecutionError }
+    );
+
+    expect(isSilencedError(contractFunctionExecutionError)).toBe(true);
+  });
+
+  it('silences a viem CCIP-Read gateway abort wrapped without a shortMessage', () => {
+    const abortError = Object.assign(new Error('This operation was aborted'), {
+      name: 'AbortError',
+      code: 20
+    });
+    const contractFunctionExecutionError = Object.assign(
+      new Error(
+        'An unknown error occurred while executing the contract function "resolveWithGateways".\n\n\nDetails: This operation was aborted\nVersion: viem@2.55.13'
+      ),
+      { name: 'ContractFunctionExecutionError', cause: abortError }
+    );
+
+    expect(isSilencedError(contractFunctionExecutionError)).toBe(true);
+  });
 });
