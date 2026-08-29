@@ -61,17 +61,6 @@ export function fetchHttpImage(url: string): Promise<Buffer> {
   return fetchWithDeadline(url, response => readBoundedImage(url, response));
 }
 
-// fetch's own port blocklist (https://fetch.spec.whatwg.org/#port-blocking): a URL naming one
-// of these is well-formed but not something fetch will ever attempt, so isHttpUrl checks it
-// up front rather than letting a third-party record reach fetch() only to throw.
-const FORBIDDEN_PORTS = new Set([
-  1, 7, 9, 11, 13, 15, 17, 19, 20, 21, 22, 23, 25, 37, 42, 43, 53, 69, 77, 79, 87, 95, 101, 102,
-  103, 104, 109, 110, 111, 113, 115, 117, 119, 123, 135, 137, 139, 143, 161, 179, 389, 427, 465,
-  512, 513, 514, 515, 526, 530, 531, 532, 540, 548, 554, 556, 563, 587, 601, 636, 989, 990, 993,
-  995, 1719, 1720, 1723, 2049, 3659, 4045, 4190, 5060, 5061, 6000, 6566, 6665, 6666, 6667, 6668,
-  6669, 6679, 6697, 10080
-]);
-
 export function isHttpUrl(value: string): boolean {
   let url: URL;
   try {
@@ -80,10 +69,7 @@ export function isHttpUrl(value: string): boolean {
     return false;
   }
 
-  return (
-    (url.protocol === 'http:' || url.protocol === 'https:') &&
-    (url.port === '' || !FORBIDDEN_PORTS.has(Number(url.port)))
-  );
+  return (url.protocol === 'http:' || url.protocol === 'https:') && url.hostname.includes('.');
 }
 
 export function getUrl(url: string): string | null {
@@ -91,9 +77,5 @@ export function getUrl(url: string): string | null {
   const candidate = snapshot.utils.getUrl(url, gateway);
   if (!candidate) return null;
 
-  try {
-    return ['http:', 'https:'].includes(new URL(candidate).protocol) ? candidate : null;
-  } catch {
-    return null;
-  }
+  return isHttpUrl(candidate) ? candidate : null;
 }

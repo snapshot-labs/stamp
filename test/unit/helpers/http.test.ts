@@ -31,49 +31,56 @@ describe('getUrl', () => {
   ])('returns null rather than a URL fetch would reject outright (%s)', (_label, input) => {
     expect(getUrl(input)).toBeNull();
   });
+
+  it('rejects a CAIP identifier the protocol-only check used to accept', () => {
+    expect(
+      getUrl('http://eip155:1/erc721:0xac5c7493036de60e63eb81c5e9a440b42f47ebf5/5413')
+    ).toBeNull();
+  });
 });
 
 describe('isHttpUrl', () => {
-  it.each(['https://example.com/avatar.png', 'http://example.com/avatar.png'])(
-    'accepts %s',
-    url => {
-      expect(isHttpUrl(url)).toBe(true);
-    }
-  );
+  it.each([
+    'https://example.com/avatar.png',
+    'http://example.com/avatar.png',
+    'https://ik.imagekit.io/avatar.png',
+    'https://gw.ipfs-lens.dev/ipfs/avatar.png',
+    'https://wrpcd.net/cdn-cgi/image/avatar.png',
+    'https://metadata.ens.domains/mainnet/avatar/vitalik.eth',
+    'https://assets.coingecko.com/coins/images/1/large/bitcoin.png'
+  ])('accepts %s', url => {
+    expect(isHttpUrl(url)).toBe(true);
+  });
 
   it.each([
     ['a relative path', '/BEB.jpg'],
     ['a bare string', 'not a url'],
     ['a non-http scheme', 'ftp://example.com/avatar.png'],
     [
-      'a CAIP identifier mistaken for a URL, with a blocked port',
+      'a CAIP identifier mistaken for a URL, on chain id 1',
       'http://eip155:1/erc721:https://etherscan.io/address/0xac5c7493036de60e63eb81c5e9a440b42f47ebf5/5413'
     ],
     [
-      'an explicitly blocked port on an otherwise well-formed URL',
-      'http://example.com:25/avatar.png'
+      'the same CAIP identifier on Base, whose chain id is not a blocked port',
+      'http://eip155:8453/erc721:0xac5c7493036de60e63eb81c5e9a440b42f47ebf5/5413'
+    ],
+    [
+      'the same CAIP identifier on Optimism, whose chain id is not a blocked port',
+      'http://eip155:10/erc721:0xac5c7493036de60e63eb81c5e9a440b42f47ebf5/5413'
+    ],
+    [
+      'the same CAIP identifier on Arbitrum, whose chain id is not a blocked port',
+      'http://eip155:42161/erc721:0xac5c7493036de60e63eb81c5e9a440b42f47ebf5/5413'
     ]
   ])('rejects %s (%s)', (_, url) => {
     expect(isHttpUrl(url)).toBe(false);
   });
 
-  it('accepts a URL with a normal non-default port', () => {
-    expect(isHttpUrl('https://example.com:8443/avatar.png')).toBe(true);
+  it('accepts a URL naming a port fetch itself refuses, since enforcing that is fetch()s job', () => {
+    expect(isHttpUrl('http://example.com:25/avatar.png')).toBe(true);
   });
 
-  // Every port Node's fetch() itself refuses (https://fetch.spec.whatwg.org/#port-blocking),
-  // brute-forced against a live fetch() on this runtime rather than copied from the spec text.
-  it('rejects every port fetch() itself refuses', () => {
-    const forbidden = [
-      1, 7, 9, 11, 13, 15, 17, 19, 20, 21, 22, 23, 25, 37, 42, 43, 53, 69, 77, 79, 87, 95, 101, 102,
-      103, 104, 109, 110, 111, 113, 115, 117, 119, 123, 135, 137, 139, 143, 161, 179, 389, 427, 465,
-      512, 513, 514, 515, 526, 530, 531, 532, 540, 548, 554, 556, 563, 587, 601, 636, 989, 990, 993,
-      995, 1719, 1720, 1723, 2049, 3659, 4045, 4190, 5060, 5061, 6000, 6566, 6665, 6666, 6667, 6668,
-      6669, 6679, 6697, 10080
-    ];
-
-    const stillAccepted = forbidden.filter(port => isHttpUrl(`http://example.com:${port}/x`));
-
-    expect(stillAccepted).toEqual([]);
+  it('accepts a URL with a normal non-default port', () => {
+    expect(isHttpUrl('https://example.com:8443/avatar.png')).toBe(true);
   });
 });

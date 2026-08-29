@@ -1,7 +1,7 @@
 import { getAddress } from '@ethersproject/address';
 import { withDeadline } from '../../helpers/deadline';
 import { httpError } from '../../helpers/errors';
-import { fetchHttpImage } from '../../helpers/http';
+import { fetchHttpImage, isHttpUrl } from '../../helpers/http';
 
 const API_KEY = process.env.COINGECKO_API_KEY;
 
@@ -36,7 +36,7 @@ export default async function resolve(address: string, chainId: string) {
     return await response.json();
   });
 
-  if (!data?.image?.large) return false;
+  if (!data?.image?.large || !isHttpUrl(data.image.large)) return false;
 
   return await fetchHttpImage(data.image.large);
 }

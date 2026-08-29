@@ -27,6 +27,7 @@ export function isSilencedError(error: any, additionalMessages?: string[]): bool
     'Received error status from DNS server: 2.',
     'The request took too long to respond.',
     'This operation was aborted',
+    'bad port',
     ...(additionalMessages || [])
   ];
   const codes = [

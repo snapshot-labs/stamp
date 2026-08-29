@@ -129,8 +129,12 @@ describe('resolvers/image/ens', () => {
     ['a data: URI missing its comma', 'data:image/png;base64'],
     ['a relative path', '/BEB.jpg'],
     [
-      'a CAIP identifier prefixed with http, on a port fetch refuses',
+      'a CAIP identifier prefixed with http, on chain id 1',
       'http://eip155:1/erc721:https://etherscan.io/address/0xac5c7493036de60e63eb81c5e9a440b42f47ebf5/5413'
+    ],
+    [
+      'the same CAIP identifier on Base, whose chain id is not a blocked port',
+      'http://eip155:8453/erc721:0xac5c7493036de60e63eb81c5e9a440b42f47ebf5/5413'
     ]
   ])('falls back to the metadata service for %s rather than fetching it', async (_, record) => {
     const image = Buffer.from('avatar');

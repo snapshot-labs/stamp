@@ -1,6 +1,6 @@
 import { getAddress, isAddress } from '@ethersproject/address';
 import { graphQlCall } from '../../helpers/graphql';
-import { fetchHttpImage } from '../../helpers/http';
+import { fetchHttpImage, isHttpUrl } from '../../helpers/http';
 
 const API_URL = 'https://api.lens.xyz';
 const LENS_IPFS_GATEWAY = 'https://gw.ipfs-lens.dev/ipfs/';
@@ -57,7 +57,7 @@ export default async function resolve(domainOrAddress: string) {
   );
 
   const img_url = normalizeImageUrl(account?.metadata?.picture);
-  if (!img_url) return false;
+  if (!img_url || !isHttpUrl(img_url)) return false;
 
   return await fetchHttpImage(img_url);
 }
