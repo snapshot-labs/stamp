@@ -57,3 +57,17 @@ export function isSilencedError(error: any, additionalMessages?: string[]): bool
     )
   );
 }
+
+const TRANSPORT_FAILURE_CODES = [
+  'ENOTFOUND',
+  'EAI_AGAIN',
+  'ECONNREFUSED',
+  'ERR_TLS_CERT_ALTNAME_INVALID',
+  'CERT_HAS_EXPIRED',
+  'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
+  'DEPTH_ZERO_SELF_SIGNED_CERT'
+];
+
+export function isTransportFailure(error: any): boolean {
+  return TRANSPORT_FAILURE_CODES.includes(error?.cause?.code ?? error?.code);
+}

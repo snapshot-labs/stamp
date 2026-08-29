@@ -154,6 +154,33 @@ describe('lookupDomains - error reporting', () => {
     expect(capture).not.toHaveBeenCalled();
   });
 
+  it.each([
+    [
+      'a host that no longer resolves',
+      Object.assign(new TypeError('fetch failed'), { cause: { code: 'ENOTFOUND' } })
+    ],
+    [
+      'a TLS failure',
+      Object.assign(new TypeError('fetch failed'), { cause: { code: 'CERT_HAS_EXPIRED' } })
+    ]
+  ] as const)('does not capture a transport failure (%s)', async (_label, error) => {
+    (ens as jest.Mock).mockRejectedValue(error);
+
+    await expect(lookupDomains(VALID_ADDRESS, '1')).resolves.toEqual([]);
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('still reports a plain upstream 4xx from a fixed endpoint', async () => {
+    const error = Object.assign(new Error('not found'), { status: 404 });
+    (ens as jest.Mock).mockRejectedValue(error);
+
+    await expect(lookupDomains(VALID_ADDRESS, '1')).resolves.toEqual([]);
+    expect(capture).toHaveBeenCalledWith(error, {
+      tags: { provider: 'Ens' },
+      contexts: { input: { address: VALID_ADDRESS, chainId: '1' } }
+    });
+  });
+
   it('names the failing provider, each with its own name', async () => {
     (ens as jest.Mock).mockRejectedValue(new Error('boom'));
     (shibarium as jest.Mock).mockRejectedValue(new Error('boom'));
