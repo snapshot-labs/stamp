@@ -1,3 +1,4 @@
+import { fetchHttpImage } from '../../../../src/helpers/http';
 import farcaster from '../../../../src/resolvers/image/farcaster';
 import lens from '../../../../src/resolvers/image/lens';
 import {
@@ -15,6 +16,7 @@ jest.mock('../../../../src/helpers/http', () => ({
 }));
 
 const mockedFetch = mockGlobalFetch();
+const mockedFetchHttpImage = jest.mocked(fetchHttpImage);
 
 beforeEach(() => {
   mockedFetch.mockReset();
@@ -167,6 +169,15 @@ describe('resolvers answer false rather than throwing when there is no data', ()
 
       expect(sentVariables().request.username.localName).toBe('a.lensb');
     });
+
+    it('answers false for a picture that is not a fetchable URL, without downloading it', async () => {
+      mockedFetch.mockResolvedValue(
+        graphQlResponse({ account: { metadata: { picture: 'lens://not-a-url' } } })
+      );
+
+      await expect(lens('vitalik.lens')).resolves.toBe(false);
+      expect(mockedFetchHttpImage).not.toHaveBeenCalled();
+    });
   });
 
   describe('coingecko', () => {
@@ -193,9 +204,29 @@ describe('resolvers answer false rather than throwing when there is no data', ()
 
       await expect(loadCoingecko()(ADDRESS, '1')).rejects.toMatchObject({ status: 401 });
     });
+
+    it('answers false for an image url that is not a fetchable URL, without downloading it', async () => {
+      mockedFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ image: { large: '/missing_large.png' } })
+      });
+
+      await expect(loadCoingecko()(ADDRESS, '1')).resolves.toBe(false);
+      expect(mockedFetchHttpImage).not.toHaveBeenCalled();
+    });
   });
 
   describe('farcaster', () => {
+    it('answers false for a pfp_url that is not a fetchable URL, without downloading it', async () => {
+      mockedFetch.mockResolvedValueOnce(
+        jsonResponse({ [ADDRESS.toLowerCase()]: [{ pfp_url: '/BEB.jpg' }] })
+      );
+
+      await expect(farcaster(ADDRESS)).resolves.toBe(false);
+      expect(mockedFetch).toHaveBeenCalledTimes(1);
+    });
+
     it('answers false for an address with no account', async () => {
       mockedFetch.mockResolvedValue({ ok: false, status: 404 });
 

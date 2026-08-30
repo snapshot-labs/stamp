@@ -61,14 +61,21 @@ export function fetchHttpImage(url: string): Promise<Buffer> {
   return fetchWithDeadline(url, response => readBoundedImage(url, response));
 }
 
+export function isHttpUrl(value: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+
+  return (url.protocol === 'http:' || url.protocol === 'https:') && url.hostname.includes('.');
+}
+
 export function getUrl(url: string): string | null {
   const gateway: string = process.env.IPFS_GATEWAY || 'cloudflare-ipfs.com';
   const candidate = snapshot.utils.getUrl(url, gateway);
   if (!candidate) return null;
 
-  try {
-    return ['http:', 'https:'].includes(new URL(candidate).protocol) ? candidate : null;
-  } catch {
-    return null;
-  }
+  return isHttpUrl(candidate) ? candidate : null;
 }

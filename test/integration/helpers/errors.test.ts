@@ -142,6 +142,13 @@ describe('isSilencedError', () => {
     expect(isSilencedError(contractFunctionExecutionError)).toBe(true);
   });
 
+  it('silences the real rejection fetch() produces for a port it refuses to open', async () => {
+    const error = await fetch('http://example.com:25/x').catch(err => err);
+
+    expect(error.cause?.message).toBe('bad port');
+    expect(isSilencedError(error)).toBe(true);
+  });
+
   it('silences a viem CCIP-Read gateway abort wrapped without a shortMessage', () => {
     const abortError = Object.assign(new Error('This operation was aborted'), {
       name: 'AbortError',
