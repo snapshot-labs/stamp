@@ -93,6 +93,33 @@ describe('address resolvers - resolver failures', () => {
     expect(capture).not.toHaveBeenCalled();
   });
 
+  it.each([
+    [
+      'a host that no longer resolves',
+      Object.assign(new TypeError('fetch failed'), { cause: { code: 'ENOTFOUND' } })
+    ],
+    [
+      'a TLS failure',
+      Object.assign(new TypeError('fetch failed'), { cause: { code: 'CERT_HAS_EXPIRED' } })
+    ]
+  ] as const)('does not capture a transport failure (%s)', async (_label, error) => {
+    jest.spyOn(ens, 'lookupAddresses').mockRejectedValue(error);
+
+    await expect(lookupAddresses([ADDRESS])).resolves.toEqual({});
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('still reports a plain upstream 4xx from a fixed endpoint', async () => {
+    const error = Object.assign(new Error('not found'), { status: 404 });
+    jest.spyOn(ens, 'lookupAddresses').mockRejectedValue(error);
+
+    await expect(lookupAddresses([ADDRESS])).resolves.toEqual({});
+    expect(capture).toHaveBeenCalledWith(error, {
+      tags: { provider: 'Ens' },
+      contexts: { input: { lookupAddresses: [ADDRESS] } }
+    });
+  });
+
   it('applies MUTED_ERRORS only to the resolver exporting it', async () => {
     const error = new Error(LENS_503);
     jest.spyOn(ens, 'lookupAddresses').mockRejectedValue(error);

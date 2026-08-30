@@ -1,4 +1,5 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
+import { getProvider } from '../../../../src/helpers/provider';
 import { resolveNames } from '../../../../src/resolvers/address/ens';
 import { jsonResponse, mockGlobalFetch } from '../../../helpers/fetch';
 
@@ -16,11 +17,13 @@ jest.mock('../../../../src/helpers/provider', () => ({
 
 const mockedFetch = mockGlobalFetch();
 
+const providerInstanceHeldByEns = (getProvider as jest.Mock).mock.results[0].value;
+
 const HANDLE = 'test.eth';
 const ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
 
-function respondWith(body: any) {
-  mockedFetch.mockResolvedValue(jsonResponse(body));
+function respondWith(body: any, status = 200) {
+  mockedFetch.mockResolvedValue(jsonResponse(body, status));
 }
 
 describe('resolvers/address/ens - resolveNames', () => {
@@ -42,5 +45,44 @@ describe('resolvers/address/ens - resolveNames', () => {
 
     await expect(resolveNames([HANDLE])).resolves.toEqual({ [HANDLE]: ADDRESS });
     expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('does not report a subgraph host that no longer resolves', async () => {
+    mockedFetch.mockRejectedValue(
+      Object.assign(new TypeError('fetch failed'), { cause: { code: 'ENOTFOUND' } })
+    );
+
+    await expect(resolveNames([HANDLE])).resolves.toEqual({});
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('still reports a subgraph host answering with a 4xx', async () => {
+    respondWith({}, 404);
+
+    await expect(resolveNames([HANDLE])).resolves.toEqual({});
+    expect(capture).toHaveBeenCalledWith(expect.objectContaining({ status: 404 }), {
+      input: { handles: [HANDLE] }
+    });
+  });
+
+  it('still reports a malformed address returned by the subgraph itself', async () => {
+    respondWith({
+      data: { domains: [{ name: HANDLE, resolvedAddress: { id: 'not-a-valid-address' } }] }
+    });
+
+    await expect(resolveNames([HANDLE])).resolves.toEqual({});
+    expect(capture).toHaveBeenCalledWith(expect.objectContaining({ code: 'INVALID_ARGUMENT' }), {
+      input: { handles: [HANDLE] }
+    });
+  });
+
+  it('still reports a malformed address returned by the provider fallback', async () => {
+    respondWith({ data: { domains: [] } });
+    providerInstanceHeldByEns.resolveName.mockResolvedValueOnce('not-a-valid-address');
+
+    await expect(resolveNames([HANDLE])).resolves.toEqual({});
+    expect(capture).toHaveBeenCalledWith(expect.objectContaining({ code: 'INVALID_ARGUMENT' }), {
+      input: { handles: [HANDLE] }
+    });
   });
 });
