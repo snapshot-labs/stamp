@@ -1,14 +1,39 @@
 import http from 'http';
 import { AddressInfo, Socket } from 'net';
-import { fetchHttpImage } from '../../../src/helpers/http';
+import os from 'os';
+import { fetchHttpImage, isPublicAddress } from '../../../src/helpers/http';
 
 let server: http.Server;
 let port: number;
 let requests: number;
+let internalRequests: number;
 const sockets = new Set<Socket>();
 
+function findPublicInterfaceAddress(): string | null {
+  const interfaces = Object.values(os.networkInterfaces()).flat();
+
+  return (
+    interfaces.find(
+      entry => entry?.family === 'IPv4' && !entry.internal && isPublicAddress(entry.address)
+    )?.address ?? null
+  );
+}
+
+const publicAddress = findPublicInterfaceAddress();
+
 beforeAll(async () => {
-  server = http.createServer((_req, res) => {
+  server = http.createServer((req, res) => {
+    if (req.url === '/redirect-to-internal') {
+      res.writeHead(302, { Location: `http://127.0.0.1:${port}/internal` });
+      return res.end();
+    }
+
+    if (req.url === '/internal') {
+      internalRequests += 1;
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      return res.end('internal data');
+    }
+
     requests += 1;
     res.writeHead(200, { 'Content-Type': 'image/png' });
     res.end(Buffer.from('image bytes'));
@@ -17,12 +42,13 @@ beforeAll(async () => {
     sockets.add(socket);
     socket.on('close', () => sockets.delete(socket));
   });
-  await new Promise<void>(resolve => server.listen(0, '127.0.0.1', () => resolve()));
+  await new Promise<void>(resolve => server.listen(0, '0.0.0.0', () => resolve()));
   port = (server.address() as AddressInfo).port;
 });
 
 beforeEach(() => {
   requests = 0;
+  internalRequests = 0;
 });
 
 afterAll(async () => {
@@ -54,4 +80,16 @@ describe('fetchHttpImage, with the default (guarded) dispatcher', () => {
     });
     expect(requests).toBe(0);
   });
+
+  const itFromAPublicInterface = publicAddress ? it : it.skip;
+
+  itFromAPublicInterface(
+    'rejects a redirect from a public address to a blocked one, without returning the redirected body',
+    async () => {
+      await expect(
+        fetchHttpImage(`http://${publicAddress}:${port}/redirect-to-internal`)
+      ).rejects.toMatchObject({ status: 400 });
+      expect(internalRequests).toBe(0);
+    }
+  );
 });

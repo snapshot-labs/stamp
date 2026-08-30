@@ -2,7 +2,7 @@ import dns from 'dns';
 import { getAddress } from '@ethersproject/address';
 import snapshot from '@snapshot-labs/snapshot.js';
 import ipaddr from 'ipaddr.js';
-import { Agent, Dispatcher, fetch, Response } from 'undici';
+import { Agent, buildConnector, Dispatcher, fetch, Response } from 'undici';
 import { isStarknetAddress } from './address';
 import { withDeadline } from './deadline';
 import { httpError } from './errors';
@@ -47,21 +47,24 @@ function safeLookup(
   });
 }
 
-const safeDispatcher: Dispatcher = new Agent({
-  connect: { lookup: safeLookup as unknown as (typeof dns)['lookup'] }
-});
+const connect = buildConnector({ lookup: safeLookup as unknown as (typeof dns)['lookup'] });
+
+function guardedConnect(options: buildConnector.Options, callback: buildConnector.Callback): void {
+  if (ipaddr.isValid(options.hostname) && !isPublicAddress(options.hostname)) {
+    callback(new BlockedAddressError(`blocked address: ${options.hostname}`), null);
+    return;
+  }
+
+  connect(options, callback);
+}
+
+const safeDispatcher: Dispatcher = new Agent({ connect: guardedConnect });
 
 function assertAllowedUrl(url: string): void {
   const parsed = new URL(url);
 
   if (!ALLOWED_PROTOCOLS.has(parsed.protocol)) {
     throw httpError(parsed.host, 400, `unsupported scheme: ${parsed.protocol}`);
-  }
-
-  const literalAddress = parsed.hostname.replace(/^\[|\]$/g, '');
-
-  if (ipaddr.isValid(literalAddress) && !isPublicAddress(literalAddress)) {
-    throw httpError(parsed.host, 400, 'blocked address');
   }
 }
 
