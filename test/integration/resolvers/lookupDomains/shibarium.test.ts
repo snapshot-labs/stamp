@@ -61,8 +61,9 @@ describe('lookupDomains/shibarium', () => {
     mockedFetch.mockResolvedValue(httpResponse(status, statusText));
 
     await expect(lookupDomains(ADDRESS, CHAIN_ID)).rejects.toMatchObject({
-      message: `HTTP ${status}: ${statusText}`,
-      status
+      message: `[shibarium] ${statusText}`,
+      status,
+      response: { status }
     });
     expect(capture).not.toHaveBeenCalled();
   });
@@ -95,6 +96,19 @@ describe('lookupDomains/shibarium', () => {
 
     await expect(lookupDomains(ADDRESS, CHAIN_ID)).resolves.toEqual(['boorger.shib']);
     expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('preserves a JSON parse failure as the cause', async () => {
+    const cause = Object.assign(new Error('Premature close'), { code: 'UND_ERR_SOCKET' });
+    mockedFetch.mockResolvedValue({
+      ...httpResponse(200, 'OK'),
+      json: jest.fn().mockRejectedValue(cause)
+    });
+
+    await expect(lookupDomains(ADDRESS, CHAIN_ID)).rejects.toMatchObject({
+      message: 'Invalid JSON response: Premature close',
+      cause
+    });
   });
 
   it('does not call the API on an unsupported chain', async () => {
@@ -168,18 +182,30 @@ describe('lookupDomains/shibarium deadline', () => {
 });
 
 describe('lookupDomains/shibarium through the shared handler', () => {
-  it('reports a shibarium failure with the address and chain as context', async () => {
+  it('does not report an upstream 500', async () => {
     mockedFetch.mockResolvedValue(httpResponse(500, 'Internal Server Error'));
 
     await expect(lookupDomainsThroughIndex(ADDRESS, CHAIN_ID)).resolves.toEqual([]);
-    expect(capture).toHaveBeenCalledTimes(1);
-    expect(capture).toHaveBeenCalledWith(
-      expect.objectContaining({ message: 'HTTP 500: Internal Server Error', status: 500 }),
-      {
-        tags: { provider: 'Shibarium' },
-        contexts: { input: { address: ADDRESS, chainId: CHAIN_ID } }
-      }
-    );
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('does not report Cloudflare 525', async () => {
+    mockedFetch.mockResolvedValue(httpResponse(525, ''));
+
+    await expect(lookupDomainsThroughIndex(ADDRESS, CHAIN_ID)).resolves.toEqual([]);
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('does not report a transient JSON body failure', async () => {
+    mockedFetch.mockResolvedValue({
+      ...httpResponse(200, 'OK'),
+      json: jest
+        .fn()
+        .mockRejectedValue(Object.assign(new Error('Premature close'), { code: 'UND_ERR_SOCKET' }))
+    });
+
+    await expect(lookupDomainsThroughIndex(ADDRESS, CHAIN_ID)).resolves.toEqual([]);
+    expect(capture).not.toHaveBeenCalled();
   });
 
   it('still silences a rate limit', async () => {
@@ -195,6 +221,6 @@ describe('lookupDomains/shibarium through the shared handler', () => {
       .mockResolvedValueOnce(httpResponse(500, 'Internal Server Error'));
 
     await expect(lookupDomainsThroughIndex(ADDRESS, CHAIN_ID)).resolves.toEqual([]);
-    expect(capture).toHaveBeenCalledTimes(1);
+    expect(capture).not.toHaveBeenCalled();
   });
 });

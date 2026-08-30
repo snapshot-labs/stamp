@@ -43,7 +43,9 @@ export default async function lookupDomains(
               status = 1;
               return result;
             } catch (err) {
-              if (!isSilencedError(err)) {
+              const upstreamStatus = Number((err as any)?.status ?? (err as any)?.response?.status);
+              const isUpstreamOutage = upstreamStatus >= 500 && upstreamStatus < 600;
+              if (!isUpstreamOutage && !isSilencedError(err)) {
                 capture(err, {
                   tags: { provider: NAME },
                   contexts: { input: { address, chainId } }
