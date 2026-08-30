@@ -7,6 +7,8 @@ const BODY = Buffer.from('as much of an image as the fetch cares about');
 const CHUNK = Buffer.alloc(1024 * 1024, 'x');
 
 let server: http.Server;
+let farServer: http.Server;
+let farOrigin: string;
 let url: string;
 let missingUrl: string;
 let nonImageUrl: string;
@@ -18,6 +20,7 @@ let neverEndingUrl: string;
 let oversizedDeclaredUrl: string;
 let oversizedStreamedUrl: string;
 let slowErrorUrl: string;
+let redirectingMissingUrl: string;
 let nonImageClosed!: Promise<void>;
 let resolveNonImageClosed!: () => void;
 let oversizedDeclaredClosed!: Promise<void>;
@@ -87,6 +90,11 @@ beforeAll(async () => {
       return streamForever(res, resolveNonImageClosed);
     }
 
+    if (req.url === '/redirect-missing.png') {
+      res.writeHead(302, { Location: `${farOrigin}/far-missing.png` });
+      return res.end();
+    }
+
     if (req.url === '/slow-error.png') {
       res.writeHead(504, { 'Content-Type': 'text/html' });
       return streamForever(res, resolveSlowErrorClosed);
@@ -124,6 +132,18 @@ beforeAll(async () => {
     sockets.add(socket);
     socket.on('close', () => sockets.delete(socket));
   });
+  farServer = http.createServer((req, res) => {
+    if (req.url === '/far-missing.png') {
+      res.writeHead(404, { 'Content-Type': 'text/html' });
+      return res.end('<html><body>not found</body></html>');
+    }
+
+    res.writeHead(404);
+    res.end();
+  });
+  await new Promise<void>(resolve => farServer.listen(0, '127.0.0.1', () => resolve()));
+  farOrigin = `http://127.0.0.1:${(farServer.address() as AddressInfo).port}`;
+
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', () => resolve()));
   const origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   url = `${origin}/image.png`;
@@ -137,11 +157,13 @@ beforeAll(async () => {
   oversizedDeclaredUrl = `${origin}/oversized-declared.png`;
   oversizedStreamedUrl = `${origin}/oversized-streamed.png`;
   slowErrorUrl = `${origin}/slow-error.png`;
+  redirectingMissingUrl = `${origin}/redirect-missing.png`;
 });
 
 afterAll(async () => {
   sockets.forEach(socket => socket.destroy());
   await new Promise<void>(resolve => server.close(() => resolve()));
+  await new Promise<void>(resolve => farServer.close(() => resolve()));
 });
 
 describe('fetchHttpImage', () => {
@@ -151,6 +173,15 @@ describe('fetchHttpImage', () => {
 
   it('raises rather than returning the body of a non-2xx', async () => {
     await expect(fetchHttpImage(missingUrl)).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('reports the host that answered a redirect, not the host that was asked', async () => {
+    const farHost = new URL(farOrigin).host;
+
+    await expect(fetchHttpImage(redirectingMissingUrl)).rejects.toMatchObject({
+      status: 404,
+      message: `[${farHost}] Not Found`
+    });
   });
 
   it('rejects a declared length over the cap without reading the body', async () => {

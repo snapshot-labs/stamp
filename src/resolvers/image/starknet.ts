@@ -118,9 +118,10 @@ async function getImage(domainOrAddress: string): Promise<string | null> {
 async function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: string }> {
   return withDeadline(async signal => {
     const response = await fetch(url, { signal });
-    const type = response.headers.get('content-type') ?? '';
+    const type = (response.headers.get('content-type') ?? '').toLowerCase().split(';')[0].trim();
+    const isJson = type === 'application/json' || type === 'text/json' || type.endsWith('+json');
 
-    if (response.ok && type.toLowerCase().startsWith('application/json')) {
+    if (response.ok && isJson) {
       const body = await response.text();
 
       try {

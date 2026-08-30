@@ -25,7 +25,7 @@ export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 export const MAX_URL_BYTES = 1024 * 1024;
 
 export async function readHttpImage(url: string, response: Response): Promise<Buffer> {
-  const host = new URL(url).host;
+  const host = new URL(response.url || url).host;
 
   if (!response.ok) {
     await response.body?.cancel();

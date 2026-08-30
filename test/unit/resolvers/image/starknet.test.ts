@@ -4,8 +4,7 @@ const mockCallContract = jest.fn();
 jest.mock('../../../../src/helpers/provider', () => ({
   getProvider: () => ({
     getStarkProfile: mockGetStarkProfile,
-    callContract: mockCallContract,
-    getAddressFromStarkName: jest.fn()
+    callContract: mockCallContract
   })
 }));
 
@@ -219,6 +218,22 @@ describe('Starknet image resolver', () => {
       String(input).endsWith('/avatar')
         ? new Response(JSON.stringify({ image: 'https://example.com/nft.png' }), {
             headers: { 'Content-Type': 'application/json' }
+          })
+        : new Response(IMAGE, { headers: { 'Content-Type': 'image/png' } })
+    );
+
+    await expect(starknet(ADDRESS)).resolves.toEqual(IMAGE);
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    ['a +json structured suffix', 'application/ld+json'],
+    ['text/json', 'text/json']
+  ])('follows a JSON metadata response served as %s', async (_name, contentType) => {
+    const fetchSpy = jest.spyOn(global, 'fetch').mockImplementation(async input =>
+      String(input).endsWith('/avatar')
+        ? new Response(JSON.stringify({ image: 'https://example.com/nft.png' }), {
+            headers: { 'Content-Type': contentType }
           })
         : new Response(IMAGE, { headers: { 'Content-Type': 'image/png' } })
     );
