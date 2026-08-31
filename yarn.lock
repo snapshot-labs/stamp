@@ -2719,19 +2719,18 @@
   resolved "https://registry.yarnpkg.com/@snapshot-labs/prettier-config/-/prettier-config-0.1.0.tgz#f0eafa4a3aed6a7fabaf88c016659f3343041071"
   integrity sha512-8MYAHuewlAdJs55f94qQtEs/WLFmjgYfuIVb1iJPa9gUZauHEXMzbVpKZfnkQsgpwwcXxq9hzg0S/OeOkgj3+w==
 
-"@snapshot-labs/snapshot-metrics@^2.0.0":
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/@snapshot-labs/snapshot-metrics/-/snapshot-metrics-2.0.0.tgz#7064279cb69037778644a854aaabc089eb0fb831"
-  integrity sha512-lxbHwDNCCuaWeh537c1anpPlurEEbxIkCEy3wOVJbNhmIZ0PjOuQYrguQ22J3be0Jjr5uJm5VuXkKH3Pj30HRg==
+"@snapshot-labs/snapshot-metrics@^2.0.1":
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/@snapshot-labs/snapshot-metrics/-/snapshot-metrics-2.0.1.tgz#872836db301dd8aa57fd8f6fd0d58cf535c167f4"
+  integrity sha512-e41FQYirp7x9oGZ6LrgsK5cYQhMouCnjI00msmck1jenuy/mZdaLqMEMm10NrLFMh82SYhSmRpyIkct2EvAVMg==
   dependencies:
     express-prom-bundle "^6.6.0"
-    node-fetch "^2.7.0"
     prom-client "^14.2.0"
 
-"@snapshot-labs/snapshot-sentry@^3.1.0":
-  version "3.1.0"
-  resolved "https://registry.yarnpkg.com/@snapshot-labs/snapshot-sentry/-/snapshot-sentry-3.1.0.tgz#9e9c306ea6e32025d6c902fbe45e7e882dbde2a3"
-  integrity sha512-MIIQyW0GZisXa93JvDWFdMO0Ycu9JXBH0P3ca0qJ7HhbxfNrzqLOr1dzhKdhXT0e+sTWO7UCxdeQTGF3dV0l7w==
+"@snapshot-labs/snapshot-sentry@^4.0.0":
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/@snapshot-labs/snapshot-sentry/-/snapshot-sentry-4.0.0.tgz#754103b76802add0d7972e1a9ec1ea15686bf32e"
+  integrity sha512-g9yAJQj+55Iu42yVl+dOtOg1e0K9KoFAxV0o8FQL2X2x3N2+FpyUKmrMBzdwhlDW12iyQ4CqpvCx25l6l1fmpg==
   dependencies:
     "@sentry/node" "^10.52.0"
 
@@ -6032,7 +6031,7 @@ negotiator@0.6.3:
   resolved "https://registry.yarnpkg.com/negotiator/-/negotiator-0.6.3.tgz#58e323a72fedc0d6f9cd4d31fe49f51479590ccd"
   integrity sha512-+EUsqGPLsM+j/zdChZjsnX51g4XrHFOIXwfnCVPGlQk/k5giakcKsuxCObBRu6DSm9opw/O6slWbJdghQM4bBg==
 
-node-fetch@^2.6.1, node-fetch@^2.6.12, node-fetch@^2.7.0:
+node-fetch@^2.6.1, node-fetch@^2.6.12:
   version "2.7.0"
   resolved "https://registry.yarnpkg.com/node-fetch/-/node-fetch-2.7.0.tgz#d0f0fa6e3e2dc1d27efcd8ad99d550bda94d187d"
   integrity sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==
