@@ -1,6 +1,6 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import * as basenameResolver from './basename';
-import cache, { clear } from './cache';
+import cache, { CacheResult, clear, markNonCacheable, NON_CACHEABLE } from './cache';
 import * as ensResolver from './ens';
 import * as gweiResolver from './gwei';
 import * as lensResolver from './lens';
@@ -25,8 +25,8 @@ import { Address, Handle } from '../../helpers/types';
 type Resolver = {
   NAME: string;
   MUTED_ERRORS?: string[];
-  lookupAddresses: (addresses: Address[]) => Promise<Record<Address, Handle>>;
-  resolveNames: (handles: Handle[]) => Promise<Record<Handle, Address>>;
+  lookupAddresses: (addresses: Address[]) => Promise<CacheResult>;
+  resolveNames: (handles: Handle[]) => Promise<CacheResult>;
 };
 
 const RESOLVERS: Resolver[] = [
@@ -62,13 +62,14 @@ async function _call(fnName: string, input: string[], maxInputLength: number) {
               provider: r.NAME,
               method: fnName
             });
-            let result = {};
+            let result: CacheResult = {};
             let status = 0;
 
             try {
               result = await r[fnName](_input);
               status = 1;
             } catch (err) {
+              result = markNonCacheable({}, _input);
               if (!isSilencedError(err, r.MUTED_ERRORS) && !isTransportFailure(err)) {
                 // A top-level `input` beside `tags` is dropped rather than wrapped.
                 capture(err, {
@@ -83,8 +84,14 @@ async function _call(fnName: string, input: string[], maxInputLength: number) {
           })
         );
 
-        return Object.fromEntries(
-          _input.map(item => [item, results.map(r => r[item]).filter(i => !!i)[0] || ''])
+        const merged = Object.fromEntries(
+          _input.map(item => [item, results.map(result => result[item]).find(Boolean) || ''])
+        );
+        const nonCacheable = new Set(results.flatMap(result => result[NON_CACHEABLE] || []));
+
+        return markNonCacheable(
+          merged,
+          [...nonCacheable].filter(item => !merged[item])
         );
       })
     )
