@@ -45,7 +45,6 @@ describe('isHttpUrl', () => {
     'http://example.com/avatar.png',
     'https://ik.imagekit.io/avatar.png',
     'https://gw.ipfs-lens.dev/ipfs/avatar.png',
-    'https://wrpcd.net/cdn-cgi/image/avatar.png',
     'https://metadata.ens.domains/mainnet/avatar/vitalik.eth',
     'https://assets.coingecko.com/coins/images/1/large/bitcoin.png'
   ])('accepts %s', url => {

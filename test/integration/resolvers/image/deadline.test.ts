@@ -11,7 +11,6 @@ const sockets = new Set<Socket>();
 let stall: Stall;
 
 let coingecko: (address: Address, chainId: string) => Promise<Buffer | false>;
-let farcaster: (address: Address) => Promise<Buffer | false>;
 
 const apiKey = process.env.COINGECKO_API_KEY;
 
@@ -35,7 +34,6 @@ beforeAll(async () => {
 
   process.env.COINGECKO_API_KEY = 'test-key';
   coingecko = (await import('../../../../src/resolvers/image/coingecko')).default;
-  farcaster = (await import('../../../../src/resolvers/image/farcaster')).default;
 });
 
 afterAll(async () => {
@@ -63,12 +61,6 @@ describe('resolvers, against an upstream that never finishes answering', () => {
     ['no headers at all', 'headers'],
     ['headers and then nothing more', 'body']
   ] as const)('when it sends %s', (_, at) => {
-    it('farcaster raises the abort', async () => {
-      stall = at;
-
-      await expect(farcaster(ADDRESS)).rejects.toMatchObject({ name: 'AbortError' });
-    });
-
     it('coingecko raises the abort', async () => {
       stall = at;
 

@@ -70,8 +70,6 @@ Resolves the avatar of a [Basename](https://www.base.org/names) (`*.base.eth`) b
 
 #### [Starknet](/src/resolvers/image/starknet.ts)
 
-#### [Farcaster](/src/resolvers/image/farcaster.ts)
-
 ### Integrations
 
 #### [Snapshot](http://snapshot.org)

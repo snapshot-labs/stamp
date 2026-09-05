@@ -1,5 +1,4 @@
 import { fetchHttpImage } from '../../../../src/helpers/http';
-import farcaster from '../../../../src/resolvers/image/farcaster';
 import lens from '../../../../src/resolvers/image/lens';
 import {
   resolveSpaceAvatar,
@@ -214,35 +213,6 @@ describe('resolvers answer false rather than throwing when there is no data', ()
 
       await expect(loadCoingecko()(ADDRESS, '1')).resolves.toBe(false);
       expect(mockedFetchHttpImage).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('farcaster', () => {
-    it('answers false for a pfp_url that is not a fetchable URL, without downloading it', async () => {
-      mockedFetch.mockResolvedValueOnce(
-        jsonResponse({ [ADDRESS.toLowerCase()]: [{ pfp_url: '/BEB.jpg' }] })
-      );
-
-      await expect(farcaster(ADDRESS)).resolves.toBe(false);
-      expect(mockedFetch).toHaveBeenCalledTimes(1);
-    });
-
-    it('answers false for an address with no account', async () => {
-      mockedFetch.mockResolvedValue({ ok: false, status: 404 });
-
-      await expect(farcaster(ADDRESS)).resolves.toBe(false);
-    });
-
-    it('answers false when the response carries no account for the address', async () => {
-      mockedFetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({}) });
-
-      await expect(farcaster(ADDRESS)).resolves.toBe(false);
-    });
-
-    it('rejects on any other non-2xx, carrying the status', async () => {
-      mockedFetch.mockResolvedValue({ ok: false, status: 402, statusText: 'Payment Required' });
-
-      await expect(farcaster(ADDRESS)).rejects.toMatchObject({ status: 402 });
     });
   });
 });

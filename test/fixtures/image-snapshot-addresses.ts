@@ -50,9 +50,7 @@ export const remoteSnapshotInputs = {
   // trustwallet: a token logo from the trustwallet/assets repo (very stable).
   trustwallet: { address: '0xcf0C122c6b73ff809C693DB761e7BaeBe62b6a2E' },
   // coingecko: token metadata image (needs COINGECKO_API_KEY).
-  coingecko: { address: '0xc18360217d8f7ab5e7c516566761ea12ce7f9d72', chainId: '1' },
-  // farcaster: address with a Farcaster pfp (needs NEYNAR_API_KEY).
-  farcaster: '0xd1a8Dd23e356B9fAE27dF5DeF9ea025A602EC81e'
+  coingecko: { address: '0xc18360217d8f7ab5e7c516566761ea12ce7f9d72', chainId: '1' }
 } as const;
 
 // Tolerant config for remote-fetch resolvers: allow a small percentage of
@@ -128,9 +126,6 @@ export const noAvatarInputs = {
   // space-sx
   spaceSxMissing: '0x06ba9855965EeEc09B5D43B113944c27F45aD3Ce',
   spaceSxInvalidAddress: '0x00006ba9855965EeEc09B5D43B113944c27F45aD3Ce',
-  // farcaster
-  farcasterInvalidAddress: '0x556B14CbdA79A36dC33FcD461a04A5BCb5dC2A70!',
-  farcasterNoAccount: '0x2963fD170E12d748d0A80430DdC090e059f6013F',
   // starknet
   starknetMissing: 'test-not-existing.stark',
   // starknet.id serves a DEFAULT identicon for this address; the resolver

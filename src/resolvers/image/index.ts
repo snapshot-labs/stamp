@@ -3,7 +3,6 @@ import basename from './basename';
 import blockie from './blockie';
 import coingecko from './coingecko';
 import ens from './ens';
-import farcaster from './farcaster';
 import jazzicon from './jazzicon';
 import lens, { MUTED_ERRORS as lensMutedErrors } from './lens';
 import {
@@ -31,7 +30,7 @@ type Resolver = {
 };
 
 // 401/402/403 are excluded from the routine band: withFailureContract wraps a
-// resolver's own authenticated API calls (Neynar, Snapshot Hub, CoinGecko Pro)
+// resolver's own authenticated API calls (Snapshot Hub, CoinGecko Pro)
 // as well as its third-party avatar download, and those statuses are how a
 // dead/rotated credential shows up there — silencing them hides a real outage
 // instead of a missing avatar.
@@ -101,8 +100,7 @@ export const RESOLVERS = [
     failureContract: true,
     mutedErrors: lensMutedErrors
   },
-  { name: 'starknet', fn: starknet, resize: true, failureContract: true },
-  { name: 'farcaster', fn: farcaster, resize: true, failureContract: true }
+  { name: 'starknet', fn: starknet, resize: true, failureContract: true }
 ] as const satisfies readonly Resolver[];
 
 // Returning E['fn'] here lets a caller treat a wrapped resolver as one that

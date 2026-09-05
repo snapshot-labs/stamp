@@ -4,7 +4,7 @@
   "ttl": 43200,
   "shortTtl": 3600,
   "resolvers": {
-    "avatar": ["snapshot", "ens", "basename", "lens", "farcaster", "starknet"],
+    "avatar": ["snapshot", "ens", "basename", "lens", "starknet"],
     "user-cover": ["user-cover"],
     "token": ["trustwallet", "coingecko"],
     "space": ["space"],

@@ -18,8 +18,7 @@ const NAMES = [
   'space-sx',
   'space-cover-sx',
   'lens',
-  'starknet',
-  'farcaster'
+  'starknet'
 ] as const;
 
 type Exact<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
