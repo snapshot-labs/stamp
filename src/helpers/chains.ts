@@ -10,7 +10,7 @@ export function chainIdToShortName(chainId: string): string | null {
 
 export function chainIdToName(chainId: string): string | null {
   if (chainId === '1') return 'ethereum';
-  if (chainId === '56') return 'binance';
+  if (chainId === '56') return 'smartchain';
   if (chainId === '250') return 'fantom';
   if (chainId === '137') return 'polygon';
   if (chainId === '42161') return 'arbitrum';
@@ -18,6 +18,9 @@ export function chainIdToName(chainId: string): string | null {
 }
 
 export const getBaseAssetIconUrl = (chainId: string) => {
+  // BNB
+  if (chainId === '56')
+    return 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/info/logo.png';
   if (chainId === '100')
     return 'https://ipfs.snapshot.box/ipfs/bafkreie4u6cq3o6sarxti5r6riekkimr33fjnu4bw6vhnqcsijvzpxjesm';
   // Matic

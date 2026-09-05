@@ -6,7 +6,7 @@
   "resolvers": {
     "avatar": ["snapshot", "ens", "basename", "lens", "farcaster", "starknet"],
     "user-cover": ["user-cover"],
-    "token": ["trustwallet", "coingecko"],
+    "token": ["trustwallet", "defillama"],
     "space": ["space"],
     "space-cover": ["space-cover"],
     "space-logo": ["space-logo"],

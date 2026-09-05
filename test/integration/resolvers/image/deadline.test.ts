@@ -10,10 +10,8 @@ let server: http.Server;
 const sockets = new Set<Socket>();
 let stall: Stall;
 
-let coingecko: (address: Address, chainId: string) => Promise<Buffer | false>;
+let defillama: (address: Address, chainId: string) => Promise<Buffer | false>;
 let farcaster: (address: Address) => Promise<Buffer | false>;
-
-const apiKey = process.env.COINGECKO_API_KEY;
 
 beforeAll(async () => {
   server = http.createServer((_req, res) => {
@@ -33,18 +31,11 @@ beforeAll(async () => {
   const realFetch = global.fetch;
   jest.spyOn(global, 'fetch').mockImplementation((_url, init) => realFetch(mockHangingUrl, init));
 
-  process.env.COINGECKO_API_KEY = 'test-key';
-  coingecko = (await import('../../../../src/resolvers/image/coingecko')).default;
+  defillama = (await import('../../../../src/resolvers/image/defillama')).default;
   farcaster = (await import('../../../../src/resolvers/image/farcaster')).default;
 });
 
 afterAll(async () => {
-  if (apiKey === undefined) {
-    delete process.env.COINGECKO_API_KEY;
-  } else {
-    process.env.COINGECKO_API_KEY = apiKey;
-  }
-
   sockets.forEach(socket => socket.destroy());
   await new Promise<void>(resolve => server.close(() => resolve()));
 });
@@ -69,10 +60,10 @@ describe('resolvers, against an upstream that never finishes answering', () => {
       await expect(farcaster(ADDRESS)).rejects.toMatchObject({ name: 'AbortError' });
     });
 
-    it('coingecko raises the abort', async () => {
+    it('defillama raises the abort', async () => {
       stall = at;
 
-      await expect(coingecko(ADDRESS, '1')).rejects.toMatchObject({ name: 'AbortError' });
+      await expect(defillama(ADDRESS, '1')).rejects.toMatchObject({ name: 'AbortError' });
     });
   });
 });

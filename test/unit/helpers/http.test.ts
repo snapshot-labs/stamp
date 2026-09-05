@@ -47,7 +47,7 @@ describe('isHttpUrl', () => {
     'https://gw.ipfs-lens.dev/ipfs/avatar.png',
     'https://wrpcd.net/cdn-cgi/image/avatar.png',
     'https://metadata.ens.domains/mainnet/avatar/vitalik.eth',
-    'https://assets.coingecko.com/coins/images/1/large/bitcoin.png'
+    'https://token-icons.llamao.fi/icons/tokens/1/0xc18360217d8f7ab5e7c516566761ea12ce7f9d72'
   ])('accepts %s', url => {
     expect(isHttpUrl(url)).toBe(true);
   });
