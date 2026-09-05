@@ -2,6 +2,7 @@ import http from 'http';
 import { AddressInfo, Socket } from 'net';
 import { isSilencedError } from '../../../src/helpers/errors';
 import { fetchHttpImage, MAX_IMAGE_BYTES } from '../../../src/helpers/http';
+import { unguardedDispatcher } from '../../helpers/fetch';
 
 const BODY = Buffer.from('as much of an image as the fetch cares about');
 const CHUNK = Buffer.alloc(1024 * 1024, 'x');
@@ -89,17 +90,19 @@ afterAll(async () => {
 
 describe('fetchHttpImage', () => {
   it('returns the body', async () => {
-    await expect(fetchHttpImage(url)).resolves.toEqual(BODY);
+    await expect(fetchHttpImage(url, unguardedDispatcher)).resolves.toEqual(BODY);
   });
 
   it('raises rather than returning the body of a non-2xx', async () => {
-    await expect(fetchHttpImage(missingUrl)).rejects.toMatchObject({ status: 404 });
+    await expect(fetchHttpImage(missingUrl, unguardedDispatcher)).rejects.toMatchObject({
+      status: 404
+    });
   });
 
   it('rejects a declared length over the cap without reading the body', async () => {
     armClosedWatcher();
 
-    await expect(fetchHttpImage(oversizedDeclaredUrl)).rejects.toMatchObject({
+    await expect(fetchHttpImage(oversizedDeclaredUrl, unguardedDispatcher)).rejects.toMatchObject({
       status: 404,
       message: expect.stringContaining('image too large')
     });
@@ -109,7 +112,7 @@ describe('fetchHttpImage', () => {
   it('rejects a body that crosses the cap while streaming, with no declared length', async () => {
     armClosedWatcher();
 
-    await expect(fetchHttpImage(oversizedStreamedUrl)).rejects.toMatchObject({
+    await expect(fetchHttpImage(oversizedStreamedUrl, unguardedDispatcher)).rejects.toMatchObject({
       status: 404,
       message: expect.stringContaining('image too large')
     });
@@ -117,7 +120,7 @@ describe('fetchHttpImage', () => {
   });
 
   it('raises a silenced abort against an upstream that never stops sending', async () => {
-    const error = await fetchHttpImage(neverEndingUrl).catch(err => err);
+    const error = await fetchHttpImage(neverEndingUrl, unguardedDispatcher).catch(err => err);
 
     expect(error.name).toBe('AbortError');
     expect(isSilencedError(error)).toBe(true);
@@ -125,7 +128,7 @@ describe('fetchHttpImage', () => {
 
   it('gives up on that upstream inside its own budget rather than the shared one', async () => {
     const startedAt = Date.now();
-    await fetchHttpImage(neverEndingUrl).catch(() => undefined);
+    await fetchHttpImage(neverEndingUrl, unguardedDispatcher).catch(() => undefined);
 
     const elapsed = Date.now() - startedAt;
     expect(elapsed).toBeGreaterThan(3000);
