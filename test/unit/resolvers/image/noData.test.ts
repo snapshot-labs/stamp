@@ -1,4 +1,5 @@
 import { fetchHttpImage } from '../../../../src/helpers/http';
+import defillama from '../../../../src/resolvers/image/defillama';
 import farcaster from '../../../../src/resolvers/image/farcaster';
 import lens from '../../../../src/resolvers/image/lens';
 import {
@@ -21,19 +22,6 @@ const mockedFetchHttpImage = jest.mocked(fetchHttpImage);
 beforeEach(() => {
   mockedFetch.mockReset();
 });
-
-// coingecko reads its key at module load and answers false without one, so the
-// module has to be loaded with the key already set to reach the response at all.
-function loadCoingecko() {
-  process.env.COINGECKO_API_KEY = 'test-key';
-
-  let resolve: (address: string, chainId: string) => Promise<Buffer | false>;
-  jest.isolateModules(() => {
-    resolve = jest.requireActual('../../../../src/resolvers/image/coingecko').default;
-  });
-
-  return resolve!;
-}
 
 const ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
 const STARKNET_ADDRESS = '0x07ff6b17f07c4d83236e3fc5f94259a19d1ed41bbcf1822397ea17882e9b038d';
@@ -180,40 +168,10 @@ describe('resolvers answer false rather than throwing when there is no data', ()
     });
   });
 
-  describe('coingecko', () => {
-    const apiKey = process.env.COINGECKO_API_KEY;
-
-    afterEach(() => {
-      process.env.COINGECKO_API_KEY = apiKey;
-    });
-
-    it('answers false for a token the API does not have', async () => {
-      mockedFetch.mockResolvedValue({ ok: false, status: 404 });
-
-      await expect(loadCoingecko()(ADDRESS, '1')).resolves.toBe(false);
-    });
-
-    it('answers false for a token the API has no image for', async () => {
-      mockedFetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({ image: {} }) });
-
-      await expect(loadCoingecko()(ADDRESS, '1')).resolves.toBe(false);
-    });
-
-    it('rejects on any other non-2xx, carrying the status', async () => {
-      mockedFetch.mockResolvedValue({ ok: false, status: 401, statusText: 'Unauthorized' });
-
-      await expect(loadCoingecko()(ADDRESS, '1')).rejects.toMatchObject({ status: 401 });
-    });
-
-    it('answers false for an image url that is not a fetchable URL, without downloading it', async () => {
-      mockedFetch.mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({ image: { large: '/missing_large.png' } })
-      });
-
-      await expect(loadCoingecko()(ADDRESS, '1')).resolves.toBe(false);
-      expect(mockedFetchHttpImage).not.toHaveBeenCalled();
+  describe('defillama', () => {
+    it('answers false for a chain id that is not numeric, without asking', async () => {
+      await expect(defillama(ADDRESS, 'not-a-chain-id')).resolves.toBe(false);
+      expect(mockedFetch).not.toHaveBeenCalled();
     });
   });
 

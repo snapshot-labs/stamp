@@ -64,6 +64,8 @@ Resolves the avatar of a [Basename](https://www.base.org/names) (`*.base.eth`) b
 
 #### [TrustWallet Assets Info](/src/resolvers/image/trustwallet.ts)
 
+#### [DefiLlama token icons](/src/resolvers/image/defillama.ts)
+
 #### [Blockie](/src/resolvers/image/blockie.ts)
 
 #### [Jazzicon](/src/resolvers/image/jazzicon.ts)

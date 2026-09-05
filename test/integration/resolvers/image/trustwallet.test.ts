@@ -6,6 +6,20 @@ import {
 
 testResolverImageSnapshots({
   id: 'trustwallet',
-  withAvatar: [remoteSnapshotInputs.trustwallet.address],
-  withoutAvatar: [NO_AVATAR_ADDRESS]
+  withAvatar: [
+    remoteSnapshotInputs.trustwallet.address,
+    {
+      args: [
+        remoteSnapshotInputs.trustwalletBnb.address,
+        remoteSnapshotInputs.trustwalletBnb.chainId
+      ]
+    },
+    {
+      args: [
+        remoteSnapshotInputs.trustwalletCake.address,
+        remoteSnapshotInputs.trustwalletCake.chainId
+      ]
+    }
+  ],
+  withoutAvatar: [NO_AVATAR_ADDRESS, { args: [NO_AVATAR_ADDRESS, '56'] }]
 });

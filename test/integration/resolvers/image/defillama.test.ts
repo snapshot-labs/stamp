@@ -5,13 +5,12 @@ import {
 } from '../../../fixtures/image-snapshot-addresses';
 
 testResolverImageSnapshots({
-  id: 'coingecko',
-  requireEnv: ['COINGECKO_API_KEY'],
+  id: 'defillama',
   withAvatar: [
-    { args: [remoteSnapshotInputs.coingecko.address, remoteSnapshotInputs.coingecko.chainId] }
+    { args: [remoteSnapshotInputs.defillama.address, remoteSnapshotInputs.defillama.chainId] }
   ],
   withoutAvatar: [
-    { args: [remoteSnapshotInputs.coingecko.address, '999999'] },
+    { args: [remoteSnapshotInputs.defillama.address, '999999'] },
     { args: [NO_AVATAR_ADDRESS, '1'] }
   ]
 });

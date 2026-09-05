@@ -1,7 +1,7 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import basename from './basename';
 import blockie from './blockie';
-import coingecko from './coingecko';
+import defillama from './defillama';
 import ens from './ens';
 import farcaster from './farcaster';
 import jazzicon from './jazzicon';
@@ -31,7 +31,7 @@ type Resolver = {
 };
 
 // 401/402/403 are excluded from the routine band: withFailureContract wraps a
-// resolver's own authenticated API calls (Neynar, Snapshot Hub, CoinGecko Pro)
+// resolver's own authenticated API calls (Neynar, Snapshot Hub)
 // as well as its third-party avatar download, and those statuses are how a
 // dead/rotated credential shows up there — silencing them hides a real outage
 // instead of a missing avatar.
@@ -86,7 +86,7 @@ export const RESOLVERS = [
   { name: 'ens', fn: ens, resize: true, failureContract: true },
   { name: 'basename', fn: basename, resize: true, failureContract: true },
   { name: 'trustwallet', fn: trustwallet, resize: true, failureContract: true },
-  { name: 'coingecko', fn: coingecko, resize: true, failureContract: true },
+  { name: 'defillama', fn: defillama, resize: true, failureContract: true },
   { name: 'snapshot', fn: sResolveUserAvatar, resize: true, failureContract: true },
   { name: 'user-cover', fn: sResolveUserCover, resize: false, failureContract: true },
   { name: 'space', fn: sResolveSpaceAvatar, resize: true, failureContract: true },

@@ -9,7 +9,7 @@ const NAMES = [
   'ens',
   'basename',
   'trustwallet',
-  'coingecko',
+  'defillama',
   'snapshot',
   'user-cover',
   'space',

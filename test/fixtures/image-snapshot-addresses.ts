@@ -49,8 +49,11 @@ export const remoteSnapshotInputs = {
   spaceSxArbitrum: '0xFd36252770642Ac48FC3A06d7A1D00be8946dd18',
   // trustwallet: a token logo from the trustwallet/assets repo (very stable).
   trustwallet: { address: '0xcf0C122c6b73ff809C693DB761e7BaeBe62b6a2E' },
-  // coingecko: token metadata image (needs COINGECKO_API_KEY).
-  coingecko: { address: '0xc18360217d8f7ab5e7c516566761ea12ce7f9d72', chainId: '1' },
+  // trustwallet on BNB Chain: the native asset sentinel and a BEP-20 (CAKE).
+  trustwalletBnb: { address: '0x0000000000000000000000000000000000000000', chainId: '56' },
+  trustwalletCake: { address: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82', chainId: '56' },
+  // defillama: token icon (keyless).
+  defillama: { address: '0xc18360217d8f7ab5e7c516566761ea12ce7f9d72', chainId: '1' },
   // farcaster: address with a Farcaster pfp (needs NEYNAR_API_KEY).
   farcaster: '0xd1a8Dd23e356B9fAE27dF5DeF9ea025A602EC81e'
 } as const;
