@@ -1,7 +1,7 @@
 import { byteArray, CallData, constants, shortString, starknetId } from 'starknet';
 import { isStarkDomain, isStarknetFelt } from '../../helpers/address';
 import { untilAborted, withDeadline } from '../../helpers/deadline';
-import { fetchHttpImage, fetchWithDeadline, getUrl, readBoundedImage } from '../../helpers/http';
+import { fetchHttpImage, getUrl, readHttpImage } from '../../helpers/http';
 import { getProvider } from '../../helpers/provider';
 
 const DEFAULT_IMG_URL = 'https://starknet.id/api/identicons/0';
@@ -115,12 +115,25 @@ async function getImage(domainOrAddress: string): Promise<string | null> {
   }
 }
 
-function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: string }> {
-  return fetchWithDeadline(url, async response =>
-    response.headers.get('content-type')?.includes('application/json')
-      ? await response.json()
-      : readBoundedImage(url, response)
-  );
+async function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: string }> {
+  return withDeadline(async signal => {
+    const response = await fetch(url, { signal });
+    const type = (response.headers.get('content-type') ?? '').toLowerCase().split(';')[0].trim();
+    const isJson = type === 'application/json' || type === 'text/json' || type.endsWith('+json');
+
+    if (response.ok && isJson) {
+      const body = await response.text();
+
+      try {
+        const metadata = JSON.parse(body);
+        return typeof metadata?.image === 'string' ? { image: metadata.image } : {};
+      } catch {
+        return {};
+      }
+    }
+
+    return readHttpImage(url, response);
+  }, 5e3);
 }
 
 async function fetchMetadataImage(image: string): Promise<Buffer | null> {
