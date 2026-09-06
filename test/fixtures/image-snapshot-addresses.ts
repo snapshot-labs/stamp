@@ -52,6 +52,8 @@ export const remoteSnapshotInputs = {
   // trustwallet on BNB Chain: the native asset sentinel and a BEP-20 (CAKE).
   trustwalletBnb: { address: '0x0000000000000000000000000000000000000000', chainId: '56' },
   trustwalletCake: { address: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82', chainId: '56' },
+  // trustwallet on Gnosis Chain: COW, under the repo's xdai directory.
+  trustwalletCow: { address: '0x177127622c4A00F3d409B75571e12cB3c8973d3c', chainId: '100' },
   // defillama: token icon (keyless).
   defillama: { address: '0xc18360217d8f7ab5e7c516566761ea12ce7f9d72', chainId: '1' },
   // farcaster: address with a Farcaster pfp (needs NEYNAR_API_KEY).

@@ -11,6 +11,7 @@ export function chainIdToShortName(chainId: string): string | null {
 export function chainIdToName(chainId: string): string | null {
   if (chainId === '1') return 'ethereum';
   if (chainId === '56') return 'smartchain';
+  if (chainId === '100') return 'xdai';
   if (chainId === '250') return 'fantom';
   if (chainId === '137') return 'polygon';
   if (chainId === '42161') return 'arbitrum';
