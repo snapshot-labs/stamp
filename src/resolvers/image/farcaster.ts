@@ -45,6 +45,8 @@ async function fetchAddressImageUrl(normalizedAddress: string): Promise<string |
 }
 
 export default async function resolve(address: string): Promise<Buffer | false> {
+  if (!API_KEY) return false;
+
   const normalizedAddress = normalizeAddress(address);
   if (!normalizedAddress) return false;
 
