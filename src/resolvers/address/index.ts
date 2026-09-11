@@ -9,6 +9,7 @@ import * as snapshotResolver from './snapshot';
 import * as spaceIdResolver from './spaceId';
 import * as starknetResolver from './starknet';
 import * as unstoppableDomainResolver from './unstoppableDomains';
+import constants from '../../constants.json';
 import {
   mapOriginalInput,
   normalizeAddresses,
@@ -40,8 +41,6 @@ const RESOLVERS: Resolver[] = [
   spaceIdResolver,
   gweiResolver
 ];
-export const MAX_LOOKUP_ADDRESSES = 50;
-export const MAX_RESOLVE_NAMES = 5;
 
 async function _call(fnName: string, input: string[], maxInputLength: number) {
   if (input.length > maxInputLength) {
@@ -95,7 +94,7 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
   const result = await _call(
     'lookupAddresses',
     Array.from(new Set(normalizeAddresses(addresses))),
-    MAX_LOOKUP_ADDRESSES
+    constants.maxLookupAddresses
   );
 
   return mapOriginalInput(addresses, result);
@@ -105,7 +104,7 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
   const result = await _call(
     'resolveNames',
     Array.from(new Set(normalizeHandles(handles))),
-    MAX_RESOLVE_NAMES
+    constants.maxResolveNames
   );
 
   return mapOriginalInput(handles, result);

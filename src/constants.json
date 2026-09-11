@@ -1,6 +1,8 @@
 {
   "max": 500,
   "maxCover": 1500,
+  "maxLookupAddresses": 50,
+  "maxResolveNames": 5,
   "ttl": 43200,
   "shortTtl": 3600,
   "resolvers": {
