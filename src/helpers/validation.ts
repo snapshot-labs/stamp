@@ -1,11 +1,11 @@
 import { z, ZodError } from 'zod';
-import { MAX_LOOKUP_ADDRESSES, MAX_RESOLVE_NAMES } from '../resolvers/address';
+import constants from '../constants.json';
 
 export const schemas = {
   lookup_domains: z.string(),
   get_owner: z.string(),
-  lookup_addresses: z.array(z.string()).nonempty().max(MAX_LOOKUP_ADDRESSES),
-  resolve_names: z.array(z.string()).nonempty().max(MAX_RESOLVE_NAMES)
+  lookup_addresses: z.array(z.string()).nonempty().max(constants.maxLookupAddresses),
+  resolve_names: z.array(z.string()).nonempty().max(constants.maxResolveNames)
 } as const;
 
 export function formatZodError(error: ZodError): string {
