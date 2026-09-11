@@ -19,6 +19,13 @@ const REGISTRY = '0xB94704422c2a1E396835A571837Aa5AE53285a95';
 // Original Basenames L2 Resolver, used when the registry has no resolver for a
 // node (source: Coinbase OnchainKit).
 const LEGACY_RESOLVER = '0xC6d566A56A1aFf6508b41f6c90ff131615583BCD';
+// Upgradeable Basenames L2 Resolver, the default for names registered after the
+// upgrade and for subnames issued under a Basename.
+const UPGRADED_RESOLVER = '0x426fA03fB86E510d0Dd9F70335Cf102a98b10875';
+// Records are only read from resolvers operated by Base. A name owner can point
+// their node at any contract, and a reverting one would fail the whole batched
+// multicall for every other address in the request.
+const KNOWN_RESOLVERS = new Set([LEGACY_RESOLVER, UPGRADED_RESOLVER].map(a => a.toLowerCase()));
 const REGISTRY_ABI = ['function resolver(bytes32 node) view returns (address)'];
 const ABI = [
   'function name(bytes32 node) view returns (string)',
@@ -28,6 +35,8 @@ const ABI = [
 
 const provider = getProvider(NETWORK);
 
+// Resolver to read each node from: the registry's when it is one of Base's
+// resolvers, the legacy one when the registry has none, nothing otherwise.
 async function resolversFor(nodes: string[]): Promise<Record<string, Address>> {
   const found: Record<string, Address> = await batchContractCalls(
     NETWORK,
@@ -41,7 +50,8 @@ async function resolversFor(nodes: string[]): Promise<Record<string, Address>> {
   const resolvers: Record<string, Address> = {};
   nodes.forEach(node => {
     const resolver = found[node];
-    resolvers[node] = resolver && resolver !== EMPTY_ADDRESS ? resolver : LEGACY_RESOLVER;
+    if (!resolver || resolver === EMPTY_ADDRESS) resolvers[node] = LEGACY_RESOLVER;
+    else if (KNOWN_RESOLVERS.has(resolver.toLowerCase())) resolvers[node] = resolver;
   });
 
   return resolvers;
@@ -49,19 +59,24 @@ async function resolversFor(nodes: string[]): Promise<Record<string, Address>> {
 
 async function batchRecords(nodes: string[], fnName: string): Promise<Record<string, string>> {
   const resolvers = await resolversFor(nodes);
+  const readable = nodes.filter(node => resolvers[node]);
+
+  if (readable.length === 0) return {};
 
   return batchContractCalls(
     NETWORK,
     provider,
     ABI,
-    nodes,
-    nodes.map(node => resolvers[node]),
+    readable,
+    readable.map(node => resolvers[node]),
     fnName
   );
 }
 
 async function call(node: string, method: string, params: any[]): Promise<string> {
   const resolver = (await resolversFor([node]))[node];
+  if (!resolver) return '';
+
   return snapshot.utils.call(provider, ABI, [resolver, method, params], { blockTag: 'latest' });
 }
 
