@@ -11,16 +11,23 @@ const ADDRESS_WITH_NAME = '0x2211d1D0020DAEA8039E46Cf1367962070d77DA9';
 const SECOND_ADDRESS_WITH_NAME = '0x5b76f5B8fc9D700624F78208132f91AD4e61a1f0';
 const EMOJI_ADDRESS_WITH_NAME = '0x220bc93D88C0aF11f1159eA89a885d5ADd3A7Cf6';
 const ADDRESS_WITHOUT_NAME = '0x0C67A201b93cf58D4a5e8D4E970093f0FB4bb0D1';
+const UPGRADED_ADDRESS_WITH_NAME = '0xEAe6aa1802e2938F510ecDc6Ae18f538be6ED9e1';
 const HANDLE = 'jesse.base.eth';
 const SECOND_HANDLE = 'barmstrong.base.eth';
 const EMOJI_HANDLE = '🫨.base.eth';
+const UPGRADED_HANDLE = 'boorger.stage.base.eth';
 const AVATAR = 'https://example.com/avatar.png';
+const UPGRADED_AVATAR = 'https://example.com/upgraded.png';
 const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000';
+const REGISTRY = '0xB94704422c2a1E396835A571837Aa5AE53285a95';
+const LEGACY_RESOLVER = '0xC6d566A56A1aFf6508b41f6c90ff131615583BCD';
+const UPGRADED_RESOLVER = '0x426fA03fB86E510d0Dd9F70335Cf102a98b10875';
 const COIN_TYPE = '80002105';
 const RESOLVER_ABI = [
   'function name(bytes32 node) view returns (string)',
   'function addr(bytes32 node) view returns (address)',
-  'function text(bytes32 node, string key) view returns (string)'
+  'function text(bytes32 node, string key) view returns (string)',
+  'function resolver(bytes32 node) view returns (address)'
 ];
 const MULTICALL_ABI = [
   'function aggregate(tuple(address target, bytes callData)[] calls) view returns (uint256 blockNumber, bytes[] returnData)'
@@ -33,40 +40,80 @@ const reverseNode = (address: string) =>
 const ADDRESS_BY_NODE: Record<string, string> = {
   [namehash(HANDLE)]: ADDRESS_WITH_NAME,
   [namehash(SECOND_HANDLE)]: SECOND_ADDRESS_WITH_NAME,
-  [namehash(EMOJI_HANDLE)]: EMOJI_ADDRESS_WITH_NAME
+  [namehash(EMOJI_HANDLE)]: EMOJI_ADDRESS_WITH_NAME,
+  [namehash(UPGRADED_HANDLE)]: UPGRADED_ADDRESS_WITH_NAME
 };
+// Names and reverse records living on the upgraded resolver; everything else
+// stays on the legacy resolver, and the registry knows nothing about unknown
+// nodes.
+const UPGRADED_NODES = new Set<string>([
+  namehash(UPGRADED_HANDLE),
+  reverseNode(UPGRADED_ADDRESS_WITH_NAME)
+]);
+const LEGACY_NODES = new Set<string>([
+  ...Object.keys(ADDRESS_BY_NODE).filter(node => !UPGRADED_NODES.has(node)),
+  reverseNode(ADDRESS_WITH_NAME),
+  reverseNode(SECOND_ADDRESS_WITH_NAME)
+]);
 
-function resolverResponse(data: string): string {
+function registryResponse(node: string): string {
+  const resolver = UPGRADED_NODES.has(node)
+    ? UPGRADED_RESOLVER
+    : LEGACY_NODES.has(node)
+      ? LEGACY_RESOLVER
+      : EMPTY_ADDRESS;
+  return resolverInterface.encodeFunctionResult('resolver', [resolver]);
+}
+
+function nameFor(node: string): string {
+  if (node === reverseNode(ADDRESS_WITH_NAME)) return HANDLE;
+  if (node === reverseNode(SECOND_ADDRESS_WITH_NAME)) return SECOND_HANDLE;
+  if (node === reverseNode(UPGRADED_ADDRESS_WITH_NAME)) return UPGRADED_HANDLE;
+  return '';
+}
+
+function resolverResponse(data: string, target: string): string {
   const transaction = resolverInterface.parseTransaction({ data });
 
+  if (transaction.name === 'resolver') {
+    if (target.toLowerCase() !== REGISTRY.toLowerCase())
+      throw new Error('resolver() asked outside the registry');
+    return registryResponse(transaction.args.node);
+  }
+
+  // Records only exist on the resolver the registry points at.
+  const node: string = transaction.args.node;
+  const expected = UPGRADED_NODES.has(node) ? UPGRADED_RESOLVER : LEGACY_RESOLVER;
+  const onRightResolver = target.toLowerCase() === expected.toLowerCase();
+
   if (transaction.name === 'name') {
-    const name =
-      transaction.args.node === reverseNode(ADDRESS_WITH_NAME)
-        ? HANDLE
-        : transaction.args.node === reverseNode(SECOND_ADDRESS_WITH_NAME)
-          ? SECOND_HANDLE
-          : '';
-    return resolverInterface.encodeFunctionResult('name', [name]);
+    return resolverInterface.encodeFunctionResult('name', [onRightResolver ? nameFor(node) : '']);
   }
 
   if (transaction.name === 'text') {
-    const text = transaction.args.node === namehash(EMOJI_HANDLE) ? AVATAR : '';
+    const text = !onRightResolver
+      ? ''
+      : node === namehash(EMOJI_HANDLE)
+        ? AVATAR
+        : node === namehash(UPGRADED_HANDLE)
+          ? UPGRADED_AVATAR
+          : '';
     return resolverInterface.encodeFunctionResult('text', [text]);
   }
 
-  const address = ADDRESS_BY_NODE[transaction.args.node] ?? EMPTY_ADDRESS;
+  const address = onRightResolver ? (ADDRESS_BY_NODE[node] ?? EMPTY_ADDRESS) : EMPTY_ADDRESS;
   return resolverInterface.encodeFunctionResult('addr', [address]);
 }
 
-function rpcResponse(data: string): string {
+function rpcResponse(data: string, to: string): string {
   try {
     const calls = multicallInterface.decodeFunctionData('aggregate', data).calls;
     return multicallInterface.encodeFunctionResult('aggregate', [
       1,
-      calls.map(call => resolverResponse(call.callData))
+      calls.map(call => resolverResponse(call.callData, call.target))
     ]);
   } catch {
-    return resolverResponse(data);
+    return resolverResponse(data, to);
   }
 }
 
@@ -78,7 +125,7 @@ describe('resolvers/address/basename batching', () => {
       .spyOn(StaticJsonRpcProvider.prototype, 'send')
       .mockImplementation(async (method, params) => {
         if (method !== 'eth_call') throw new Error(`Unexpected RPC method: ${method}`);
-        return rpcResponse(params[0].data);
+        return rpcResponse(params[0].data, params[0].to);
       });
   });
 
@@ -86,22 +133,31 @@ describe('resolvers/address/basename batching', () => {
     jest.restoreAllMocks();
   });
 
-  it('looks up multiple addresses in one RPC call', async () => {
+  it('looks up multiple addresses with one registry call and one records call', async () => {
     await expect(
-      lookupAddresses([ADDRESS_WITH_NAME, SECOND_ADDRESS_WITH_NAME, ADDRESS_WITHOUT_NAME])
+      lookupAddresses([
+        ADDRESS_WITH_NAME,
+        SECOND_ADDRESS_WITH_NAME,
+        UPGRADED_ADDRESS_WITH_NAME,
+        ADDRESS_WITHOUT_NAME
+      ])
     ).resolves.toEqual({
       [ADDRESS_WITH_NAME]: HANDLE,
-      [SECOND_ADDRESS_WITH_NAME]: SECOND_HANDLE
+      [SECOND_ADDRESS_WITH_NAME]: SECOND_HANDLE,
+      [UPGRADED_ADDRESS_WITH_NAME]: UPGRADED_HANDLE
     });
-    expect(send).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledTimes(2);
   });
 
-  it('resolves multiple names in one RPC call', async () => {
-    await expect(resolveNames([HANDLE, SECOND_HANDLE, 'unknown.base.eth'])).resolves.toEqual({
+  it('resolves multiple names across resolvers with one registry call and one records call', async () => {
+    await expect(
+      resolveNames([HANDLE, SECOND_HANDLE, UPGRADED_HANDLE, 'unknown.base.eth'])
+    ).resolves.toEqual({
       [HANDLE]: ADDRESS_WITH_NAME,
-      [SECOND_HANDLE]: SECOND_ADDRESS_WITH_NAME
+      [SECOND_HANDLE]: SECOND_ADDRESS_WITH_NAME,
+      [UPGRADED_HANDLE]: UPGRADED_ADDRESS_WITH_NAME
     });
-    expect(send).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledTimes(2);
   });
 
   it('resolves a name using codepoints newer than the hasher', async () => {
@@ -109,10 +165,15 @@ describe('resolvers/address/basename batching', () => {
       [EMOJI_HANDLE]: EMOJI_ADDRESS_WITH_NAME,
       [HANDLE]: ADDRESS_WITH_NAME
     });
-    expect(send).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledTimes(2);
   });
 
   it('reads the avatar of a name using codepoints newer than the hasher', async () => {
     await expect(getAvatar(EMOJI_HANDLE)).resolves.toEqual(AVATAR);
+  });
+
+  it('reads the avatar from the resolver the registry points at', async () => {
+    await expect(getAvatar(UPGRADED_HANDLE)).resolves.toEqual(UPGRADED_AVATAR);
+    await expect(getAvatar(UPGRADED_ADDRESS_WITH_NAME)).resolves.toEqual(UPGRADED_AVATAR);
   });
 });
