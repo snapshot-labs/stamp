@@ -47,6 +47,35 @@ describe('resolvers/address/ens - resolveNames', () => {
     expect(capture).not.toHaveBeenCalled();
   });
 
+  it('keeps resolving a domain whose expiry is still in the future', async () => {
+    respondWith({
+      data: {
+        domains: [
+          {
+            name: HANDLE,
+            expiryDate: String(Math.floor(Date.now() / 1e3) + 3600),
+            resolvedAddress: { id: ADDRESS.toLowerCase() }
+          }
+        ]
+      }
+    });
+
+    await expect(resolveNames([HANDLE])).resolves.toEqual({ [HANDLE]: ADDRESS });
+  });
+
+  it('drops an expired domain instead of returning its last known address', async () => {
+    respondWith({
+      data: {
+        domains: [
+          { name: HANDLE, expiryDate: '1000000000', resolvedAddress: { id: ADDRESS.toLowerCase() } }
+        ]
+      }
+    });
+
+    await expect(resolveNames([HANDLE])).resolves.toEqual({});
+    expect(providerInstanceHeldByEns.resolveName).not.toHaveBeenCalled();
+  });
+
   it('does not report a subgraph host that no longer resolves', async () => {
     mockedFetch.mockRejectedValue(
       Object.assign(new TypeError('fetch failed'), { cause: { code: 'ENOTFOUND' } })

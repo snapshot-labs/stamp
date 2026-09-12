@@ -75,6 +75,8 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
   if (normalizedHandles.length === 0) return {};
 
   const results = {};
+  const expiredHandles = new Set<Handle>();
+  const now = Date.now() / 1000;
 
   try {
     const {
@@ -84,6 +86,7 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
       `query Domains($handles: [String!]!) {
         domains(where: {name_in: $handles}) {
           name
+          expiryDate
           resolvedAddress {
             id
           }
@@ -93,6 +96,12 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
     );
 
     for (const item of items) {
+      const expiry = Number(item.expiryDate ?? 0);
+      if (expiry && expiry <= now) {
+        expiredHandles.add(item.name);
+        continue;
+      }
+
       try {
         results[item.name] = item.resolvedAddress ? getAddress(item.resolvedAddress.id) : '';
       } catch (err) {
@@ -107,7 +116,9 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
     }
   }
 
-  const unresolvedHandles = normalizedHandles.filter(handle => !results[handle]);
+  const unresolvedHandles = normalizedHandles.filter(
+    handle => !results[handle] && !expiredHandles.has(handle)
+  );
 
   if (unresolvedHandles.length === 0) return results;
 
