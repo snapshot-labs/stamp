@@ -1,7 +1,7 @@
 import http from 'http';
 import { AddressInfo, Socket } from 'net';
 import { isSilencedError } from '../../../src/helpers/errors';
-import { fetchHttpImage, MAX_IMAGE_BYTES } from '../../../src/helpers/http';
+import { fetchHttpImage, MAX_IMAGE_BYTES, MAX_URL_BYTES } from '../../../src/helpers/http';
 
 const BODY = Buffer.from('as much of an image as the fetch cares about');
 const CHUNK = Buffer.alloc(1024 * 1024, 'x');
@@ -139,8 +139,10 @@ describe('fetchHttpImage', () => {
       await expect(fetchHttpImage(dataUrl)).resolves.toEqual(BODY);
     });
 
-    it('rejects one over the cap without ever calling fetch to decode it', async () => {
-      const oversized = `data:image/png;base64,${'A'.repeat(MAX_IMAGE_BYTES + 1)}`;
+    it('rejects one over the cap without ever calling fetch to decode it, though still well under the image-size cap', async () => {
+      const oversized = `data:image/png;base64,${'A'.repeat(MAX_URL_BYTES + 1)}`;
+      expect(Buffer.byteLength(oversized)).toBeLessThan(MAX_IMAGE_BYTES);
+
       const fetchSpy = jest.spyOn(global, 'fetch');
 
       await expect(fetchHttpImage(oversized)).rejects.toMatchObject({
@@ -153,7 +155,7 @@ describe('fetchHttpImage', () => {
     });
 
     it('rejects an oversized one even in a case or whitespace variant fetch would still accept', async () => {
-      const payload = 'A'.repeat(MAX_IMAGE_BYTES + 1);
+      const payload = 'A'.repeat(MAX_URL_BYTES + 1);
       const fetchSpy = jest.spyOn(global, 'fetch');
 
       for (const oversized of [
@@ -171,10 +173,10 @@ describe('fetchHttpImage', () => {
     });
 
     it('rejects a non-ASCII body whose UTF-16 length hides its true byte size', async () => {
-      const oversized = `data:image/png,${'中'.repeat(3_500_000)}`;
+      const oversized = `data:image/png,${'中'.repeat(400_000)}`;
       const fetchSpy = jest.spyOn(global, 'fetch');
 
-      expect(oversized.length).toBeLessThan(MAX_IMAGE_BYTES);
+      expect(oversized.length).toBeLessThan(MAX_URL_BYTES);
 
       await expect(fetchHttpImage(oversized)).rejects.toMatchObject({
         status: 404,
@@ -196,9 +198,9 @@ describe('fetchHttpImage', () => {
 
     it('still decodes one exactly at the cap', async () => {
       const prefix = 'data:image/png;base64,';
-      const dataUrl = `${prefix}${'A'.repeat(MAX_IMAGE_BYTES - prefix.length)}`;
+      const dataUrl = `${prefix}${'A'.repeat(MAX_URL_BYTES - prefix.length)}`;
 
-      expect(dataUrl.length).toBe(MAX_IMAGE_BYTES);
+      expect(dataUrl.length).toBe(MAX_URL_BYTES);
       await expect(fetchHttpImage(dataUrl)).resolves.toBeInstanceOf(Buffer);
     });
   });

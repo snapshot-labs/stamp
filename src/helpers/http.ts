@@ -19,12 +19,17 @@ export function spaceIds(id: string): string[] | null {
 
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
+// A data: URL's payload is decoded inside fetch() itself, synchronously, before
+// withDeadline's abort can run, so this bounds the decode instead of reusing
+// MAX_IMAGE_BYTES, which bounds the unrelated decoded-image-size budget.
+export const MAX_URL_BYTES = 1024 * 1024;
+
 export function fetchWithDeadline<T>(
   url: string,
   read: (response: Response) => Promise<T>
 ): Promise<T> {
-  if (Buffer.byteLength(url) > MAX_IMAGE_BYTES) {
-    return Promise.reject(httpError('url', 404, `url too large: over ${MAX_IMAGE_BYTES} bytes`));
+  if (Buffer.byteLength(url) > MAX_URL_BYTES) {
+    return Promise.reject(httpError('url', 404, `url too large: over ${MAX_URL_BYTES} bytes`));
   }
 
   return withDeadline(async signal => {
