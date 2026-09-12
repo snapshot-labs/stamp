@@ -11,8 +11,8 @@ testAddressResolver({
   name: 'ENS',
   lookupAddresses,
   resolveNames,
-  validAddress: '0xE6D0Dd18C6C3a9Af8C2FaB57d6e6A38E29d513cC',
-  validDomain: 'sdntestens.eth',
+  validAddress: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
+  validDomain: 'vitalik.eth',
   blankAddress: '0x0C67A201b93cf58D4a5e8D4E970093f0FB4bb0D1',
   invalidDomains: ['domain.crypto', 'domain.lens', 'domain.com']
 });
