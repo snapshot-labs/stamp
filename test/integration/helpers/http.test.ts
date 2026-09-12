@@ -151,5 +151,23 @@ describe('fetchHttpImage', () => {
 
       fetchSpy.mockRestore();
     });
+
+    it('rejects an oversized one even in a case or whitespace variant fetch would still accept', async () => {
+      const payload = 'A'.repeat(MAX_IMAGE_BYTES + 1);
+      const fetchSpy = jest.spyOn(global, 'fetch');
+
+      for (const oversized of [
+        `DATA:image/png;base64,${payload}`,
+        `  data:image/png;base64,${payload}`
+      ]) {
+        await expect(fetchHttpImage(oversized)).rejects.toMatchObject({
+          status: 404,
+          message: expect.stringContaining('too large')
+        });
+      }
+      expect(fetchSpy).not.toHaveBeenCalled();
+
+      fetchSpy.mockRestore();
+    });
   });
 });

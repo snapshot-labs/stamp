@@ -23,10 +23,8 @@ export function fetchWithDeadline<T>(
   url: string,
   read: (response: Response) => Promise<T>
 ): Promise<T> {
-  if (url.startsWith('data:') && url.length > MAX_IMAGE_BYTES) {
-    return Promise.reject(
-      httpError('data:', 404, `data URL too large: over ${MAX_IMAGE_BYTES} bytes`)
-    );
+  if (url.length > MAX_IMAGE_BYTES) {
+    return Promise.reject(httpError('url', 404, `url too large: over ${MAX_IMAGE_BYTES} bytes`));
   }
 
   return withDeadline(async signal => {
