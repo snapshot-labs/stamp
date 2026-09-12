@@ -131,4 +131,25 @@ describe('fetchHttpImage', () => {
     expect(elapsed).toBeGreaterThan(3000);
     expect(elapsed).toBeLessThan(8000);
   });
+
+  describe('given a data: URL', () => {
+    it('still decodes one under the cap', async () => {
+      const dataUrl = `data:image/png;base64,${BODY.toString('base64')}`;
+
+      await expect(fetchHttpImage(dataUrl)).resolves.toEqual(BODY);
+    });
+
+    it('rejects one over the cap without ever calling fetch to decode it', async () => {
+      const oversized = `data:image/png;base64,${'A'.repeat(MAX_IMAGE_BYTES + 1)}`;
+      const fetchSpy = jest.spyOn(global, 'fetch');
+
+      await expect(fetchHttpImage(oversized)).rejects.toMatchObject({
+        status: 404,
+        message: expect.stringContaining('too large')
+      });
+      expect(fetchSpy).not.toHaveBeenCalled();
+
+      fetchSpy.mockRestore();
+    });
+  });
 });

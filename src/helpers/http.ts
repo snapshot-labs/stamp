@@ -17,10 +17,18 @@ export function spaceIds(id: string): string[] | null {
   }
 }
 
+export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+
 export function fetchWithDeadline<T>(
   url: string,
   read: (response: Response) => Promise<T>
 ): Promise<T> {
+  if (url.startsWith('data:') && url.length > MAX_IMAGE_BYTES) {
+    return Promise.reject(
+      httpError('data:', 404, `data URL too large: over ${MAX_IMAGE_BYTES} bytes`)
+    );
+  }
+
   return withDeadline(async signal => {
     const response = await fetch(url, { signal });
 
@@ -29,8 +37,6 @@ export function fetchWithDeadline<T>(
     return read(response);
   }, 5e3);
 }
-
-export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
 export async function readBoundedImage(url: string, response: Response): Promise<Buffer> {
   const host = new URL(url).host;
