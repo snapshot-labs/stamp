@@ -17,10 +17,21 @@ export function spaceIds(id: string): string[] | null {
   }
 }
 
+export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+
+// A data: URL's payload is decoded inside fetch() itself, synchronously, before
+// withDeadline's abort can run, so this bounds the decode instead of reusing
+// MAX_IMAGE_BYTES, which bounds the unrelated decoded-image-size budget.
+export const MAX_URL_BYTES = 1024 * 1024;
+
 export function fetchWithDeadline<T>(
   url: string,
   read: (response: Response) => Promise<T>
 ): Promise<T> {
+  if (Buffer.byteLength(url) > MAX_URL_BYTES) {
+    return Promise.reject(httpError('url', 404, `url too large: over ${MAX_URL_BYTES} bytes`));
+  }
+
   return withDeadline(async signal => {
     const response = await fetch(url, { signal });
 
@@ -30,14 +41,11 @@ export function fetchWithDeadline<T>(
   }, 5e3);
 }
 
-export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
-
 export async function readBoundedImage(url: string, response: Response): Promise<Buffer> {
-  const host = new URL(url).host;
   const declared = Number(response.headers.get('content-length'));
   if (declared > MAX_IMAGE_BYTES) {
     await response.body?.cancel();
-    throw httpError(host, 404, `image too large: ${declared} bytes`);
+    throw httpError(new URL(url).host, 404, `image too large: ${declared} bytes`);
   }
 
   if (!response.body) return Buffer.from(await response.arrayBuffer());
@@ -48,7 +56,7 @@ export async function readBoundedImage(url: string, response: Response): Promise
   for await (const chunk of response.body) {
     total += chunk.length;
     if (total > MAX_IMAGE_BYTES) {
-      throw httpError(host, 404, `image too large: over ${MAX_IMAGE_BYTES} bytes`);
+      throw httpError(new URL(url).host, 404, `image too large: over ${MAX_IMAGE_BYTES} bytes`);
     }
 
     chunks.push(chunk);
