@@ -12,12 +12,12 @@ import { withDeadline } from '../../helpers/deadline';
 import { getProviderOptions } from '../../helpers/provider';
 
 const rpcUrl = `${getProviderOptions().broviderUrl}/${mainnet.id}`;
-const EMPTY_REVERSE_ERRORS = new Set([
+const EMPTY_FORWARD_ERRORS = new Set([
   'ResolverNotContract',
   'ResolverNotFound',
-  'ReverseAddressMismatch',
   'UnsupportedResolverProfile'
 ]);
+const EMPTY_REVERSE_ERRORS = new Set([...EMPTY_FORWARD_ERRORS, 'ReverseAddressMismatch']);
 const TRANSIENT_GATEWAY_ERRORS = new Set(['This operation was aborted', 'HTTP request failed.']);
 
 function getRevertedError(error: unknown): ContractFunctionRevertedError | undefined {
@@ -29,6 +29,10 @@ function getRevertedError(error: unknown): ContractFunctionRevertedError | undef
 
 function isEmptyReverseError(error: unknown): boolean {
   return EMPTY_REVERSE_ERRORS.has(getRevertedError(error)?.data?.errorName || '');
+}
+
+function isEmptyForwardError(error: unknown): boolean {
+  return EMPTY_FORWARD_ERRORS.has(getRevertedError(error)?.data?.errorName || '');
 }
 
 export function isSilencedReverseError(error: unknown): boolean {
@@ -71,6 +75,11 @@ const client = createPublicClient({
 
 export type BatchError = { address: string; error: unknown };
 export type BatchResult = { values: Record<string, string>; errors: BatchError[] };
+export type ForwardBatchError = { name: string; error: unknown };
+export type ForwardBatchResult = {
+  values: Record<string, string>;
+  errors: ForwardBatchError[];
+};
 
 export async function reverseLookup(addresses: string[]): Promise<BatchResult> {
   const settled = await Promise.allSettled(
@@ -84,6 +93,24 @@ export async function reverseLookup(addresses: string[]): Promise<BatchResult> {
       if (result.value) values[addresses[index]] = result.value;
     } else if (!isEmptyReverseError(result.reason)) {
       errors.push({ address: addresses[index], error: result.reason });
+    }
+  });
+
+  return { values, errors };
+}
+
+export async function forwardLookup(names: string[]): Promise<ForwardBatchResult> {
+  const settled = await Promise.allSettled(
+    names.map(name => client.getEnsAddress({ name, strict: true }))
+  );
+  const values: Record<string, string> = {};
+  const errors: ForwardBatchError[] = [];
+
+  settled.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
+      if (result.value) values[names[index]] = result.value;
+    } else if (!isEmptyForwardError(result.reason)) {
+      errors.push({ name: names[index], error: result.reason });
     }
   });
 
