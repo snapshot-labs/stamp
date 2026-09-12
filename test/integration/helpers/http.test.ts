@@ -169,5 +169,37 @@ describe('fetchHttpImage', () => {
 
       fetchSpy.mockRestore();
     });
+
+    it('rejects a non-ASCII body whose UTF-16 length hides its true byte size', async () => {
+      const oversized = `data:image/png,${'中'.repeat(3_500_000)}`;
+      const fetchSpy = jest.spyOn(global, 'fetch');
+
+      expect(oversized.length).toBeLessThan(MAX_IMAGE_BYTES);
+
+      await expect(fetchHttpImage(oversized)).rejects.toMatchObject({
+        status: 404,
+        message: expect.stringContaining('too large')
+      });
+      expect(fetchSpy).not.toHaveBeenCalled();
+
+      fetchSpy.mockRestore();
+    });
+
+    it('still decodes a non-base64 (percent-encoded) one under the cap', async () => {
+      const percentEncoded = [...BODY]
+        .map(byte => `%${byte.toString(16).padStart(2, '0')}`)
+        .join('');
+      const dataUrl = `data:image/png,${percentEncoded}`;
+
+      await expect(fetchHttpImage(dataUrl)).resolves.toEqual(BODY);
+    });
+
+    it('still decodes one exactly at the cap', async () => {
+      const prefix = 'data:image/png;base64,';
+      const dataUrl = `${prefix}${'A'.repeat(MAX_IMAGE_BYTES - prefix.length)}`;
+
+      expect(dataUrl.length).toBe(MAX_IMAGE_BYTES);
+      await expect(fetchHttpImage(dataUrl)).resolves.toBeInstanceOf(Buffer);
+    });
   });
 });

@@ -23,7 +23,7 @@ export function fetchWithDeadline<T>(
   url: string,
   read: (response: Response) => Promise<T>
 ): Promise<T> {
-  if (url.length > MAX_IMAGE_BYTES) {
+  if (Buffer.byteLength(url) > MAX_IMAGE_BYTES) {
     return Promise.reject(httpError('url', 404, `url too large: over ${MAX_IMAGE_BYTES} bytes`));
   }
 
@@ -37,11 +37,10 @@ export function fetchWithDeadline<T>(
 }
 
 export async function readBoundedImage(url: string, response: Response): Promise<Buffer> {
-  const host = new URL(url).host;
   const declared = Number(response.headers.get('content-length'));
   if (declared > MAX_IMAGE_BYTES) {
     await response.body?.cancel();
-    throw httpError(host, 404, `image too large: ${declared} bytes`);
+    throw httpError(new URL(url).host, 404, `image too large: ${declared} bytes`);
   }
 
   if (!response.body) return Buffer.from(await response.arrayBuffer());
@@ -52,7 +51,7 @@ export async function readBoundedImage(url: string, response: Response): Promise
   for await (const chunk of response.body) {
     total += chunk.length;
     if (total > MAX_IMAGE_BYTES) {
-      throw httpError(host, 404, `image too large: over ${MAX_IMAGE_BYTES} bytes`);
+      throw httpError(new URL(url).host, 404, `image too large: over ${MAX_IMAGE_BYTES} bytes`);
     }
 
     chunks.push(chunk);
