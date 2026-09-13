@@ -24,7 +24,15 @@ export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 // MAX_IMAGE_BYTES, which bounds the unrelated decoded-image-size budget.
 export const MAX_URL_BYTES = 1024 * 1024;
 
-export async function readHttpImage(url: string, response: Response): Promise<Buffer> {
+function fetchBounded(url: string, signal: AbortSignal): Promise<Response> {
+  if (Buffer.byteLength(url) > MAX_URL_BYTES) {
+    throw httpError('url', 404, `url too large: over ${MAX_URL_BYTES} bytes`);
+  }
+
+  return fetch(url, { signal });
+}
+
+async function readHttpImage(url: string, response: Response): Promise<Buffer> {
   const host = new URL(response.url || url).host;
 
   if (!response.ok) {
@@ -67,12 +75,22 @@ export async function readHttpImage(url: string, response: Response): Promise<Bu
   return Buffer.concat(chunks);
 }
 
-export async function fetchHttpImage(url: string): Promise<Buffer> {
-  if (Buffer.byteLength(url) > MAX_URL_BYTES) {
-    throw httpError('url', 404, `url too large: over ${MAX_URL_BYTES} bytes`);
-  }
+// An image URL can answer with something that names the image somewhere else, a
+// metadata document for instance. `follow` gets that response and returns the
+// URL to fetch in its place, or nothing to read the response itself as the
+// image. Both fetches share the one budget.
+export async function fetchHttpImage(
+  url: string,
+  follow?: (response: Response) => Promise<string | undefined>
+): Promise<Buffer> {
+  return withDeadline(async signal => {
+    const response = await fetchBounded(url, signal);
+    const next = await follow?.(response);
 
-  return withDeadline(async signal => readHttpImage(url, await fetch(url, { signal })), 5e3);
+    return next
+      ? readHttpImage(next, await fetchBounded(next, signal))
+      : readHttpImage(url, response);
+  }, 5e3);
 }
 
 export function isHttpUrl(value: string): boolean {

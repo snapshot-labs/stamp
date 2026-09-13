@@ -1,7 +1,8 @@
 import { byteArray, CallData, constants, shortString, starknetId } from 'starknet';
 import { isStarkDomain, isStarknetFelt } from '../../helpers/address';
 import { untilAborted, withDeadline } from '../../helpers/deadline';
-import { fetchHttpImage, getUrl, readHttpImage } from '../../helpers/http';
+import { httpError } from '../../helpers/errors';
+import { fetchHttpImage, getUrl } from '../../helpers/http';
 import { getProvider } from '../../helpers/provider';
 
 const DEFAULT_IMG_URL = 'https://starknet.id/api/identicons/0';
@@ -115,30 +116,30 @@ async function getImage(domainOrAddress: string): Promise<string | null> {
   }
 }
 
-async function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: string }> {
-  return withDeadline(async signal => {
-    const response = await fetch(url, { signal });
-    const type = (response.headers.get('content-type') ?? '').toLowerCase().split(';')[0].trim();
-    const isJson = type === 'application/json' || type === 'text/json' || type.endsWith('+json');
+// A profile picture is often a token URI, whose JSON names the image. Anything
+// else, a non-2xx included, is left to the image reader.
+async function followMetadata(response: Response): Promise<string | undefined> {
+  const type = (response.headers.get('content-type') ?? '').toLowerCase().split(';')[0].trim();
+  const isJson = type === 'application/json' || type === 'text/json' || type.endsWith('+json');
 
-    if (response.ok && isJson) {
-      const body = await response.text();
+  if (!response.ok || !isJson) return;
 
-      try {
-        const metadata = JSON.parse(body);
-        return typeof metadata?.image === 'string' ? { image: metadata.image } : {};
-      } catch {
-        return {};
-      }
+  // The read stays outside the guard: an abort part way through a stalled body
+  // raises here, and catching it would report a stalled upstream as no data.
+  const body = await response.text();
+
+  try {
+    const metadata = JSON.parse(body);
+    if (typeof metadata?.image === 'string') {
+      const url = getUrl(metadata.image);
+      if (url) return url;
     }
+  } catch {
+    // A body that is not JSON names no image either.
+  }
 
-    return readHttpImage(url, response);
-  }, 5e3);
-}
-
-async function fetchMetadataImage(image: string): Promise<Buffer | null> {
-  const url = getUrl(image);
-  return url ? fetchHttpImage(url) : null;
+  // The routine miss the resolver map answers false for, without reporting it.
+  throw httpError('starknet', 404, 'no fetchable image in metadata');
 }
 
 export default async function resolve(domainOrAddress: string) {
@@ -149,12 +150,5 @@ export default async function resolve(domainOrAddress: string) {
   const url = getUrl(img_url);
   if (!url) return false;
 
-  const fetched = await fetchImageOrMetadata(url);
-  const buffer = Buffer.isBuffer(fetched)
-    ? fetched
-    : fetched.image
-      ? await fetchMetadataImage(fetched.image)
-      : null;
-
-  return buffer ?? false;
+  return fetchHttpImage(url, followMetadata);
 }

@@ -59,7 +59,7 @@ describe('Starknet image resolver', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('answers false for on-chain metadata whose image cannot become a fetchable URL', async () => {
+  it('misses on on-chain metadata whose image cannot become a fetchable URL', async () => {
     mockGetStarkProfile.mockResolvedValue({ profilePicture: 'https://example.com/metadata.json' });
     fetchSpy.mockResolvedValue(
       new Response(JSON.stringify({ image: 'http://' }), {
@@ -67,7 +67,7 @@ describe('Starknet image resolver', () => {
       })
     );
 
-    await expect(starknet(ADDRESS)).resolves.toBe(false);
+    await expect(starknet(ADDRESS)).rejects.toMatchObject({ status: 404 });
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 
@@ -255,6 +255,7 @@ describe('Starknet image resolver', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 
+  // 404 is the routine miss the resolver map answers false for, unreported.
   it.each([
     ['null', 'null'],
     ['an image that is not a string', '{"image":42}'],
@@ -265,7 +266,7 @@ describe('Starknet image resolver', () => {
       new Response(body, { headers: { 'Content-Type': 'application/json' } })
     );
 
-    await expect(starknet(ADDRESS)).resolves.toBe(false);
+    await expect(starknet(ADDRESS)).rejects.toMatchObject({ status: 404 });
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 
