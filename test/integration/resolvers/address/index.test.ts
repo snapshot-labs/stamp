@@ -1,6 +1,7 @@
 import redis from '../../../../src/helpers/redis';
 import { lookupAddresses, resolveNames } from '../../../../src/resolvers/address';
 import { getCache, setCache } from '../../../../src/resolvers/address/cache';
+import * as universalResolver from '../../../../src/resolvers/address/universalResolver';
 import randomAddresses from '../../../fixtures/addresses';
 
 function purge() {
@@ -91,6 +92,41 @@ describe('address resolvers', () => {
           '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7': 'less',
           '0x0C67A201b93cf58D4a5e8D4E970093f0FB4bb0D1': ''
         });
+      });
+
+      it('does not cache an address whose ENS lookup rejected', async () => {
+        const emptyAddress = '0x0C67A201b93cf58D4a5e8D4E970093f0FB4bb0D1';
+        const failedAddress = '0x0000000000000000000000000000000000000001';
+        const error = Object.assign(new Error('aborted'), { name: 'AbortError' });
+        const reverseLookup = jest.spyOn(universalResolver, 'reverseLookup').mockResolvedValue({
+          values: {},
+          errors: [{ address: failedAddress, error }]
+        });
+
+        try {
+          await expect(lookupAddresses([emptyAddress, failedAddress])).resolves.toEqual({});
+          await expect(getCache([emptyAddress, failedAddress])).resolves.toEqual({
+            [emptyAddress]: ''
+          });
+        } finally {
+          reverseLookup.mockRestore();
+        }
+      });
+
+      it('does not cache an address when every ENS lookup rejects', async () => {
+        const failedAddress = '0x0000000000000000000000000000000000000001';
+        const error = new Error('resolver failed');
+        const reverseLookup = jest.spyOn(universalResolver, 'reverseLookup').mockResolvedValue({
+          values: {},
+          errors: [{ address: failedAddress, error }]
+        });
+
+        try {
+          await expect(lookupAddresses([failedAddress])).resolves.toEqual({});
+          await expect(getCache([failedAddress])).resolves.toEqual({});
+        } finally {
+          reverseLookup.mockRestore();
+        }
       });
 
       it('should return the cached results', async () => {

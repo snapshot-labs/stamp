@@ -1,3 +1,4 @@
+import { BaseError, HttpRequestError, TimeoutError } from 'viem';
 import { isSilencedError } from '../../../src/helpers/errors';
 
 describe('isSilencedError', () => {
@@ -110,6 +111,51 @@ describe('isSilencedError', () => {
     };
 
     expect(isSilencedError(upstreamError)).toBe(false);
+  });
+
+  it('silences a deeply wrapped viem timeout', () => {
+    const timeout = new TimeoutError({ body: { method: 'eth_call' }, url: 'https://rpc.test' });
+    const wrapped = new BaseError('Contract call failed', {
+      cause: new BaseError('Call failed', { cause: timeout })
+    });
+
+    expect(isSilencedError(wrapped)).toBe(true);
+  });
+
+  it('silences a deeply wrapped viem connection refusal', () => {
+    const refused = Object.assign(new Error('connect ECONNREFUSED'), {
+      code: 'ECONNREFUSED'
+    });
+    const request = new HttpRequestError({ cause: refused, url: 'https://rpc.test' });
+    const wrapped = new BaseError('Contract call failed', {
+      cause: new BaseError('Call failed', { cause: request })
+    });
+
+    expect(isSilencedError(wrapped)).toBe(true);
+  });
+
+  it('does not silence a deeply wrapped viem authentication failure', () => {
+    const request = new HttpRequestError({
+      details: 'Unauthorized',
+      status: 401,
+      url: 'https://rpc.test'
+    });
+    const wrapped = new BaseError('Contract call failed', {
+      cause: new BaseError('Call failed', { cause: request })
+    });
+
+    expect(isSilencedError(wrapped)).toBe(false);
+  });
+
+  it('does not silence a deeply wrapped viem contract failure', () => {
+    const contract = new BaseError('Invalid contract return data', {
+      name: 'AbiDecodingDataSizeTooSmallError'
+    });
+    const wrapped = new BaseError('Contract call failed', {
+      cause: new BaseError('Call failed', { cause: contract })
+    });
+
+    expect(isSilencedError(wrapped)).toBe(false);
   });
 
   it('silences transient SERVFAIL DNS server status (2)', () => {

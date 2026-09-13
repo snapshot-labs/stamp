@@ -1,7 +1,8 @@
 import { ens_normalize } from '@adraffy/ens-normalize';
 import { getAddress } from '@ethersproject/address';
 import { capture } from '@snapshot-labs/snapshot-sentry';
-import snapshot from '@snapshot-labs/snapshot.js';
+import { markNonCacheable } from './cache';
+import { isSilencedReverseError, reverseLookup } from './universalResolver';
 import constants from '../../constants.json';
 import { isEvmAddress } from '../../helpers/address';
 import { isSilencedError, isTransportFailure } from '../../helpers/errors';
@@ -31,41 +32,42 @@ function normalizeHandles(names: Handle[]): Handle[] {
   return normalizeEns(names).filter(h => h);
 }
 
+function isSilencedLookupError(error: unknown): boolean {
+  return isSilencedError(error) || isSilencedReverseError(error);
+}
+
 export async function lookupAddresses(addresses: Address[]): Promise<Record<Address, Handle>> {
-  const abi = ['function getNames(address[] addresses) view returns (string[] r)'];
   const normalizedAddresses = normalizeAddresses(addresses);
 
   if (normalizedAddresses.length === 0) return {};
 
-  let reverseRecords: string[] = [];
-  try {
-    reverseRecords = await snapshot.utils.call(
-      provider,
-      abi,
-      ['0x3671aE578E63FdF66ad4F3E12CC0c0d71Ac7510C', 'getNames', [normalizedAddresses]],
-      { blockTag: 'latest' }
-    );
-  } catch (err: any) {
-    if (err?.code !== 'CALL_EXCEPTION') throw err;
-  }
-  const validNames = normalizeEns(reverseRecords);
+  const { values, errors } = await reverseLookup(normalizedAddresses);
 
-  // The batch contract only reads on-chain reverse records. Names served by
-  // off-chain resolvers (CCIP-Read) need provider.lookupAddress, which follows
-  // the OffchainLookup flow via the ENS UniversalResolver.
-  const missing = normalizedAddresses.map((_, i) => i).filter(i => !validNames[i]);
-  const lookups = await Promise.allSettled(
-    missing.map(idx => provider.lookupAddress(normalizedAddresses[idx]))
-  );
-  const fallbackNames = normalizeEns(lookups.map(r => (r.status === 'fulfilled' && r.value) || ''));
-  missing.forEach((idx, j) => {
-    if (fallbackNames[j]) validNames[idx] = fallbackNames[j];
+  if (errors.length === normalizedAddresses.length) {
+    const actionable = errors.find(({ error }) => !isSilencedLookupError(error));
+    if (actionable) throw actionable.error;
+    return markNonCacheable({}, normalizedAddresses);
+  }
+
+  errors.forEach(({ address, error }) => {
+    if (!isSilencedLookupError(error)) {
+      capture(error, {
+        tags: { provider: NAME },
+        contexts: { input: { lookupAddresses: [address] } }
+      });
+    }
   });
 
-  return Object.fromEntries(
+  const validNames = normalizeEns(normalizedAddresses.map(address => values[address] || ''));
+  const result = Object.fromEntries(
     normalizedAddresses
       .map((address, index) => [address, validNames[index]])
       .filter((_, index) => !!validNames[index])
+  );
+
+  return markNonCacheable(
+    result,
+    errors.map(({ address }) => address)
   );
 }
 
