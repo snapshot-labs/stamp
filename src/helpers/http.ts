@@ -32,8 +32,10 @@ function fetchBounded(url: string, signal: AbortSignal): Promise<Response> {
   return fetch(url, { signal });
 }
 
-async function readHttpImage(url: string, response: Response): Promise<Buffer> {
-  const host = new URL(response.url || url).host;
+async function readHttpImage(response: Response): Promise<Buffer> {
+  // fetch sets this to the url that answered, which after a redirect is not the
+  // one that was asked for.
+  const host = new URL(response.url).host;
 
   if (!response.ok) {
     await response.body?.cancel();
@@ -87,9 +89,7 @@ export async function fetchHttpImage(
     const response = await fetchBounded(url, signal);
     const next = await follow?.(response);
 
-    return next
-      ? readHttpImage(next, await fetchBounded(next, signal))
-      : readHttpImage(url, response);
+    return readHttpImage(next ? await fetchBounded(next, signal) : response);
   }, 5e3);
 }
 

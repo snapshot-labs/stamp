@@ -11,7 +11,7 @@ jest.mock('../../../../src/helpers/provider', () => ({
 import { isSilencedError } from '../../../../src/helpers/errors';
 import { MAX_IMAGE_BYTES } from '../../../../src/helpers/http';
 import starknet from '../../../../src/resolvers/image/starknet';
-import { incompleteJsonResponse, jsonResponse } from '../../../helpers/fetch';
+import { answeredFrom, incompleteJsonResponse, jsonResponse } from '../../../helpers/fetch';
 
 const ADDRESS = '0x07ff6b17f07c4d83236e3fc5f94259a19d1ed41bbcf1822397ea17882e9b038d';
 const OVER_PRIME_ADDRESS = '0x2121212121212121212121212121212121212121212121212121212121212121';
@@ -19,6 +19,8 @@ const UNPREFIXED_ADDRESS = '07ff6b17f07c4d83236e3fc5f94259a19d1ed41bbcf1822397ea
 const EVM_ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
 const UNPADDED_ADDRESS = '0xa00373a00352aa367058555149b573322910d54fcdf3a926e3e56d0dcb4b0c';
 const NFT_CONTRACT = '0x123';
+const AVATAR_URL = 'https://example.com/avatar';
+const NFT_IMAGE_URL = 'https://example.com/nft.png';
 const IMAGE_URL = 'https://example.com/avatar/token-12345.png';
 const IMAGE = Buffer.from('as much of an image as the fetch cares about');
 
@@ -26,9 +28,7 @@ let fetchSpy: jest.SpyInstance;
 
 beforeEach(() => {
   mockCallContract.mockReset();
-  mockGetStarkProfile.mockReset().mockResolvedValue({
-    profilePicture: 'https://example.com/avatar'
-  });
+  mockGetStarkProfile.mockReset().mockResolvedValue({ profilePicture: AVATAR_URL });
   fetchSpy = jest.spyOn(global, 'fetch').mockRejectedValue(new Error('unexpected fetch'));
 });
 
@@ -74,7 +74,9 @@ describe('Starknet image resolver', () => {
   it('rejects a non-2xx image response with its HTTP status', async () => {
     jest
       .spyOn(global, 'fetch')
-      .mockResolvedValue(new Response('missing', { status: 404, statusText: 'Not Found' }));
+      .mockResolvedValue(
+        answeredFrom(AVATAR_URL, new Response('missing', { status: 404, statusText: 'Not Found' }))
+      );
 
     await expect(starknet(ADDRESS)).rejects.toMatchObject({
       message: '[example.com] Not Found',
@@ -85,9 +87,12 @@ describe('Starknet image resolver', () => {
 
   it('rejects a profile picture over the size cap', async () => {
     fetchSpy.mockResolvedValue(
-      new Response(new Uint8Array(MAX_IMAGE_BYTES + 1), {
-        headers: { 'Content-Type': 'image/png' }
-      })
+      answeredFrom(
+        AVATAR_URL,
+        new Response(new Uint8Array(MAX_IMAGE_BYTES + 1), {
+          headers: { 'Content-Type': 'image/png' }
+        })
+      )
     );
 
     await expect(starknet(ADDRESS)).rejects.toMatchObject({
@@ -114,7 +119,7 @@ describe('Starknet image resolver', () => {
     );
     const fetchSpy = jest
       .spyOn(global, 'fetch')
-      .mockResolvedValue(new Response(Buffer.from('image')));
+      .mockResolvedValue(answeredFrom(IMAGE_URL, new Response(Buffer.from('image'))));
     const urlFelts = [IMAGE_URL.slice(0, 31), IMAGE_URL.slice(31)].map(
       part => `0x${Buffer.from(part).toString('hex')}`
     );
@@ -145,7 +150,7 @@ describe('Starknet image resolver', () => {
     );
     const fetchSpy = jest
       .spyOn(global, 'fetch')
-      .mockResolvedValue(new Response(Buffer.from('image')));
+      .mockResolvedValue(answeredFrom(IMAGE_URL, new Response(Buffer.from('image'))));
     const fullWord = IMAGE_URL.slice(0, 31);
     const pendingWord = IMAGE_URL.slice(31);
     mockCallContract
@@ -193,9 +198,10 @@ describe('Starknet image resolver', () => {
         },
         cancel
       });
-      return new Response(body, {
-        headers: { 'Content-Type': 'text/html; charset=utf-8' }
-      });
+      return answeredFrom(
+        AVATAR_URL,
+        new Response(body, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })
+      );
     });
 
     await expect(starknet(ADDRESS)).rejects.toMatchObject({
@@ -208,7 +214,9 @@ describe('Starknet image resolver', () => {
   it('returns the bytes of an image response', async () => {
     jest
       .spyOn(global, 'fetch')
-      .mockResolvedValue(new Response(IMAGE, { headers: { 'Content-Type': 'image/png' } }));
+      .mockResolvedValue(
+        answeredFrom(AVATAR_URL, new Response(IMAGE, { headers: { 'Content-Type': 'image/png' } }))
+      );
 
     await expect(starknet(ADDRESS)).resolves.toEqual(IMAGE);
   });
@@ -219,7 +227,10 @@ describe('Starknet image resolver', () => {
         ? new Response(JSON.stringify({ image: 'https://example.com/nft.png' }), {
             headers: { 'Content-Type': 'application/json' }
           })
-        : new Response(IMAGE, { headers: { 'Content-Type': 'image/png' } })
+        : answeredFrom(
+            NFT_IMAGE_URL,
+            new Response(IMAGE, { headers: { 'Content-Type': 'image/png' } })
+          )
     );
 
     await expect(starknet(ADDRESS)).resolves.toEqual(IMAGE);
@@ -235,7 +246,10 @@ describe('Starknet image resolver', () => {
         ? new Response(JSON.stringify({ image: 'https://example.com/nft.png' }), {
             headers: { 'Content-Type': contentType }
           })
-        : new Response(IMAGE, { headers: { 'Content-Type': 'image/png' } })
+        : answeredFrom(
+            NFT_IMAGE_URL,
+            new Response(IMAGE, { headers: { 'Content-Type': 'image/png' } })
+          )
     );
 
     await expect(starknet(ADDRESS)).resolves.toEqual(IMAGE);
@@ -244,11 +258,14 @@ describe('Starknet image resolver', () => {
 
   it('raises the status of a non-2xx JSON response instead of reading it as metadata', async () => {
     const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ image: 'https://example.com/nft.png' }), {
-        status: 504,
-        statusText: 'Gateway Timeout',
-        headers: { 'Content-Type': 'application/json' }
-      })
+      answeredFrom(
+        AVATAR_URL,
+        new Response(JSON.stringify({ image: NFT_IMAGE_URL }), {
+          status: 504,
+          statusText: 'Gateway Timeout',
+          headers: { 'Content-Type': 'application/json' }
+        })
+      )
     );
 
     await expect(starknet(ADDRESS)).rejects.toMatchObject({ status: 504 });
@@ -296,7 +313,10 @@ describe('Starknet image resolver', () => {
     fetchSpy
       .mockResolvedValueOnce(jsonResponse({ image: imageUri }))
       .mockResolvedValueOnce(
-        new Response('svg-bytes', { headers: { 'Content-Type': 'image/svg+xml' } })
+        answeredFrom(
+          imageUri,
+          new Response('svg-bytes', { headers: { 'Content-Type': 'image/svg+xml' } })
+        )
       );
 
     await expect(starknet(ADDRESS)).resolves.toBeInstanceOf(Buffer);
