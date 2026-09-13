@@ -10,6 +10,12 @@ export function mockGlobalFetch(): jest.Mock {
   return mockedFetch;
 }
 
+export function answeredFrom(url: string, response: Response): Response {
+  Object.defineProperty(response, 'url', { value: url });
+
+  return response;
+}
+
 export function jsonResponse(body: any, status = 200) {
   return new Response(typeof body === 'string' ? body : JSON.stringify(body), {
     status,

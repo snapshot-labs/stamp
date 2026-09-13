@@ -24,31 +24,39 @@ export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 // MAX_IMAGE_BYTES, which bounds the unrelated decoded-image-size budget.
 export const MAX_URL_BYTES = 1024 * 1024;
 
-export function fetchWithDeadline<T>(
-  url: string,
-  read: (response: Response) => Promise<T>
-): Promise<T> {
+function fetchBounded(url: string, signal: AbortSignal): Promise<Response> {
   if (Buffer.byteLength(url) > MAX_URL_BYTES) {
-    return Promise.reject(httpError('url', 404, `url too large: over ${MAX_URL_BYTES} bytes`));
+    throw httpError('url', 404, `url too large: over ${MAX_URL_BYTES} bytes`);
   }
 
-  return withDeadline(async signal => {
-    const response = await fetch(url, { signal });
-
-    if (!response.ok) throw httpError(new URL(url).host, response.status, response.statusText);
-
-    return read(response);
-  }, 5e3);
+  return fetch(url, { signal });
 }
 
-export async function readBoundedImage(url: string, response: Response): Promise<Buffer> {
+async function readHttpImage(response: Response): Promise<Buffer> {
+  const host = new URL(response.url).host;
+
+  if (!response.ok) {
+    await response.body?.cancel();
+    throw httpError(host, response.status, response.statusText);
+  }
+
+  const type = response.headers.get('content-type');
+  if (type && !type.toLowerCase().startsWith('image/')) {
+    await response.body?.cancel();
+    throw httpError(host, 404, `not an image: ${type}`);
+  }
+
   const declared = Number(response.headers.get('content-length'));
   if (declared > MAX_IMAGE_BYTES) {
     await response.body?.cancel();
-    throw httpError(new URL(url).host, 404, `image too large: ${declared} bytes`);
+    throw httpError(host, 404, `image too large: ${declared} bytes`);
   }
 
-  if (!response.body) return Buffer.from(await response.arrayBuffer());
+  if (!response.body) {
+    const buffer = Buffer.from(await response.arrayBuffer());
+    if (buffer.length === 0) throw httpError(host, 404, 'empty body');
+    return buffer;
+  }
 
   const chunks: Uint8Array[] = [];
   let total = 0;
@@ -56,17 +64,27 @@ export async function readBoundedImage(url: string, response: Response): Promise
   for await (const chunk of response.body) {
     total += chunk.length;
     if (total > MAX_IMAGE_BYTES) {
-      throw httpError(new URL(url).host, 404, `image too large: over ${MAX_IMAGE_BYTES} bytes`);
+      throw httpError(host, 404, `image too large: over ${MAX_IMAGE_BYTES} bytes`);
     }
 
     chunks.push(chunk);
   }
 
+  if (total === 0) throw httpError(host, 404, 'empty body');
+
   return Buffer.concat(chunks);
 }
 
-export function fetchHttpImage(url: string): Promise<Buffer> {
-  return fetchWithDeadline(url, response => readBoundedImage(url, response));
+export async function fetchHttpImage(
+  url: string,
+  follow?: (response: Response) => Promise<string | undefined>
+): Promise<Buffer> {
+  return withDeadline(async signal => {
+    const response = await fetchBounded(url, signal);
+    const next = await follow?.(response);
+
+    return readHttpImage(next ? await fetchBounded(next, signal) : response);
+  }, 5e3);
 }
 
 export function isHttpUrl(value: string): boolean {
@@ -81,6 +99,8 @@ export function isHttpUrl(value: string): boolean {
 }
 
 export function getUrl(url: string): string | null {
+  if (url.startsWith('data:')) return url;
+
   const gateway: string = process.env.IPFS_GATEWAY || 'cloudflare-ipfs.com';
   const candidate = snapshot.utils.getUrl(url, gateway);
   if (!candidate) return null;

@@ -2,6 +2,7 @@ import { capture } from '@snapshot-labs/snapshot-sentry';
 import request from 'supertest';
 import { graphQlCall } from '../../src/helpers/graphql';
 import getOwner from '../../src/resolvers/getOwner';
+import { answeredFrom } from '../helpers/fetch';
 import { createTestApp } from '../helpers/testServer';
 
 jest.mock('@snapshot-labs/snapshot-sentry', () => ({
@@ -36,10 +37,13 @@ describe('GET /space-cover/:id', () => {
       data: { entry: { cover: 'https://example.com/missing.png' } }
     });
     global.fetch = jest.fn().mockResolvedValue(
-      new Response('<html>not found</html>', {
-        status: 404,
-        statusText: 'Not Found'
-      })
+      answeredFrom(
+        'https://example.com/missing.png',
+        new Response('<html>not found</html>', {
+          status: 404,
+          statusText: 'Not Found'
+        })
+      )
     ) as unknown as typeof global.fetch;
 
     const response = await request(app).get(`/space-cover/${ADDRESS}`);

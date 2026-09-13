@@ -1,7 +1,8 @@
 import { byteArray, CallData, constants, shortString, starknetId } from 'starknet';
 import { isStarkDomain, isStarknetFelt } from '../../helpers/address';
 import { untilAborted, withDeadline } from '../../helpers/deadline';
-import { fetchHttpImage, fetchWithDeadline, getUrl, readBoundedImage } from '../../helpers/http';
+import { httpError } from '../../helpers/errors';
+import { fetchHttpImage, getUrl } from '../../helpers/http';
 import { getProvider } from '../../helpers/provider';
 
 const DEFAULT_IMG_URL = 'https://starknet.id/api/identicons/0';
@@ -115,17 +116,21 @@ async function getImage(domainOrAddress: string): Promise<string | null> {
   }
 }
 
-function fetchImageOrMetadata(url: string): Promise<Buffer | { image?: string }> {
-  return fetchWithDeadline(url, async response =>
-    response.headers.get('content-type')?.includes('application/json')
-      ? await response.json()
-      : readBoundedImage(url, response)
-  );
-}
+async function followMetadata(response: Response): Promise<string | undefined> {
+  const type = (response.headers.get('content-type') ?? '').toLowerCase().split(';')[0].trim();
+  const isJson = type === 'application/json' || type === 'text/json' || type.endsWith('+json');
 
-async function fetchMetadataImage(image: string): Promise<Buffer | null> {
-  const url = getUrl(image);
-  return url ? fetchHttpImage(url) : null;
+  if (!response.ok || !isJson) return;
+
+  const body = await response.text();
+
+  try {
+    const metadata = JSON.parse(body);
+    const url = typeof metadata?.image === 'string' ? getUrl(metadata.image) : undefined;
+    if (url) return url;
+  } catch {}
+
+  throw httpError('starknet', 404, 'no fetchable image in metadata');
 }
 
 export default async function resolve(domainOrAddress: string) {
@@ -136,12 +141,5 @@ export default async function resolve(domainOrAddress: string) {
   const url = getUrl(img_url);
   if (!url) return false;
 
-  const fetched = await fetchImageOrMetadata(url);
-  const buffer = Buffer.isBuffer(fetched)
-    ? fetched
-    : fetched.image
-      ? await fetchMetadataImage(fetched.image)
-      : null;
-
-  return buffer ?? false;
+  return fetchHttpImage(url, followMetadata);
 }
