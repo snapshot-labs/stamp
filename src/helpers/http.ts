@@ -33,8 +33,6 @@ function fetchBounded(url: string, signal: AbortSignal): Promise<Response> {
 }
 
 async function readHttpImage(response: Response): Promise<Buffer> {
-  // fetch sets this to the url that answered, which after a redirect is not the
-  // one that was asked for.
   const host = new URL(response.url).host;
 
   if (!response.ok) {
@@ -77,10 +75,6 @@ async function readHttpImage(response: Response): Promise<Buffer> {
   return Buffer.concat(chunks);
 }
 
-// An image URL can answer with something that names the image somewhere else, a
-// metadata document for instance. `follow` gets that response and returns the
-// URL to fetch in its place, or nothing to read the response itself as the
-// image. Both fetches share the one budget.
 export async function fetchHttpImage(
   url: string,
   follow?: (response: Response) => Promise<string | undefined>

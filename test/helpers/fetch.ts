@@ -10,9 +10,6 @@ export function mockGlobalFetch(): jest.Mock {
   return mockedFetch;
 }
 
-// fetch stamps the url it answered from onto every response it returns, and the
-// image reader names that host in its errors. A hand-built response carries
-// none, so one that stands in for a fetched image has to be given it here.
 export function answeredFrom(url: string, response: Response): Response {
   Object.defineProperty(response, 'url', { value: url });
 

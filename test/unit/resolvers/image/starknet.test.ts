@@ -272,7 +272,6 @@ describe('Starknet image resolver', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 
-  // 404 is the routine miss the resolver map answers false for, unreported.
   it.each([
     ['null', 'null'],
     ['an image that is not a string', '{"image":42}'],

@@ -116,29 +116,20 @@ async function getImage(domainOrAddress: string): Promise<string | null> {
   }
 }
 
-// A profile picture is often a token URI, whose JSON names the image. Anything
-// else, a non-2xx included, is left to the image reader.
 async function followMetadata(response: Response): Promise<string | undefined> {
   const type = (response.headers.get('content-type') ?? '').toLowerCase().split(';')[0].trim();
   const isJson = type === 'application/json' || type === 'text/json' || type.endsWith('+json');
 
   if (!response.ok || !isJson) return;
 
-  // The read stays outside the guard: an abort part way through a stalled body
-  // raises here, and catching it would report a stalled upstream as no data.
   const body = await response.text();
 
   try {
     const metadata = JSON.parse(body);
-    if (typeof metadata?.image === 'string') {
-      const url = getUrl(metadata.image);
-      if (url) return url;
-    }
-  } catch {
-    // A body that is not JSON names no image either.
-  }
+    const url = typeof metadata?.image === 'string' ? getUrl(metadata.image) : undefined;
+    if (url) return url;
+  } catch {}
 
-  // The routine miss the resolver map answers false for, without reporting it.
   throw httpError('starknet', 404, 'no fetchable image in metadata');
 }
 
