@@ -1,13 +1,12 @@
-const mockGetStarkProfile = jest.fn();
 const mockCallContract = jest.fn();
 
 jest.mock('../../../../src/helpers/provider', () => ({
   getProvider: () => ({
-    getStarkProfile: mockGetStarkProfile,
     callContract: mockCallContract
   })
 }));
 
+import { byteArray, CallData, hash } from 'starknet';
 import { isSilencedError } from '../../../../src/helpers/errors';
 import { MAX_IMAGE_BYTES } from '../../../../src/helpers/http';
 import starknet from '../../../../src/resolvers/image/starknet';
@@ -23,12 +22,38 @@ const AVATAR_URL = 'https://example.com/avatar';
 const NFT_IMAGE_URL = 'https://example.com/nft.png';
 const IMAGE_URL = 'https://example.com/avatar/token-12345.png';
 const IMAGE = Buffer.from('as much of an image as the fetch cares about');
+const UNSUPPORTED_ENTRYPOINT = 'starknetid/multicall-failed: ENTRYPOINT_NOT_FOUND';
 
 let fetchSpy: jest.SpyInstance;
 
+// The starknet.id multicall replies [count, length, ...result, length, ...result, ...],
+// with no token URI result when the profile has no NFT contract.
+function profileReply(tokenUri?: string[], id = '0x42', nftContract = NFT_CONTRACT) {
+  const results = [['0x1', '0xabc'], [id], [nftContract], ['0x2', '0x4e20', '0x0']];
+  if (tokenUri) results.push(tokenUri);
+
+  return [
+    `0x${results.length.toString(16)}`,
+    ...results.flatMap(result => [`0x${result.length.toString(16)}`, ...result])
+  ];
+}
+
+function mockNftPicture(uri: string) {
+  mockCallContract.mockResolvedValue(
+    profileReply(CallData.compile(byteArray.byteArrayFromString(uri)))
+  );
+}
+
+const selector = (name: string) => BigInt(hash.getSelectorFromName(name)).toString();
+
+const tokenUriEntrypoints = () =>
+  mockCallContract.mock.calls.map(([{ calldata }]) =>
+    ['tokenURI', 'token_uri'].find(name => calldata.includes(selector(name)))
+  );
+
 beforeEach(() => {
   mockCallContract.mockReset();
-  mockGetStarkProfile.mockReset().mockResolvedValue({ profilePicture: AVATAR_URL });
+  mockNftPicture(AVATAR_URL);
   fetchSpy = jest.spyOn(global, 'fetch').mockRejectedValue(new Error('unexpected fetch'));
 });
 
@@ -41,26 +66,29 @@ describe('Starknet image resolver', () => {
     'does not query a profile for %s',
     async address => {
       await expect(starknet(address)).resolves.toBe(false);
-      expect(mockGetStarkProfile).not.toHaveBeenCalled();
+      expect(mockCallContract).not.toHaveBeenCalled();
     }
   );
 
   it('queries a profile for an address that is not zero-padded', async () => {
-    mockGetStarkProfile.mockResolvedValue({ profilePicture: null });
+    mockCallContract.mockResolvedValue(profileReply(undefined, '0x0', '0x0'));
 
     await expect(starknet(UNPADDED_ADDRESS)).resolves.toBe(false);
-    expect(mockGetStarkProfile).toHaveBeenCalledWith(UNPADDED_ADDRESS);
+    expect(mockCallContract.mock.calls[0][0].calldata).toContain(
+      BigInt(UNPADDED_ADDRESS).toString()
+    );
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('answers false for a profile picture that cannot become a fetchable URL', async () => {
-    mockGetStarkProfile.mockResolvedValue({ profilePicture: 'http://' });
+    mockNftPicture('http://');
 
     await expect(starknet(ADDRESS)).resolves.toBe(false);
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('misses on on-chain metadata whose image cannot become a fetchable URL', async () => {
-    mockGetStarkProfile.mockResolvedValue({ profilePicture: 'https://example.com/metadata.json' });
+    mockNftPicture('https://example.com/metadata.json');
     fetchSpy.mockResolvedValue(
       new Response(JSON.stringify({ image: 'http://' }), {
         headers: { 'Content-Type': 'application/json' }
@@ -114,9 +142,6 @@ describe('Starknet image resolver', () => {
   });
 
   it('falls back to token_uri when the profile multicall uses an unsupported entrypoint', async () => {
-    mockGetStarkProfile.mockRejectedValue(
-      new Error('starknetid/multicall-failed: ENTRYPOINT_NOT_FOUND')
-    );
     const fetchSpy = jest
       .spyOn(global, 'fetch')
       .mockResolvedValue(answeredFrom(IMAGE_URL, new Response(Buffer.from('image'))));
@@ -124,56 +149,63 @@ describe('Starknet image resolver', () => {
       part => `0x${Buffer.from(part).toString('hex')}`
     );
     mockCallContract
-      .mockResolvedValueOnce(['0x1', '0xabc'])
-      .mockResolvedValueOnce(['0x42'])
-      .mockResolvedValueOnce([NFT_CONTRACT])
-      .mockResolvedValueOnce(['0x2', '0x4e20', '0x0'])
-      .mockResolvedValueOnce(['0x2', ...urlFelts]);
+      .mockRejectedValueOnce(new Error(UNSUPPORTED_ENTRYPOINT))
+      .mockResolvedValueOnce(profileReply(['0x2', ...urlFelts]));
 
     await expect(starknet(UNPADDED_ADDRESS)).resolves.toBeInstanceOf(Buffer);
     expect(fetchSpy).toHaveBeenCalledWith(IMAGE_URL, expect.anything());
-    expect(mockCallContract.mock.calls[1][0]).toEqual({
-      contractAddress: expect.any(String),
-      entrypoint: 'domain_to_id',
-      calldata: ['0x1', '0xabc']
-    });
-    expect(mockCallContract).toHaveBeenLastCalledWith({
-      contractAddress: NFT_CONTRACT,
-      entrypoint: 'token_uri',
-      calldata: ['0x4e20', '0x0']
-    });
+    expect(tokenUriEntrypoints()).toEqual(['tokenURI', 'token_uri']);
   });
 
   it('decodes a Cairo 1 ByteArray token_uri', async () => {
-    mockGetStarkProfile.mockRejectedValue(
-      new Error('starknetid/multicall-failed: ENTRYPOINT_NOT_FOUND')
-    );
     const fetchSpy = jest
       .spyOn(global, 'fetch')
       .mockResolvedValue(answeredFrom(IMAGE_URL, new Response(Buffer.from('image'))));
     const fullWord = IMAGE_URL.slice(0, 31);
     const pendingWord = IMAGE_URL.slice(31);
     mockCallContract
-      .mockResolvedValueOnce(['0x1', '0xabc'])
-      .mockResolvedValueOnce(['0x42'])
-      .mockResolvedValueOnce([NFT_CONTRACT])
-      .mockResolvedValueOnce(['0x2', '0x4e20', '0x0'])
-      .mockResolvedValueOnce([
-        '0x1',
-        `0x${Buffer.from(fullWord).toString('hex')}`,
-        `0x${Buffer.from(pendingWord).toString('hex')}`,
-        `0x${pendingWord.length.toString(16)}`
-      ]);
+      .mockRejectedValueOnce(new Error(UNSUPPORTED_ENTRYPOINT))
+      .mockResolvedValueOnce(
+        profileReply([
+          '0x1',
+          `0x${Buffer.from(fullWord).toString('hex')}`,
+          `0x${Buffer.from(pendingWord).toString('hex')}`,
+          `0x${pendingWord.length.toString(16)}`
+        ])
+      );
 
     await expect(starknet(UNPADDED_ADDRESS)).resolves.toBeInstanceOf(Buffer);
     expect(fetchSpy).toHaveBeenCalledWith(IMAGE_URL, expect.anything());
   });
 
+  it('renders an NFT picture whose tokenURI replies with a Cairo 1 ByteArray', async () => {
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg"/>';
+    const image = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+    const uri = `data:application/json;base64,${Buffer.from(JSON.stringify({ image })).toString('base64')}`;
+    mockNftPicture(uri);
+    fetchSpy.mockRestore();
+
+    await expect(starknet(ADDRESS)).resolves.toEqual(Buffer.from(svg));
+    // One request, and through tokenURI: the Cairo 0 contracts only have tokenURI.
+    expect(tokenUriEntrypoints()).toEqual(['tokenURI']);
+  });
+
+  it('fetches the identicon of a profile without an NFT picture', async () => {
+    const identicon = 'https://starknet.id/api/identicons/847214245145';
+    mockCallContract.mockResolvedValue(profileReply(undefined, '0xc541e77519', '0x0'));
+    fetchSpy.mockResolvedValue(
+      answeredFrom(identicon, new Response(IMAGE, { headers: { 'Content-Type': 'image/svg+xml' } }))
+    );
+
+    await expect(starknet(ADDRESS)).resolves.toEqual(IMAGE);
+    expect(fetchSpy).toHaveBeenCalledWith(identicon, expect.anything());
+    expect(mockCallContract).toHaveBeenCalledTimes(1);
+  });
+
   it('links a fallback failure to the original profile error', async () => {
-    const profileError = new Error('starknetid/multicall-failed: ENTRYPOINT_NOT_FOUND');
+    const profileError = new Error(UNSUPPORTED_ENTRYPOINT);
     const fallbackError = new Error('fallback RPC failed');
-    mockGetStarkProfile.mockRejectedValue(profileError);
-    mockCallContract.mockRejectedValue(fallbackError);
+    mockCallContract.mockRejectedValueOnce(profileError).mockRejectedValueOnce(fallbackError);
 
     await expect(starknet(UNPADDED_ADDRESS)).rejects.toBe(fallbackError);
     expect(fallbackError.cause).toBe(profileError);
@@ -181,10 +213,10 @@ describe('Starknet image resolver', () => {
 
   it('does not hide unrelated profile errors', async () => {
     const error = new Error('RPC timeout');
-    mockGetStarkProfile.mockRejectedValue(error);
+    mockCallContract.mockRejectedValue(error);
 
     await expect(starknet(UNPADDED_ADDRESS)).rejects.toBe(error);
-    expect(mockCallContract).not.toHaveBeenCalled();
+    expect(mockCallContract).toHaveBeenCalledTimes(1);
   });
 
   it('rejects and cancels a streaming body whose media type is neither image nor JSON', async () => {
@@ -308,7 +340,7 @@ describe('Starknet image resolver', () => {
     const metadataUri =
       'data:application/json;base64,eyJpbWFnZSI6ImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5In0=';
     const imageUri = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0i';
-    mockGetStarkProfile.mockResolvedValue({ profilePicture: metadataUri });
+    mockNftPicture(metadataUri);
     fetchSpy
       .mockResolvedValueOnce(jsonResponse({ image: imageUri }))
       .mockResolvedValueOnce(
