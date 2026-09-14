@@ -1,6 +1,5 @@
-import { byteArray, CallData, constants, shortString, starknetId } from 'starknet';
+import { byteArray, CallData, constants, hash, shortString, starknetId } from 'starknet';
 import { isStarkDomain, isStarknetFelt } from '../../helpers/address';
-import { untilAborted, withDeadline } from '../../helpers/deadline';
 import { httpError } from '../../helpers/errors';
 import { fetchHttpImage, getUrl } from '../../helpers/http';
 import { getProvider } from '../../helpers/provider';
@@ -18,58 +17,68 @@ function isUnsupportedTokenUriError(error: unknown): boolean {
   );
 }
 
-async function getNftProfilePicture(
+// starknet.js's getStarkProfile makes this multicall, plus the social fields, but
+// decodes every token URI as an Array<felt252>, which appends a stray character
+// to a Cairo 1 ByteArray one, and only ever calls tokenURI.
+async function getProfilePicture(
   address: string,
   entrypoint: 'tokenURI' | 'token_uri'
 ): Promise<string | null> {
-  const starknetIdContract = starknetId.getStarknetIdContract(CHAIN_ID);
-  const identityContract = starknetId.getStarknetIdIdentityContract(CHAIN_ID);
-  const pfpContract = starknetId.getStarknetIdPfpContract(CHAIN_ID);
+  const { dynamicCallData, dynamicFelt, execution } = starknetId;
+  const naming = starknetId.getStarknetIdContract(CHAIN_ID);
+  const identity = starknetId.getStarknetIdIdentityContract(CHAIN_ID);
+  const pfp = starknetId.getStarknetIdPfpContract(CHAIN_ID);
+  const call = (to: string, name: string, calldata: ReturnType<typeof dynamicCallData>[]) => ({
+    execution: execution({}),
+    to: dynamicFelt(to),
+    selector: dynamicFelt(hash.getSelectorFromName(name)),
+    calldata
+  });
 
-  const domain = await provider.callContract({
-    contractAddress: starknetIdContract,
-    entrypoint: 'address_to_domain',
-    calldata: CallData.compile({ address, hint: [] })
-  });
-  const id = await provider.callContract({
-    contractAddress: starknetIdContract,
-    entrypoint: 'domain_to_id',
-    calldata: domain
-  });
-  const nftContract = await provider.callContract({
-    contractAddress: identityContract,
-    entrypoint: 'get_verifier_data',
+  // A reference [i, j] is word j of call i's result.
+  const data = await provider.callContract({
+    contractAddress: starknetId.getStarknetIdMulticallContract(CHAIN_ID),
+    entrypoint: 'aggregate',
     calldata: CallData.compile({
-      token_id: id[0],
-      field: shortString.encodeShortString('nft_pp_contract'),
-      verifier: pfpContract,
-      domain: 0
+      calls: [
+        call(naming, 'address_to_domain', [dynamicCallData(address), dynamicCallData('0')]),
+        call(naming, 'domain_to_id', [dynamicCallData(undefined, undefined, [0, 0])]),
+        call(identity, 'get_verifier_data', [
+          dynamicCallData(undefined, [1, 0]),
+          dynamicCallData(shortString.encodeShortString('nft_pp_contract')),
+          dynamicCallData(pfp),
+          dynamicCallData('0')
+        ]),
+        call(identity, 'get_extended_verifier_data', [
+          dynamicCallData(undefined, [1, 0]),
+          dynamicCallData(shortString.encodeShortString('nft_pp_id')),
+          dynamicCallData('2'),
+          dynamicCallData(pfp),
+          dynamicCallData('0')
+        ]),
+        // Skipped when the profile has no NFT contract, leaving four results.
+        {
+          execution: execution(undefined, undefined, [2, 0, 0]),
+          to: dynamicFelt(undefined, [2, 0]),
+          selector: dynamicFelt(hash.getSelectorFromName(entrypoint)),
+          calldata: [dynamicCallData(undefined, [3, 1]), dynamicCallData(undefined, [3, 2])]
+        }
+      ]
     })
   });
 
-  if (!nftContract[0] || nftContract[0] === '0x0') return null;
+  // [count, length, ...result, length, ...result, ...]
+  const results: string[][] = [];
+  for (let i = 1; i < data.length; i += 1 + Number(data[i])) {
+    results.push(data.slice(i + 1, i + 1 + Number(data[i])));
+  }
 
-  const nftId = await provider.callContract({
-    contractAddress: identityContract,
-    entrypoint: 'get_extended_verifier_data',
-    calldata: CallData.compile({
-      token_id: id[0],
-      field: shortString.encodeShortString('nft_pp_id'),
-      extended_data_length: 2,
-      verifier: pfpContract,
-      domain: 0
-    })
-  });
-  const metadata = await provider.callContract({
-    contractAddress: nftContract[0],
-    entrypoint,
-    calldata: nftId.slice(1, 3)
-  });
+  const tokenUri = results[4] && decodeTokenUri(results[4]);
 
-  return decodeTokenUri(metadata);
+  return tokenUri || `${IDENTICON_URL}${BigInt(results[1][0])}`;
 }
 
-// `token_uri` replies as [len, ...felts] (Cairo 0 Array<felt252>) or as
+// A token URI replies as [len, ...felts] (Cairo 0 Array<felt252>) or as
 // [num_full_words, ...full_words, pending_word, pending_word_len] (Cairo 1 ByteArray).
 function decodeTokenUri(raw: string[]): string | null {
   const len = Number(raw[0]);
@@ -107,24 +116,17 @@ async function getImage(domainOrAddress: string): Promise<string | null> {
   if (!address) return null;
 
   try {
-    const picture = (await provider.getStarkProfile(address))?.profilePicture;
-    if (!picture || picture.startsWith(IDENTICON_URL)) return picture ?? null;
+    return await getProfilePicture(address, 'tokenURI');
   } catch (err) {
     if (!isUnsupportedTokenUriError(err)) throw err;
 
     try {
-      return await withDeadline(signal =>
-        untilAborted(signal, getNftProfilePicture(address, 'token_uri'))
-      );
+      return await getProfilePicture(address, 'token_uri');
     } catch (fallbackErr) {
       if (fallbackErr instanceof Error) fallbackErr.cause = err;
       throw fallbackErr;
     }
   }
-
-  // getStarkProfile decodes every tokenURI reply as an Array<felt252>, which
-  // appends a stray character to a Cairo 1 ByteArray one, so read it again.
-  return withDeadline(signal => untilAborted(signal, getNftProfilePicture(address, 'tokenURI')));
 }
 
 async function followMetadata(response: Response): Promise<string | undefined> {
