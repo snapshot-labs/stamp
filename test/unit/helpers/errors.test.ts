@@ -54,6 +54,7 @@ describe('isTransportFailure', () => {
 
   it.each([
     'ERR_TLS_CERT_ALTNAME_INVALID',
+    'ERR_SSL_TLSV1_UNRECOGNIZED_NAME',
     'CERT_HAS_EXPIRED',
     'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
     'DEPTH_ZERO_SELF_SIGNED_CERT'
