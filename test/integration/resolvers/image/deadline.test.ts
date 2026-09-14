@@ -19,8 +19,10 @@ beforeAll(async () => {
 
     // A body that opens and never closes. flushHeaders puts the head on the
     // wire by itself, so the response settles for the caller while the read of
-    // it cannot.
-    res.writeHead(200, { 'Content-Type': 'application/json' });
+    // it cannot. The head has to be an image one: the image reader turns any
+    // other type away before it reads a byte, while farcaster's JSON read never
+    // looks at the type.
+    res.writeHead(200, { 'Content-Type': 'image/png' });
     res.flushHeaders();
     res.write('{"');
   });
