@@ -14,7 +14,7 @@ beforeAll(async () => {
   server = http.createServer((req, res) => {
     if (req.url === '/reset') return req.socket.destroy();
     if (req.url === '/rst') return req.socket.resetAndDestroy();
-    if (req.url === '/404') return res.writeHead(404).end();
+    if (/^\/\d{3}$/.test(req.url ?? '')) return res.writeHead(Number(req.url?.slice(1))).end();
     if (req.url?.startsWith('/gateway/')) {
       return res.writeHead(200, { 'content-type': 'application/json' }).end('{"data":"0x"}');
     }
@@ -81,7 +81,7 @@ describe('isSilencedError, on a peer reset', () => {
   });
 });
 
-describe('isSilencedError, on a peer reset under an RPC library', () => {
+describe('isSilencedError, on a failure an RPC library nests', () => {
   const viemCall = (path: string) =>
     createPublicClient({ transport: viemHttp(`${url}${path}`, { retryCount: 0 }) })
       .readContract({
@@ -124,10 +124,17 @@ describe('isSilencedError, on a peer reset under an RPC library', () => {
     expect(isSilencedError(error)).toBe(true);
   });
 
-  it('still reports an RPC 404 viem nests as a status', async () => {
-    const error = await viemCall('404');
+  it.each([429, 504])('silences an RPC %s viem nests as a status', async status => {
+    const error = await viemCall(String(status));
 
-    expect(error).toMatchObject({ cause: { cause: { status: 404 } } });
+    expect(error).toMatchObject({ cause: { cause: { status } } });
+    expect(isSilencedError(error)).toBe(true);
+  });
+
+  it.each([404, 502])('still reports an RPC %s viem nests as a status', async status => {
+    const error = await viemCall(String(status));
+
+    expect(error).toMatchObject({ cause: { cause: { status } } });
     expect(isSilencedError(error)).toBe(false);
   });
 });

@@ -12,7 +12,10 @@ export function httpError(source: string, status: number, message: string) {
 function wrapped(error: any, seen = new Set()): any[] {
   if (!error || typeof error !== 'object' || seen.has(error)) return [];
   seen.add(error);
-  return [error, ...[error.cause, error.error, error.serverError].flatMap(e => wrapped(e, seen))];
+  return [
+    error,
+    ...[error.cause, error.error, error.serverError, error.response].flatMap(e => wrapped(e, seen))
+  ];
 }
 
 export function isSilencedError(error: any, additionalMessages?: string[]): boolean {
@@ -38,12 +41,7 @@ export function isSilencedError(error: any, additionalMessages?: string[]): bool
     'bad port',
     ...(additionalMessages || [])
   ];
-  const codes = [
-    ...wrapped(error).map(e => e.code),
-    error.error?.status,
-    error.status,
-    error.response?.status
-  ];
+  const codes = wrapped(error).flatMap(e => [e.code, e.status]);
 
   // ethers v5 re-labels a non-JSON response from an RPC as CALL_EXCEPTION.
   // The nested HTTP status is the reliable signal that this was an upstream
