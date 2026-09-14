@@ -7,6 +7,17 @@ export function httpError(source: string, status: number, message: string) {
   });
 }
 
+// ethers v5 nests a transport error under `error.serverError`, viem four `cause`
+// levels down, five on a CCIP-Read callback. `seen` stops on an error that is its own cause.
+function wrapped(error: any, seen = new Set()): any[] {
+  if (!error || typeof error !== 'object' || seen.has(error)) return [];
+  seen.add(error);
+  return [
+    error,
+    ...[error.cause, error.error, error.serverError, error.response].flatMap(e => wrapped(e, seen))
+  ];
+}
+
 export function isSilencedError(error: any, additionalMessages?: string[]): boolean {
   // A rejection carries whatever it was given, null included. There is nothing
   // in one to classify, and reporting it is not an option either: `capture`
@@ -30,14 +41,7 @@ export function isSilencedError(error: any, additionalMessages?: string[]): bool
     'bad port',
     ...(additionalMessages || [])
   ];
-  const codes = [
-    error.error?.code,
-    error.error?.status,
-    error.code,
-    error.status,
-    error.response?.status,
-    error.cause?.code
-  ];
+  const codes = wrapped(error).flatMap(e => [e.code, e.status]);
 
   // ethers v5 re-labels a non-JSON response from an RPC as CALL_EXCEPTION.
   // The nested HTTP status is the reliable signal that this was an upstream
