@@ -5,7 +5,8 @@ import { httpError } from '../../helpers/errors';
 import { fetchHttpImage, getUrl } from '../../helpers/http';
 import { getProvider } from '../../helpers/provider';
 
-const DEFAULT_IMG_URL = 'https://starknet.id/api/identicons/0';
+const IDENTICON_URL = 'https://starknet.id/api/identicons/';
+const DEFAULT_IMG_URL = `${IDENTICON_URL}0`;
 const CHAIN_ID = constants.StarknetChainId.SN_MAIN;
 const provider = getProvider(CHAIN_ID);
 
@@ -17,7 +18,10 @@ function isUnsupportedTokenUriError(error: unknown): boolean {
   );
 }
 
-async function getNftProfilePicture(address: string): Promise<string | null> {
+async function getNftProfilePicture(
+  address: string,
+  entrypoint: 'tokenURI' | 'token_uri'
+): Promise<string | null> {
   const starknetIdContract = starknetId.getStarknetIdContract(CHAIN_ID);
   const identityContract = starknetId.getStarknetIdIdentityContract(CHAIN_ID);
   const pfpContract = starknetId.getStarknetIdPfpContract(CHAIN_ID);
@@ -58,7 +62,7 @@ async function getNftProfilePicture(address: string): Promise<string | null> {
   });
   const metadata = await provider.callContract({
     contractAddress: nftContract[0],
-    entrypoint: 'token_uri',
+    entrypoint,
     calldata: nftId.slice(1, 3)
   });
 
@@ -103,17 +107,24 @@ async function getImage(domainOrAddress: string): Promise<string | null> {
   if (!address) return null;
 
   try {
-    return (await provider.getStarkProfile(address))?.profilePicture ?? null;
+    const picture = (await provider.getStarkProfile(address))?.profilePicture;
+    if (!picture || picture.startsWith(IDENTICON_URL)) return picture ?? null;
   } catch (err) {
     if (!isUnsupportedTokenUriError(err)) throw err;
 
     try {
-      return await withDeadline(signal => untilAborted(signal, getNftProfilePicture(address)));
+      return await withDeadline(signal =>
+        untilAborted(signal, getNftProfilePicture(address, 'token_uri'))
+      );
     } catch (fallbackErr) {
       if (fallbackErr instanceof Error) fallbackErr.cause = err;
       throw fallbackErr;
     }
   }
+
+  // getStarkProfile decodes every tokenURI reply as an Array<felt252>, which
+  // appends a stray character to a Cairo 1 ByteArray one, so read it again.
+  return withDeadline(signal => untilAborted(signal, getNftProfilePicture(address, 'tokenURI')));
 }
 
 async function followMetadata(response: Response): Promise<string | undefined> {

@@ -8,6 +8,7 @@ jest.mock('../../../../src/helpers/provider', () => ({
   })
 }));
 
+import { byteArray, CallData } from 'starknet';
 import { isSilencedError } from '../../../../src/helpers/errors';
 import { MAX_IMAGE_BYTES } from '../../../../src/helpers/http';
 import starknet from '../../../../src/resolvers/image/starknet';
@@ -26,9 +27,22 @@ const IMAGE = Buffer.from('as much of an image as the fetch cares about');
 
 let fetchSpy: jest.SpyInstance;
 
+function mockNftPicture(uri: string) {
+  const replies: Record<string, string[]> = {
+    address_to_domain: ['0x1', '0xabc'],
+    domain_to_id: ['0x42'],
+    get_verifier_data: [NFT_CONTRACT],
+    get_extended_verifier_data: ['0x2', '0x4e20', '0x0'],
+    tokenURI: CallData.compile(byteArray.byteArrayFromString(uri))
+  };
+  mockGetStarkProfile.mockResolvedValue({ profilePicture: uri });
+  mockCallContract.mockImplementation(async ({ entrypoint }) => replies[entrypoint]);
+}
+
 beforeEach(() => {
   mockCallContract.mockReset();
-  mockGetStarkProfile.mockReset().mockResolvedValue({ profilePicture: AVATAR_URL });
+  mockGetStarkProfile.mockReset();
+  mockNftPicture(AVATAR_URL);
   fetchSpy = jest.spyOn(global, 'fetch').mockRejectedValue(new Error('unexpected fetch'));
 });
 
@@ -53,14 +67,14 @@ describe('Starknet image resolver', () => {
   });
 
   it('answers false for a profile picture that cannot become a fetchable URL', async () => {
-    mockGetStarkProfile.mockResolvedValue({ profilePicture: 'http://' });
+    mockNftPicture('http://');
 
     await expect(starknet(ADDRESS)).resolves.toBe(false);
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('misses on on-chain metadata whose image cannot become a fetchable URL', async () => {
-    mockGetStarkProfile.mockResolvedValue({ profilePicture: 'https://example.com/metadata.json' });
+    mockNftPicture('https://example.com/metadata.json');
     fetchSpy.mockResolvedValue(
       new Response(JSON.stringify({ image: 'http://' }), {
         headers: { 'Content-Type': 'application/json' }
@@ -167,6 +181,33 @@ describe('Starknet image resolver', () => {
 
     await expect(starknet(UNPADDED_ADDRESS)).resolves.toBeInstanceOf(Buffer);
     expect(fetchSpy).toHaveBeenCalledWith(IMAGE_URL, expect.anything());
+  });
+
+  it('renders an NFT picture whose ByteArray token URI getStarkProfile decodes with a stray character', async () => {
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg"/>';
+    const image = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+    const uri = `data:application/json;base64,${Buffer.from(JSON.stringify({ image })).toString('base64')}`;
+    mockNftPicture(uri);
+    mockGetStarkProfile.mockResolvedValue({ profilePicture: `${uri}8` });
+    fetchSpy.mockRestore();
+
+    await expect(starknet(ADDRESS)).resolves.toEqual(Buffer.from(svg));
+    // Not token_uri: the Cairo 0 contracts answering the multicall only have tokenURI.
+    expect(mockCallContract).toHaveBeenLastCalledWith(
+      expect.objectContaining({ contractAddress: NFT_CONTRACT, entrypoint: 'tokenURI' })
+    );
+  });
+
+  it('fetches an identicon profile picture without reading a token URI', async () => {
+    const identicon = 'https://starknet.id/api/identicons/847214245145';
+    mockGetStarkProfile.mockResolvedValue({ profilePicture: identicon });
+    fetchSpy.mockResolvedValue(
+      answeredFrom(identicon, new Response(IMAGE, { headers: { 'Content-Type': 'image/svg+xml' } }))
+    );
+
+    await expect(starknet(ADDRESS)).resolves.toEqual(IMAGE);
+    expect(fetchSpy).toHaveBeenCalledWith(identicon, expect.anything());
+    expect(mockCallContract).not.toHaveBeenCalled();
   });
 
   it('links a fallback failure to the original profile error', async () => {
@@ -308,7 +349,7 @@ describe('Starknet image resolver', () => {
     const metadataUri =
       'data:application/json;base64,eyJpbWFnZSI6ImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5In0=';
     const imageUri = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0i';
-    mockGetStarkProfile.mockResolvedValue({ profilePicture: metadataUri });
+    mockNftPicture(metadataUri);
     fetchSpy
       .mockResolvedValueOnce(jsonResponse({ image: imageUri }))
       .mockResolvedValueOnce(
