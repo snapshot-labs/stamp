@@ -36,6 +36,13 @@ describe('isSilencedError', () => {
   it('does not silence unrelated errors', () => {
     expect(isSilencedError(new Error('boom'))).toBe(false);
   });
+
+  it('classifies an error that is its own cause', () => {
+    const error: any = new Error('boom');
+    error.cause = error;
+
+    expect(isSilencedError(error)).toBe(false);
+  });
 });
 
 describe('isTransportFailure', () => {
