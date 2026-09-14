@@ -21,6 +21,7 @@ let oversizedDeclaredUrl: string;
 let oversizedStreamedUrl: string;
 let slowErrorUrl: string;
 let redirectingMissingUrl: string;
+let refusedUrl: string;
 let nonImageClosed!: Promise<void>;
 let resolveNonImageClosed!: () => void;
 let oversizedDeclaredClosed!: Promise<void>;
@@ -88,6 +89,11 @@ beforeAll(async () => {
     if (req.url === '/not-an-image.png') {
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       return streamForever(res, resolveNonImageClosed);
+    }
+
+    if (req.url?.startsWith('/refused.png?status=')) {
+      res.writeHead(Number(req.url.split('=')[1]), { 'Content-Type': 'application/xml' });
+      return res.end('<Error><Code>AccessDenied</Code></Error>');
     }
 
     if (req.url === '/redirect-missing.png') {
@@ -158,6 +164,7 @@ beforeAll(async () => {
   oversizedStreamedUrl = `${origin}/oversized-streamed.png`;
   slowErrorUrl = `${origin}/slow-error.png`;
   redirectingMissingUrl = `${origin}/redirect-missing.png`;
+  refusedUrl = `${origin}/refused.png`;
 });
 
 afterAll(async () => {
@@ -174,6 +181,15 @@ describe('fetchHttpImage', () => {
   it('raises rather than returning the body of a non-2xx', async () => {
     await expect(fetchHttpImage(missingUrl)).rejects.toMatchObject({ status: 404 });
   });
+
+  it.each([401, 402, 403])(
+    'raises a routine miss when a host refuses the anonymous download with a %i',
+    async status => {
+      await expect(fetchHttpImage(`${refusedUrl}?status=${status}`)).rejects.toMatchObject({
+        status: 404
+      });
+    }
+  );
 
   it('reports the host that answered a redirect, not the host that was asked', async () => {
     const farHost = new URL(farOrigin).host;
