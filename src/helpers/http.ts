@@ -37,7 +37,10 @@ async function readHttpImage(response: Response): Promise<Buffer> {
 
   if (!response.ok) {
     await response.body?.cancel();
-    throw httpError(host, response.status, response.statusText);
+    // No credentials are sent, so a 4xx is this host refusing this image, even
+    // the 401/402/403 that isRoutineMiss keeps loud for authenticated API calls.
+    const status = response.status >= 400 && response.status < 500 ? 404 : response.status;
+    throw httpError(host, status, response.statusText);
   }
 
   const type = response.headers.get('content-type');
