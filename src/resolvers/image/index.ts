@@ -42,8 +42,7 @@ function isRoutineMiss(error: any): boolean {
 
   return (
     (status >= 400 && status < 500 && !AUTH_STATUS_CODES.includes(status)) ||
-    isTransportFailure(error) ||
-    error?.code === 'INVALID_ARGUMENT'
+    isTransportFailure(error)
   );
 }
 

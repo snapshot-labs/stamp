@@ -9,6 +9,7 @@ import {
 } from '../../../../src/resolvers/image/snapshot';
 import { resolveAvatar as resolveSxAvatar } from '../../../../src/resolvers/image/space-sx';
 import starknet from '../../../../src/resolvers/image/starknet';
+import trustwallet from '../../../../src/resolvers/image/trustwallet';
 import { jsonResponse, mockGlobalFetch } from '../../../helpers/fetch';
 
 jest.mock('../../../../src/helpers/http', () => ({
@@ -173,6 +174,21 @@ describe('resolvers answer false rather than throwing when there is no data', ()
       await expect(defillama(ADDRESS, 'not-a-chain-id')).resolves.toBe(false);
       expect(mockedFetch).not.toHaveBeenCalled();
     });
+  });
+
+  // Both token resolvers key their icon URL on an EVM contract address, so a
+  // `token` id that is not one can never resolve.
+  describe.each([
+    ['trustwallet', trustwallet],
+    ['defillama', defillama]
+  ] as const)('%s', (_name, resolve) => {
+    it.each(['hello', NOT_AN_ADDRESS])(
+      'answers false for the id %s, which is not an address, without asking',
+      async id => {
+        await expect(resolve(id, '1')).resolves.toBe(false);
+        expect(mockedFetchHttpImage).not.toHaveBeenCalled();
+      }
+    );
   });
 
   describe('farcaster', () => {

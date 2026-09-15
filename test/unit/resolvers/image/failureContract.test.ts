@@ -104,12 +104,6 @@ const NOT_REPORTED = [
     })
   ],
   [
-    'an id the route never validated',
-    Object.assign(new Error('invalid address'), {
-      code: 'INVALID_ARGUMENT'
-    })
-  ],
-  [
     'what the shared classifier silences',
     Object.assign(new Error('aborted'), {
       name: 'AbortError'
@@ -169,6 +163,17 @@ describe('resolvers - failure contract', () => {
       expect(capture).toHaveBeenCalledWith(error, expect.anything());
     }
   );
+
+  // Every resolver checks the id it was handed before parsing it, so an
+  // INVALID_ARGUMENT can no longer come from the request -- it means a resolver
+  // parsed something an upstream returned.
+  it('still reports an address ethers rejected', async () => {
+    const error = Object.assign(new Error('invalid address'), { code: 'INVALID_ARGUMENT' });
+    (ens as jest.Mock).mockRejectedValue(error);
+
+    await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
+    expect(capture).toHaveBeenCalledWith(error, expect.anything());
+  });
 
   it('still reports an upstream 500', async () => {
     const error = Object.assign(new Error('[profile host]'), {
