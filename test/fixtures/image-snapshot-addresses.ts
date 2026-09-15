@@ -144,6 +144,9 @@ export const noAvatarInputs = {
   // snapshot
   snapshotUserMissing: '0x556B14CbdA79A36dC33FcD461a04A5BCb5dC2A70',
   snapshotSpaceMissing: 'idonthaveensdomain.eth',
+  // an onchain space whose metadata link is "": api.snapshot.box answers its
+  // metadata with a partial error response
+  snapshotSpaceEmptyMetadata: '0x11DbAFcB0b8A966c6730Af5Cda5a7D7E5FF2Bb58',
   // a real space, but on an unsupported network -> false
   snapshotSpaceUnsupportedNetwork: 'ens.eth'
 } as const;
