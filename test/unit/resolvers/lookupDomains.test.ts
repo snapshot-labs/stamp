@@ -12,28 +12,24 @@ jest.mock('@snapshot-labs/snapshot-sentry', () => ({
 jest.mock('../../../src/resolvers/lookupDomains/ens', () => ({
   __esModule: true,
   NAME: 'Ens',
-  DEFAULT_CHAIN_ID: '1',
   CHAIN_IDS: ['1', '11155111'],
   default: jest.fn()
 }));
 jest.mock('../../../src/resolvers/lookupDomains/ensV2', () => ({
   __esModule: true,
   NAME: 'Ens V2',
-  DEFAULT_CHAIN_ID: '1',
   CHAIN_IDS: ['11155111'],
   default: jest.fn()
 }));
 jest.mock('../../../src/resolvers/lookupDomains/shibarium', () => ({
   __esModule: true,
   NAME: 'Shibarium',
-  DEFAULT_CHAIN_ID: '109',
   CHAIN_IDS: ['109', '157'],
   default: jest.fn()
 }));
 jest.mock('../../../src/resolvers/lookupDomains/unstoppableDomains', () => ({
   __esModule: true,
   NAME: 'Unstoppable Domains',
-  DEFAULT_CHAIN_ID: '146',
   CHAIN_IDS: ['146'],
   default: jest.fn()
 }));
@@ -43,7 +39,9 @@ const CHAINS = ['1', '109', '146'];
 const ENS_CHAINS = ['1', '11155111'];
 
 describe('lookupDomains - default chains', () => {
-  it('calls every provider on its own default chain when no chain is given', async () => {
+  // The call counts are the testnet filter: ens and shibarium each declare a
+  // testnet next to their mainnet, and ensV2 declares nothing but a testnet.
+  it('calls every provider on each mainnet chain it serves, and on no testnet', async () => {
     (ens as jest.Mock).mockResolvedValue([]);
     (ensV2 as jest.Mock).mockResolvedValue([]);
     (shibarium as jest.Mock).mockResolvedValue([]);
@@ -51,21 +49,13 @@ describe('lookupDomains - default chains', () => {
 
     await lookupDomains(VALID_ADDRESS);
 
-    expect(ens).toHaveBeenCalledWith(VALID_ADDRESS, '1');
-    expect(shibarium).toHaveBeenCalledWith(VALID_ADDRESS, '109');
-    expect(unstoppableDomains).toHaveBeenCalledWith(VALID_ADDRESS, '146');
-  });
-
-  it('does not widen the default chain set to a chain no provider defaults to', async () => {
-    (ens as jest.Mock).mockResolvedValue([]);
-    (ensV2 as jest.Mock).mockResolvedValue([]);
-    (shibarium as jest.Mock).mockResolvedValue([]);
-    (unstoppableDomains as jest.Mock).mockResolvedValue([]);
-
-    await lookupDomains(VALID_ADDRESS);
-
-    expect(ensV2).not.toHaveBeenCalled();
     expect(ens).toHaveBeenCalledTimes(1);
+    expect(ens).toHaveBeenCalledWith(VALID_ADDRESS, '1');
+    expect(shibarium).toHaveBeenCalledTimes(1);
+    expect(shibarium).toHaveBeenCalledWith(VALID_ADDRESS, '109');
+    expect(unstoppableDomains).toHaveBeenCalledTimes(1);
+    expect(unstoppableDomains).toHaveBeenCalledWith(VALID_ADDRESS, '146');
+    expect(ensV2).not.toHaveBeenCalled();
   });
 });
 

@@ -1,4 +1,13 @@
+// Deep import: `networks` is not on snapshot.js's public export, but `src/` is
+// published. Keeping it here leaves one line to fix if a major relocates it.
+import networks from '@snapshot-labs/snapshot.js/src/networks.json';
 import chains from '../chains.json';
+
+// A chain snapshot.js does not know counts as mainnet. Every chain a resolver
+// serves is listed today, so this only fires for one added ahead of snapshot.js.
+export function isTestnet(chainId: string): boolean {
+  return !!(networks as Record<string, { testnet?: boolean }>)[chainId]?.testnet;
+}
 
 export function shortNameToChainId(shortName: string): string | null {
   return shortName in chains.SHORTNAME_TO_CHAIN_ID ? chains.SHORTNAME_TO_CHAIN_ID[shortName] : null;

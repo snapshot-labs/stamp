@@ -63,9 +63,11 @@ describe('lookupDomains/ensV2', () => {
     expect(mockedGraphQlCall).not.toHaveBeenCalled();
   });
 
-  it('does not query anything on the default chain', async () => {
-    await expect(lookupDomains(ADDRESS)).resolves.toEqual([]);
-    expect(mockedGraphQlCall).not.toHaveBeenCalled();
+  it('defaults to a chain it serves', async () => {
+    mockedGraphQlCall.mockResolvedValueOnce(domainsResponse([{ name: 'boorger.eth' }]));
+
+    await expect(lookupDomains(ADDRESS)).resolves.toEqual(['boorger.eth']);
+    expect(mockedGraphQlCall).toHaveBeenCalledWith(ENDPOINT, expect.anything(), expect.anything());
   });
 
   it('rejects instead of swallowing an upstream failure', async () => {
