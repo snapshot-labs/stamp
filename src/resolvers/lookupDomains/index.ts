@@ -4,13 +4,13 @@ import * as ens from './ens';
 import * as ensV2 from './ensV2';
 import * as shibarium from './shibarium';
 import * as unstoppableDomains from './unstoppableDomains';
+import { isTestnet } from '../../helpers/chains';
 import { isSilencedError, isTransportFailure } from '../../helpers/errors';
 import { timeLookupDomainsResponse as timeResponse } from '../../helpers/metrics';
 import { Address, Handle } from '../../helpers/types';
 
 type Provider = {
   NAME: string;
-  DEFAULT_CHAIN_ID: string;
   CHAIN_IDS: string[];
   default: (address: Address, chainId: string) => Promise<Handle[]>;
 };
@@ -18,7 +18,11 @@ type Provider = {
 // Without the annotation a provider missing NAME still compiles.
 const PROVIDERS: Provider[] = [ens, ensV2, shibarium, unstoppableDomains];
 
-const DEFAULT_CHAIN_IDS = PROVIDERS.map(provider => provider.DEFAULT_CHAIN_ID);
+// A provider can only widen the default set with a mainnet chain it serves, so a
+// testnet-only one contributes nothing and cannot drag a sibling onto a new chain.
+const DEFAULT_CHAIN_IDS = [...new Set(PROVIDERS.flatMap(provider => provider.CHAIN_IDS))].filter(
+  chainId => !isTestnet(chainId)
+);
 
 export default async function lookupDomains(
   address: Address,

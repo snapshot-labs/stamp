@@ -3,9 +3,7 @@ import { graphQlCall } from '../../helpers/graphql';
 import { Address, Handle } from '../../helpers/types';
 
 export const NAME = 'Ens V2';
-// ENSv2 is L1-bound now that Namechain is cancelled. '1' keeps the dispatcher's
-// default chain set unchanged until an ensV2Graphql mainnet entry exists.
-export const DEFAULT_CHAIN_ID = '1';
+export const DEFAULT_CHAIN_ID = '11155111';
 export const CHAIN_IDS = Object.keys(constants.ensV2Graphql);
 
 type Domain = {
