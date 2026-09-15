@@ -9,6 +9,7 @@ import {
 } from '../../../../src/resolvers/image/snapshot';
 import { resolveAvatar as resolveSxAvatar } from '../../../../src/resolvers/image/space-sx';
 import starknet from '../../../../src/resolvers/image/starknet';
+import trustwallet from '../../../../src/resolvers/image/trustwallet';
 import { jsonResponse, mockGlobalFetch } from '../../../helpers/fetch';
 
 jest.mock('../../../../src/helpers/http', () => ({
@@ -172,6 +173,27 @@ describe('resolvers answer false rather than throwing when there is no data', ()
     it('answers false for a chain id that is not numeric, without asking', async () => {
       await expect(defillama(ADDRESS, 'not-a-chain-id')).resolves.toBe(false);
       expect(mockedFetch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe.each([
+    ['trustwallet', trustwallet],
+    ['defillama', defillama]
+  ] as const)('%s', (_name, resolve) => {
+    it.each(['hello', NOT_AN_ADDRESS, '0xa0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'])(
+      'answers false for the id %s, which is not an address, without asking',
+      async id => {
+        await expect(resolve(id, '1')).resolves.toBe(false);
+        expect(mockedFetchHttpImage).not.toHaveBeenCalled();
+      }
+    );
+
+    it('still asks for an address without its 0x prefix', async () => {
+      await resolve('a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', '1');
+
+      expect(mockedFetchHttpImage).toHaveBeenCalledWith(
+        expect.stringContaining('0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48')
+      );
     });
   });
 
