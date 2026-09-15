@@ -1,5 +1,4 @@
-import { getAddress } from '@ethersproject/address';
-import { isEvmAddress } from '../../helpers/address';
+import { getAddress, isAddress } from '@ethersproject/address';
 import { chainIdToName, getBaseAssetIconUrl } from '../../helpers/chains';
 import { fetchHttpImage } from '../../helpers/http';
 
@@ -9,7 +8,7 @@ const ETH = [
 ];
 
 export default async function resolve(address, chainId) {
-  if (!isEvmAddress(address)) return false;
+  if (!isAddress(address)) return false;
 
   const networkName = chainIdToName(chainId) || 'ethereum';
   const checksum = getAddress(address);

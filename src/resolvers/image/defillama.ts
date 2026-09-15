@@ -1,12 +1,11 @@
-import { getAddress } from '@ethersproject/address';
-import { isEvmAddress } from '../../helpers/address';
+import { getAddress, isAddress } from '@ethersproject/address';
 import { fetchHttpImage } from '../../helpers/http';
 
 // DefiLlama keys token icons by numeric chain id and contract address, with no
 // API key, and answers 404 for a token it does not carry.
 export default async function resolve(address: string, chainId: string) {
   if (!/^\d+$/.test(chainId)) return false;
-  if (!isEvmAddress(address)) return false;
+  if (!isAddress(address)) return false;
 
   const checksum = getAddress(address);
 

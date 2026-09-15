@@ -164,9 +164,6 @@ describe('resolvers - failure contract', () => {
     }
   );
 
-  // Every resolver checks the id it was handed before parsing it, so an
-  // INVALID_ARGUMENT can no longer come from the request -- it means a resolver
-  // parsed something an upstream returned.
   it('still reports an address ethers rejected', async () => {
     const error = Object.assign(new Error('invalid address'), { code: 'INVALID_ARGUMENT' });
     (ens as jest.Mock).mockRejectedValue(error);
