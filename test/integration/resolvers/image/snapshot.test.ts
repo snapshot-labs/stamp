@@ -1,4 +1,5 @@
 import testResolverImageSnapshots from './helper';
+import { resolveSpaceAvatar } from '../../../../src/resolvers/image/snapshot';
 import {
   NO_AVATAR_ADDRESS,
   noAvatarInputs,
@@ -34,6 +35,16 @@ testResolverImageSnapshots({
     NO_AVATAR_ADDRESS,
     { args: [noAvatarInputs.snapshotSpaceUnsupportedNetwork, 1, 'eth'] }
   ]
+});
+
+// The registered resolver turns a throw into false, so only the raw one shows
+// whether the space still fails upstream.
+describe('snapshot space with an empty metadata link', () => {
+  it('returns false instead of throwing', async () => {
+    await expect(
+      resolveSpaceAvatar(noAvatarInputs.snapshotSpaceEmptyMetadata, 1, 'eth')
+    ).resolves.toBe(false);
+  }, 30e3);
 });
 
 testResolverImageSnapshots({

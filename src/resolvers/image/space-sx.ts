@@ -8,12 +8,15 @@ async function getSpaceProperty(
   url: string,
   property: 'avatar' | 'cover'
 ): Promise<string | null> {
+  // A space whose metadata link is "" makes the API fail its metadata with a
+  // partial error response. Such a space has no image either way, so skip it.
+  // Drop once https://github.com/snapshot-labs/sx-monorepo/issues/2261 ships.
   const {
     data: { spaces }
   } = await graphQlCall(
     url,
     `query GetSpaces($ids: [String!]!) {
-      spaces(where: { id_in: $ids }) {
+      spaces(where: { id_in: $ids, metadata_not: "" }) {
         metadata {
           ${property}
         }
