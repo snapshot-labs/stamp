@@ -38,7 +38,7 @@ afterAll(async () => {
 
 describe('a response rejected before its body is read', () => {
   it('ends the request rather than leaving the upstream writing', async () => {
-    await expect(fetchHttpImage(url)).rejects.toMatchObject({ status: 500 });
+    await expect(fetchHttpImage(url)).rejects.toMatchObject({ status: 404 });
 
     await expect(within(hungUp, 2000, false)).resolves.toBe(true);
   });

@@ -182,8 +182,8 @@ describe('fetchHttpImage', () => {
     await expect(fetchHttpImage(missingUrl)).rejects.toMatchObject({ status: 404 });
   });
 
-  it.each([401, 402, 403])(
-    'raises a routine miss when a host refuses the anonymous download with a %i',
+  it.each([302, 401, 402, 403, 500, 502, 503, 522])(
+    'raises a routine miss when a host answers the anonymous download with a %i',
     async status => {
       await expect(fetchHttpImage(`${refusedUrl}?status=${status}`)).rejects.toMatchObject({
         status: 404
@@ -241,7 +241,7 @@ describe('fetchHttpImage', () => {
       resolveSlowErrorClosed = resolve;
     });
 
-    await expect(fetchHttpImage(slowErrorUrl)).rejects.toMatchObject({ status: 504 });
+    await expect(fetchHttpImage(slowErrorUrl)).rejects.toMatchObject({ status: 404 });
     await expect(closesWithin(slowErrorClosed, 1000)).resolves.toBe(true);
   });
 
