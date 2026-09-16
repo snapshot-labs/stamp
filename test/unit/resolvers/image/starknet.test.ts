@@ -288,7 +288,7 @@ describe('Starknet image resolver', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 
-  it('raises the status of a non-2xx JSON response instead of reading it as metadata', async () => {
+  it('raises a routine miss on a non-2xx JSON response instead of reading it as metadata', async () => {
     const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue(
       answeredFrom(
         AVATAR_URL,
@@ -300,7 +300,7 @@ describe('Starknet image resolver', () => {
       )
     );
 
-    await expect(starknet(ADDRESS)).rejects.toMatchObject({ status: 504 });
+    await expect(starknet(ADDRESS)).rejects.toMatchObject({ status: 404 });
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 

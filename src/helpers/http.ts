@@ -37,10 +37,11 @@ async function readHttpImage(response: Response): Promise<Buffer> {
 
   if (!response.ok) {
     await response.body?.cancel();
-    // No credentials are sent, so a 4xx is this host refusing this image, even
-    // the 401/402/403 that isRoutineMiss keeps loud for authenticated API calls.
-    const status = response.status >= 400 && response.status < 500 ? 404 : response.status;
-    throw httpError(host, status, response.statusText);
+    // No credentials are sent and nothing here retries, so any non-2xx is this
+    // host not serving this image: the 401/402/403 that isRoutineMiss keeps loud
+    // for authenticated API calls, and a 5xx from a host that is down for good,
+    // which would otherwise report on every cache miss for that name.
+    throw httpError(host, 404, response.statusText);
   }
 
   const type = response.headers.get('content-type');
