@@ -22,9 +22,9 @@ describe('lookupDomains', () => {
   });
 
   it('should include ENSv2 domains on sepolia', async () => {
-    const result = await lookupDomains('0x220bc93D88C0aF11f1159eA89a885d5ADd3A7Cf6', '11155111');
+    const result = await lookupDomains('0xF7f2639C67b58D978DB1Db166AF0501Da903f3A3', '11155111');
 
-    expect(result).toContain('testspace.eth');
+    expect(result).toContain('john1.eth');
   });
 
   it('should return an empty array if the address is not provided', async () => {
