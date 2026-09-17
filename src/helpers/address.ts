@@ -6,6 +6,13 @@ import { Address, Handle } from './types';
 
 export const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000';
 
+const OWNED_TLDS = ['.lens', '.bnb', '.stark', '.gwei', '.shib'];
+
+export function hasOwnedTld(handle: Handle): boolean {
+  const normalizedHandle = handle.toLowerCase();
+  return OWNED_TLDS.some(tld => normalizedHandle.endsWith(tld));
+}
+
 export function isEvmAddress(address: Address): boolean {
   return /^0x[a-fA-F0-9]{40}$/.test(address);
 }
