@@ -47,9 +47,6 @@ export function numericizeHtmlEntities(svg: string): string {
   });
 }
 
-// What sharp says of bytes it finds no loader for: a body mislabeled image/*,
-// or a format this libvips build lacks (ICO, BMP). A loader that runs and
-// fails says "corrupt header" instead.
 export function isUnsupportedImageError(err: unknown): boolean {
   return err instanceof Error && err.message === 'Input buffer contains unsupported image format';
 }

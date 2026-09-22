@@ -64,15 +64,11 @@ const UNRESIZED = [
 
 const NOT_FOUND = '[metadata.ens.domains] Not Found';
 
-// Bodies a host serves as image/* that sharp finds no loader for: a data: URL
-// saved as a file, and a format this libvips build lacks.
 const NO_LOADER = [
   ['a data: URL saved as a file', Buffer.from('data:image/png;base64,iVBORw0KGgo')],
   ['an ICO', Buffer.from('00000100010010100000010020006804000016000000', 'hex')]
 ] as const;
 
-// A PNG signature with nothing valid behind it: sharp has a loader for these
-// bytes and the loader fails, which is a different message from no loader.
 const CORRUPT_PNG = Buffer.concat([Buffer.from('89504e470d0a1a0a', 'hex'), Buffer.alloc(64, 0x41)]);
 
 const BROKEN_TLS_CODES = [
