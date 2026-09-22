@@ -1,4 +1,5 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
+import sharp from 'sharp';
 import resolvers from '../../../../src/resolvers/image';
 import basename from '../../../../src/resolvers/image/basename';
 import blockie from '../../../../src/resolvers/image/blockie';
@@ -62,6 +63,13 @@ const UNRESIZED = [
 ] as const;
 
 const NOT_FOUND = '[metadata.ens.domains] Not Found';
+
+const NO_LOADER = [
+  ['a data: URL saved as a file', Buffer.from('data:image/png;base64,iVBORw0KGgo')],
+  ['an ICO', Buffer.from('00000100010010100000010020006804000016000000', 'hex')]
+] as const;
+
+const CORRUPT_PNG = Buffer.concat([Buffer.from('89504e470d0a1a0a', 'hex'), Buffer.alloc(64, 0x41)]);
 
 const BROKEN_TLS_CODES = [
   'ERR_TLS_CERT_ALTNAME_INVALID',
@@ -208,8 +216,8 @@ describe('resolvers - failure contract', () => {
     });
   });
 
-  it.each(RESIZED)('attributes %s bytes sharp cannot process to itself', async (name, fn) => {
-    (fn as jest.Mock).mockResolvedValue(Buffer.from('not an image'));
+  it.each(RESIZED)('attributes %s bytes sharp cannot decode to itself', async (name, fn) => {
+    (fn as jest.Mock).mockResolvedValue(CORRUPT_PNG);
 
     await expect(resolvers[name](ADDRESS)).resolves.toBe(false);
     expect(capture).toHaveBeenCalledTimes(1);
@@ -217,6 +225,23 @@ describe('resolvers - failure contract', () => {
       tags: { provider: name },
       contexts: { input: { args: [ADDRESS] } }
     });
+  });
+
+  it.each(NO_LOADER)('does not report %s, which sharp has no loader for', async (_label, bytes) => {
+    (ens as jest.Mock).mockResolvedValue(bytes);
+
+    await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('still resizes an image sharp can decode', async () => {
+    const png = await sharp({ create: { width: 1, height: 1, channels: 3, background: 'red' } })
+      .png()
+      .toBuffer();
+    (ens as jest.Mock).mockResolvedValue(png);
+
+    await expect(resolvers.ens(ADDRESS)).resolves.toBeInstanceOf(Buffer);
+    expect(capture).not.toHaveBeenCalled();
   });
 
   it.each(UNRESIZED)('answers false when %s throws', async (name, fn) => {

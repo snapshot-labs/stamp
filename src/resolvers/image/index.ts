@@ -18,7 +18,7 @@ import starknet from './starknet';
 import trustwallet from './trustwallet';
 import { max } from '../../constants.json';
 import { isSilencedError, isTransportFailure } from '../../helpers/errors';
-import { resize } from '../../helpers/image';
+import { isUnsupportedImageError, resize } from '../../helpers/image';
 
 type ResolverFn = (...args: any[]) => Promise<Buffer | false>;
 
@@ -71,6 +71,9 @@ function withResize(name: string, resolve: ResolverFn): ResolverFn {
     try {
       return await resize(input, max, max);
     } catch (err) {
+      // The host served no image: the routine miss a 404 already is.
+      if (isUnsupportedImageError(err)) return false;
+
       // A top-level `input` beside `tags` is dropped rather than wrapped.
       capture(err, { tags: { provider: name }, contexts: { input: { args } } });
       return false;

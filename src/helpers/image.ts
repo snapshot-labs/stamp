@@ -47,6 +47,10 @@ export function numericizeHtmlEntities(svg: string): string {
   });
 }
 
+export function isUnsupportedImageError(err: unknown): boolean {
+  return err instanceof Error && err.message === 'Input buffer contains unsupported image format';
+}
+
 function toWebp(input, w, h, options?): Promise<Buffer> {
   return sharp(input).resize(w, h, options).webp().toBuffer();
 }
