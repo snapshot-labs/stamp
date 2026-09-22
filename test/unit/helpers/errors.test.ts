@@ -46,11 +46,14 @@ describe('isSilencedError', () => {
 });
 
 describe('isTransportFailure', () => {
-  it.each(['ENOTFOUND', 'EAI_AGAIN', 'ECONNREFUSED'])('treats a %s errno as one', code => {
-    expect(
-      isTransportFailure(Object.assign(new TypeError('fetch failed'), { cause: { code } }))
-    ).toBe(true);
-  });
+  it.each(['ENOTFOUND', 'EAI_AGAIN', 'ECONNREFUSED', 'EHOSTUNREACH', 'ENETUNREACH'])(
+    'treats a %s errno as one',
+    code => {
+      expect(
+        isTransportFailure(Object.assign(new TypeError('fetch failed'), { cause: { code } }))
+      ).toBe(true);
+    }
+  );
 
   it.each([
     'ERR_TLS_CERT_ALTNAME_INVALID',
