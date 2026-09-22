@@ -66,6 +66,11 @@ const TRANSPORT_FAILURE_CODES = [
   'ENOTFOUND',
   'EAI_AGAIN',
   'ECONNREFUSED',
+  // No route to the resolved address: a lookup that only returned AAAA records
+  // on a host without an IPv6 route. Node's happy-eyeballs AggregateError
+  // carries errors[0].code, so the first attempt's errno is what reaches here.
+  'EHOSTUNREACH',
+  'ENETUNREACH',
   'ERR_TLS_CERT_ALTNAME_INVALID',
   'ERR_SSL_TLSV1_UNRECOGNIZED_NAME',
   'CERT_HAS_EXPIRED',
