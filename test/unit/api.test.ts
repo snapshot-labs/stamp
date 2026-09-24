@@ -124,6 +124,15 @@ describe('POST /', () => {
       expect(capture).not.toHaveBeenCalled();
     });
 
+    it('does not capture a D3 host that no longer resolves', async () => {
+      (getOwner as jest.Mock).mockRejectedValue(
+        Object.assign(new TypeError('fetch failed'), { cause: { code: 'ENOTFOUND' } })
+      );
+
+      expect((await getOwnerRequest()).status).toBe(500);
+      expect(capture).not.toHaveBeenCalled();
+    });
+
     it('does not capture D3 5xx responses', async () => {
       (getOwner as jest.Mock).mockRejectedValue(httpError('d3', 503, ''));
 

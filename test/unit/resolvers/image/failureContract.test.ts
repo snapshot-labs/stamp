@@ -191,28 +191,6 @@ describe('resolvers - failure contract', () => {
     expect(capture).not.toHaveBeenCalled();
   });
 
-  it('does not report a Lens 503 that the resolver declares transient', async () => {
-    const error = Object.assign(new Error('[api.lens.xyz] status code 503: Service Unavailable'), {
-      status: 503,
-      response: { status: 503 }
-    });
-    (lens as jest.Mock).mockRejectedValue(error);
-
-    await expect(resolvers.lens(ADDRESS)).resolves.toBe(false);
-    expect(capture).not.toHaveBeenCalled();
-  });
-
-  it('does not leak lens MUTED_ERRORS to a resolver that does not export it', async () => {
-    const error = new Error('[api.lens.xyz] status code 503: Service Unavailable');
-    (ens as jest.Mock).mockRejectedValue(error);
-
-    await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
-    expect(capture).toHaveBeenCalledWith(error, {
-      tags: { provider: 'ens' },
-      contexts: { input: { args: [ADDRESS] } }
-    });
-  });
-
   it.each(RESIZED)('attributes %s bytes sharp cannot decode to itself', async (name, fn) => {
     (fn as jest.Mock).mockResolvedValue(CORRUPT_PNG);
 

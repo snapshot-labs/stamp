@@ -21,11 +21,8 @@ import { timeAddressResolverResponse as timeResponse } from '../../helpers/metri
 import { withoutEmptyValues } from '../../helpers/object';
 import { Address, Handle } from '../../helpers/types';
 
-// A resolver may export MUTED_ERRORS, a list of extra error messages this
-// resolver never wants reported (e.g. a flaky public API's own 5xx).
 type Resolver = {
   NAME: string;
-  MUTED_ERRORS?: string[];
   lookupAddresses: (addresses: Address[]) => Promise<Record<Address, Handle>>;
   resolveNames: (handles: Handle[]) => Promise<Record<Handle, Address>>;
 };
@@ -68,7 +65,7 @@ async function _call(fnName: string, input: string[], maxInputLength: number) {
               result = await r[fnName](_input);
               status = 1;
             } catch (err) {
-              if (!isSilencedError(err, r.MUTED_ERRORS) && !isTransportFailure(err)) {
+              if (!isSilencedError(err) && !isTransportFailure(err)) {
                 // A top-level `input` beside `tags` is dropped rather than wrapped.
                 capture(err, {
                   tags: { provider: r.NAME },

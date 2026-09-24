@@ -116,7 +116,6 @@ describe('isSilencedError', () => {
   it('silences a 5xx carried on error.response', () => {
     const upstreamError = {
       message: '[hub.snapshot.org] status code 500: Internal Server Error',
-      status: 500,
       response: { status: 500 }
     };
 

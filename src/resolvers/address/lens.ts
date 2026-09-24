@@ -4,8 +4,6 @@ import { Address, Handle } from '../../helpers/types';
 
 export const NAME = 'Lens';
 const API_URL = 'https://api.lens.xyz/graphql';
-// mute not fixable errors, since it's a public API. Read by resolvers/address/index.ts.
-export const MUTED_ERRORS = ['status code 503', 'status code 429'];
 
 async function apiCall(filterName: string, filters: string[]) {
   const filterValue =
