@@ -58,6 +58,7 @@ describe('GET /avatar/:id', () => {
     expect(response.body).toEqual({ status: 'error', error: 'failed to load image' });
     expect(response.headers['content-type']).toMatch(/^application\/json/);
     expect(response.headers['cache-control']).toBeUndefined();
+    expect(response.headers['expires']).toBeUndefined();
     expect(capture).toHaveBeenCalledTimes(1);
   }
 
@@ -84,7 +85,7 @@ describe('GET /avatar/:id', () => {
   it('aborts the response when reading the cached image fails mid-stream', async () => {
     (get as jest.Mock).mockResolvedValueOnce(failingStream([Buffer.from('partial')]));
 
-    await expect(getAvatar()).rejects.toThrow();
+    await expect(getAvatar()).rejects.toMatchObject({ code: 'ECONNRESET' });
     expect(capture).toHaveBeenCalledTimes(1);
   });
 });
