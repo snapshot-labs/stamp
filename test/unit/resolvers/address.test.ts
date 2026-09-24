@@ -20,7 +20,8 @@ jest.mock('@snapshot-labs/snapshot-sentry', () => ({
 // Run the resolver fan-out on every call, without a redis round trip.
 jest.mock('../../../src/resolvers/address/cache', () => ({
   __esModule: true,
-  default: (input: string[], callback: (input: string[]) => any) => callback(input),
+  default: (input: string[], _chainId: string, callback: (input: string[]) => any) =>
+    callback(input),
   clear: jest.fn()
 }));
 
@@ -62,7 +63,7 @@ describe('address resolvers - input normalization', () => {
 
   it('still sends a valid starknet address', async () => {
     await expect(lookupAddresses([STARKNET_ADDRESS])).resolves.toEqual({});
-    expect(snapshotResolver.lookupAddresses).toHaveBeenCalledWith([STARKNET_ADDRESS]);
+    expect(snapshotResolver.lookupAddresses).toHaveBeenCalledWith([STARKNET_ADDRESS], '1');
   });
 });
 

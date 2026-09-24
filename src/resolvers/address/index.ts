@@ -26,8 +26,10 @@ import { Address, Handle } from '../../helpers/types';
 type Resolver = {
   NAME: string;
   MUTED_ERRORS?: string[];
+  // Chains the resolver serves, defaulting to mainnet only.
+  CHAIN_IDS?: string[];
   lookupAddresses: (addresses: Address[]) => Promise<Record<Address, Handle>>;
-  resolveNames: (handles: Handle[]) => Promise<Record<Handle, Address>>;
+  resolveNames: (handles: Handle[], chainId: string) => Promise<Record<Handle, Address>>;
 };
 
 const RESOLVERS: Resolver[] = [
@@ -42,7 +44,9 @@ const RESOLVERS: Resolver[] = [
   gweiResolver
 ];
 
-async function _call(fnName: string, input: string[], maxInputLength: number) {
+const servesChain = (r: Resolver, chainId: string) => (r.CHAIN_IDS ?? ['1']).includes(chainId);
+
+async function _call(fnName: string, input: string[], maxInputLength: number, chainId = '1') {
   if (input.length > maxInputLength) {
     return Promise.reject({
       error: `params must contains less than ${maxInputLength} items`,
@@ -54,9 +58,9 @@ async function _call(fnName: string, input: string[], maxInputLength: number) {
 
   return withoutEmptyAddress(
     withoutEmptyValues(
-      await cache(input, async (_input: string[]) => {
+      await cache(input, chainId, async (_input: string[]) => {
         const results = await Promise.all(
-          RESOLVERS.map(async r => {
+          RESOLVERS.filter(r => servesChain(r, chainId)).map(async r => {
             const end = timeResponse.startTimer({
               provider: r.NAME,
               method: fnName
@@ -65,7 +69,7 @@ async function _call(fnName: string, input: string[], maxInputLength: number) {
             let status = 0;
 
             try {
-              result = await r[fnName](_input);
+              result = await r[fnName](_input, chainId);
               status = 1;
             } catch (err) {
               if (!isSilencedError(err, r.MUTED_ERRORS) && !isTransportFailure(err)) {
@@ -100,11 +104,17 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
   return mapOriginalInput(addresses, result);
 }
 
-export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Address>> {
+// L2 spaces send their own chain id; a chain no resolver serves falls back to mainnet.
+export async function resolveNames(
+  handles: Handle[],
+  network: unknown = '1'
+): Promise<Record<Handle, Address>> {
+  const chainId = String(network);
   const result = await _call(
     'resolveNames',
     Array.from(new Set(normalizeHandles(handles))),
-    constants.maxResolveNames
+    constants.maxResolveNames,
+    RESOLVERS.some(r => servesChain(r, chainId)) ? chainId : '1'
   );
 
   return mapOriginalInput(handles, result);

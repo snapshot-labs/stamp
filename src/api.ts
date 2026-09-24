@@ -36,7 +36,7 @@ router.post('/', async (req, res) => {
       result = await getOwner(data as Params<'get_owner'>, req.body.network);
     else if (method === 'lookup_addresses')
       result = await lookupAddresses(data as Params<'lookup_addresses'>);
-    else result = await resolveNames(data as Params<'resolve_names'>);
+    else result = await resolveNames(data as Params<'resolve_names'>, req.body.network);
 
     if (result?.error) return rpcError(res, result.code || 500, result.error, id);
     return rpcSuccess(res, result, id);

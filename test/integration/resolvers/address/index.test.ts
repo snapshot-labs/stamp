@@ -152,6 +152,50 @@ describe('address resolvers', () => {
       }, 10e3);
     });
 
+    describe('when passing a network', () => {
+      // Registered on Sepolia only
+      const SEPOLIA_NAME = 'bnmig-0944-bat-12-08-r02.eth';
+      const SEPOLIA_ADDRESS = '0xf338b369f564415598Bf94e422ac9A205a32980D';
+
+      beforeEach(async () => {
+        await purge();
+      });
+
+      it.each(['11155111', 11155111])(
+        'resolves against Sepolia for %p',
+        network => {
+          return expect(resolveNames([SEPOLIA_NAME], network)).resolves.toEqual({
+            [SEPOLIA_NAME]: SEPOLIA_ADDRESS
+          });
+        },
+        10e3
+      );
+
+      it('resolves against mainnet by default', () => {
+        return expect(resolveNames([SEPOLIA_NAME])).resolves.toEqual({
+          [SEPOLIA_NAME]: undefined
+        });
+      }, 10e3);
+
+      it('resolves against mainnet for a chain no resolver serves', () => {
+        return expect(resolveNames(['snapshot.crypto'], '8453')).resolves.toEqual({
+          'snapshot.crypto': '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7'
+        });
+      }, 10e3);
+
+      it('does not share cache entries across chains', async () => {
+        await resolveNames([SEPOLIA_NAME], '11155111');
+
+        await expect(getCache([SEPOLIA_NAME], '11155111')).resolves.toEqual({
+          [SEPOLIA_NAME]: SEPOLIA_ADDRESS
+        });
+        await expect(getCache([SEPOLIA_NAME])).resolves.toEqual({});
+        return expect(resolveNames([SEPOLIA_NAME])).resolves.toEqual({
+          [SEPOLIA_NAME]: undefined
+        });
+      }, 10e3);
+    });
+
     describe('when cached', () => {
       beforeEach(async () => {
         await purge();

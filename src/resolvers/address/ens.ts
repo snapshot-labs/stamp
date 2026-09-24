@@ -10,6 +10,7 @@ import { getProvider } from '../../helpers/provider';
 import { Address, Handle } from '../../helpers/types';
 
 export const NAME = 'Ens';
+export const CHAIN_IDS = Object.keys(constants.ensSubgraph);
 const NETWORK = '1';
 const provider = getProvider(NETWORK);
 
@@ -69,7 +70,10 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
   );
 }
 
-export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Address>> {
+export async function resolveNames(
+  handles: Handle[],
+  chainId = NETWORK
+): Promise<Record<Handle, Address>> {
   const normalizedHandles = normalizeHandles(handles);
 
   if (normalizedHandles.length === 0) return {};
@@ -82,7 +86,7 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
     const {
       data: { domains: items }
     } = await graphQlCall(
-      constants.ensSubgraph[NETWORK],
+      constants.ensSubgraph[chainId],
       `query Domains($handles: [String!]!) {
         domains(where: {name_in: $handles}) {
           name
@@ -124,7 +128,7 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
 
   try {
     const providerResults = await Promise.allSettled(
-      unresolvedHandles.map(handle => provider.resolveName(handle))
+      unresolvedHandles.map(handle => getProvider(chainId).resolveName(handle))
     );
 
     unresolvedHandles.forEach((handle, index) => {

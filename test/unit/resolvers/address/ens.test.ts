@@ -7,13 +7,17 @@ jest.mock('@snapshot-labs/snapshot-sentry', () => ({
   capture: jest.fn()
 }));
 
-jest.mock('../../../../src/helpers/provider', () => ({
-  ...jest.requireActual('../../../../src/helpers/provider'),
-  getProvider: jest.fn(() => ({
+jest.mock('../../../../src/helpers/provider', () => {
+  // Like the real getProvider, hands back the same instance on every call.
+  const provider = {
     resolveName: jest.fn().mockResolvedValue(null),
     lookupAddress: jest.fn().mockResolvedValue(null)
-  }))
-}));
+  };
+  return {
+    ...jest.requireActual('../../../../src/helpers/provider'),
+    getProvider: jest.fn(() => provider)
+  };
+});
 
 const mockedFetch = mockGlobalFetch();
 
