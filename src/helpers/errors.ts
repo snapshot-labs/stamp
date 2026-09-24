@@ -56,10 +56,16 @@ export function isSilencedError(error: any, additionalMessages?: string[]): bool
         error.error?.message?.includes(m) ||
         error.cause?.message?.includes(m)
     ) ||
-    ['TIMEOUT', 'ECONNABORTED', 'ETIMEDOUT', 'ECONNRESET', 'UND_ERR_SOCKET', 504, 429].some(c =>
+    ['TIMEOUT', 'ETIMEDOUT', 'ECONNRESET', 'UND_ERR_SOCKET', 504, 429].some(c =>
       codes.some(v => String(v ?? '').includes(String(c)))
     )
   );
+}
+
+// Deliberately not part of isSilencedError: a 5xx from our own hub must stay visible.
+export function isUpstreamOutage(error: any): boolean {
+  const status = Number(error?.status ?? error?.response?.status);
+  return status >= 500 && status < 600;
 }
 
 const TRANSPORT_FAILURE_CODES = [
