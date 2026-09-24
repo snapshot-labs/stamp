@@ -61,7 +61,7 @@ describe('lookupDomains/shibarium', () => {
     mockedFetch.mockResolvedValue(httpResponse(status, statusText));
 
     await expect(lookupDomains(ADDRESS, CHAIN_ID)).rejects.toMatchObject({
-      message: `[shibarium] ${statusText}`,
+      message: `[shibarium] status code ${status}: ${statusText}`,
       status,
       response: { status }
     });

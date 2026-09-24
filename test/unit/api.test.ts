@@ -146,5 +146,12 @@ describe('POST /', () => {
       expect(response.status).toBe(400);
       expect(capture).not.toHaveBeenCalled();
     });
+
+    it('does not throw when the rejection itself is null', async () => {
+      (getOwner as jest.Mock).mockRejectedValue(null);
+
+      expect((await getOwnerRequest()).status).toBe(500);
+      expect(capture).not.toHaveBeenCalled();
+    });
   });
 });

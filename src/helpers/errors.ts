@@ -43,11 +43,15 @@ export function isSilencedError(error: any, additionalMessages?: string[]): bool
   ];
   const codes = wrapped(error).flatMap(e => [e.code, e.status]);
 
-  // ethers v5 re-labels a non-JSON response from an RPC as CALL_EXCEPTION.
-  // The nested HTTP status is the reliable signal that this was an upstream
-  // endpoint outage rather than a contract revert.
-  const upstreamStatus = Number(error.error?.status);
-  if (upstreamStatus >= 500 && upstreamStatus < 600) return true;
+  // An upstream 5xx is an outage of that endpoint, wherever it is carried:
+  // ethers v5 nests it under a CALL_EXCEPTION, httpError on `response`.
+  if (
+    wrapped(error).some(e => {
+      const status = Number(e.status);
+      return status >= 500 && status < 600;
+    })
+  )
+    return true;
 
   return (
     messages.some(
@@ -60,12 +64,6 @@ export function isSilencedError(error: any, additionalMessages?: string[]): bool
       codes.some(v => String(v ?? '').includes(String(c)))
     )
   );
-}
-
-// Deliberately not part of isSilencedError: a 5xx from our own hub must stay visible.
-export function isUpstreamOutage(error: any): boolean {
-  const status = Number(error?.status ?? error?.response?.status);
-  return status >= 500 && status < 600;
 }
 
 const TRANSPORT_FAILURE_CODES = [

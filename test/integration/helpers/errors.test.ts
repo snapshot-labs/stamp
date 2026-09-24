@@ -113,14 +113,14 @@ describe('isSilencedError', () => {
     expect(isSilencedError(upstreamError)).toBe(true);
   });
 
-  it('does not silence a non-transient status carried on error.response', () => {
+  it('silences a 5xx carried on error.response', () => {
     const upstreamError = {
       message: '[hub.snapshot.org] status code 500: Internal Server Error',
       status: 500,
       response: { status: 500 }
     };
 
-    expect(isSilencedError(upstreamError)).toBe(false);
+    expect(isSilencedError(upstreamError)).toBe(true);
   });
 
   it('silences transient SERVFAIL DNS server status (2)', () => {

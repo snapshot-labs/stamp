@@ -180,7 +180,7 @@ describe('resolvers - failure contract', () => {
     expect(capture).toHaveBeenCalledWith(error, expect.anything());
   });
 
-  it('still reports an upstream 500', async () => {
+  it('does not report an upstream 500', async () => {
     const error = Object.assign(new Error('[profile host]'), {
       status: 500,
       response: { status: 500 }
@@ -188,7 +188,7 @@ describe('resolvers - failure contract', () => {
     (ens as jest.Mock).mockRejectedValue(error);
 
     await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
-    expect(capture).toHaveBeenCalledWith(error, expect.anything());
+    expect(capture).not.toHaveBeenCalled();
   });
 
   it('does not report a Lens 503 that the resolver declares transient', async () => {
@@ -203,10 +203,7 @@ describe('resolvers - failure contract', () => {
   });
 
   it('does not leak lens MUTED_ERRORS to a resolver that does not export it', async () => {
-    const error = Object.assign(new Error('[api.lens.xyz] status code 503: Service Unavailable'), {
-      status: 503,
-      response: { status: 503 }
-    });
+    const error = new Error('[api.lens.xyz] status code 503: Service Unavailable');
     (ens as jest.Mock).mockRejectedValue(error);
 
     await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);

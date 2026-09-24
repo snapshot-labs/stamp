@@ -41,7 +41,11 @@ export default async function lookupDomains(
       }
 
       if (!response.ok) {
-        throw httpError('shibarium', response.status, response.statusText);
+        throw httpError(
+          'shibarium',
+          response.status,
+          `status code ${response.status}: ${response.statusText}`
+        );
       }
 
       let data: { pageItems?: Array<{ sld: string; tld: string }> };

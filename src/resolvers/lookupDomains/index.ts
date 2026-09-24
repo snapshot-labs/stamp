@@ -5,7 +5,7 @@ import * as ensV2 from './ensV2';
 import * as shibarium from './shibarium';
 import * as unstoppableDomains from './unstoppableDomains';
 import { isTestnet } from '../../helpers/chains';
-import { isSilencedError, isTransportFailure, isUpstreamOutage } from '../../helpers/errors';
+import { isSilencedError, isTransportFailure } from '../../helpers/errors';
 import { timeLookupDomainsResponse as timeResponse } from '../../helpers/metrics';
 import { Address, Handle } from '../../helpers/types';
 
@@ -47,7 +47,7 @@ export default async function lookupDomains(
               status = 1;
               return result;
             } catch (err) {
-              if (!isUpstreamOutage(err) && !isSilencedError(err) && !isTransportFailure(err)) {
+              if (!isSilencedError(err) && !isTransportFailure(err)) {
                 capture(err, {
                   tags: { provider: NAME },
                   contexts: { input: { address, chainId } }

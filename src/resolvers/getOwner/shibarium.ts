@@ -33,7 +33,12 @@ async function getClaimedOwner(handle: Handle, chainId: string): Promise<Address
     );
 
     if (response.status === 404) return EMPTY_ADDRESS;
-    if (!response.ok) throw httpError('d3', response.status, response.statusText);
+    if (!response.ok)
+      throw httpError(
+        'd3',
+        response.status,
+        `status code ${response.status}: ${response.statusText}`
+      );
 
     const data = await response.json();
 
