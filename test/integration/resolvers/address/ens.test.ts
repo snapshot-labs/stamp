@@ -29,7 +29,7 @@ describe('ENS address resolver: CCIP-Read fallback', () => {
   }, 15e3);
 
   it('falls back to per-address lookups when the batch reverse call reverts', async () => {
-    const ccipAddress = '0x3a872f8FED4421E7d5BE5c98Ab5Ea0e0245169A0';
+    const ccipAddress = '0xcD75C3054697FF61fEd14CD6b380e80F2eFD3D85';
     const goodAddress = '0xE6D0Dd18C6C3a9Af8C2FaB57d6e6A38E29d513cC';
 
     await expect(lookupAddresses([ccipAddress])).resolves.toEqual({});
