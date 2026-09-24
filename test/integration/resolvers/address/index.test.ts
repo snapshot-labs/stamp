@@ -186,8 +186,8 @@ describe('address resolvers', () => {
       it('does not share cache entries across chains', async () => {
         await resolveNames([SEPOLIA_NAME], '11155111');
 
-        await expect(getCache([SEPOLIA_NAME], '11155111')).resolves.toEqual({
-          [SEPOLIA_NAME]: SEPOLIA_ADDRESS
+        await expect(getCache([`11155111:${SEPOLIA_NAME}`])).resolves.toEqual({
+          [`11155111:${SEPOLIA_NAME}`]: SEPOLIA_ADDRESS
         });
         await expect(getCache([SEPOLIA_NAME])).resolves.toEqual({});
         return expect(resolveNames([SEPOLIA_NAME])).resolves.toEqual({

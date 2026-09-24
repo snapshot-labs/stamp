@@ -46,6 +46,25 @@ const RESOLVERS: Resolver[] = [
 
 const servesChain = (r: Resolver, chainId: string) => (r.CHAIN_IDS ?? ['1']).includes(chainId);
 
+// Answers differ per chain, so non-mainnet chains get their own cache keys.
+function chainCache(chainId: string): typeof cache {
+  if (chainId === '1') return cache;
+
+  const prefix = `${chainId}:`;
+  const scope = (record: Record<string, string>, fn: (key: string) => string) =>
+    Object.fromEntries(Object.entries(record).map(([key, value]) => [fn(key), value]));
+
+  return async (input, callback) =>
+    scope(
+      await cache(
+        input.map(key => prefix + key),
+        async (keys: string[]) =>
+          scope(await callback(keys.map(key => key.slice(prefix.length))), key => prefix + key)
+      ),
+      key => key.slice(prefix.length)
+    );
+}
+
 async function _call(fnName: string, input: string[], maxInputLength: number, chainId = '1') {
   if (input.length > maxInputLength) {
     return Promise.reject({
@@ -58,7 +77,7 @@ async function _call(fnName: string, input: string[], maxInputLength: number, ch
 
   return withoutEmptyAddress(
     withoutEmptyValues(
-      await cache(input, chainId, async (_input: string[]) => {
+      await chainCache(chainId)(input, async (_input: string[]) => {
         const results = await Promise.all(
           RESOLVERS.filter(r => servesChain(r, chainId)).map(async r => {
             const end = timeResponse.startTimer({

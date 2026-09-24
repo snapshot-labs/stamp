@@ -4,28 +4,18 @@ import { addressResolversCacheHitCount } from '../../helpers/metrics';
 
 export const KEY_PREFIX = 'address-resolvers';
 
-const stores: Record<string, RedisStore> = {};
+const store = new RedisStore({ prefix: KEY_PREFIX, maxTtl: constants.ttl, cacheEmpty: true });
 
-// Mainnet keeps the unscoped prefix so entries cached before chains were supported stay valid.
-function getStore(chainId: string): RedisStore {
-  stores[chainId] ??= new RedisStore({
-    prefix: chainId === '1' ? KEY_PREFIX : `${KEY_PREFIX}:${chainId}`,
-    maxTtl: constants.ttl,
-    cacheEmpty: true
-  });
-  return stores[chainId];
+export function getCache(keys: string[]): Promise<Record<string, string>> {
+  return store.getMany(keys);
 }
 
-export function getCache(keys: string[], chainId = '1'): Promise<Record<string, string>> {
-  return getStore(chainId).getMany(keys);
+export function setCache(payload: Record<string, string>): Promise<void> {
+  return store.setMany(payload);
 }
 
-export function setCache(payload: Record<string, string>, chainId = '1'): Promise<void> {
-  return getStore(chainId).setMany(payload);
-}
-
-export default async function cache(input: string[], chainId: string, callback) {
-  const cache = await getCache(input, chainId);
+export default async function cache(input: string[], callback) {
+  const cache = await getCache(input);
   const cachedKeys = Object.keys(cache);
   const uncachedInputs = input.filter(a => !cachedKeys.includes(a));
 
@@ -34,7 +24,7 @@ export default async function cache(input: string[], chainId: string, callback) 
 
   if (uncachedInputs.length > 0) {
     const results = await callback(uncachedInputs);
-    setCache(results, chainId);
+    setCache(results);
 
     return { ...cache, ...results };
   }
@@ -45,5 +35,5 @@ export default async function cache(input: string[], chainId: string, callback) 
 export function clear(input: string): Promise<boolean> {
   // TODO: When redis is not available, it should probably throw instead of returning false
   // causing the api the return "failed to clear cache" instead of "not found"
-  return getStore('1').delete(input);
+  return store.delete(input);
 }
