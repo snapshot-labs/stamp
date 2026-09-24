@@ -81,100 +81,100 @@ router.get(`/clear/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
   }
 });
 
-router.get(`/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
-  try {
-    const { type, id } = req.params as { type: ResolverType; id: string };
-    const { address, network, networkId, w, h, fallback, cb, resolver, fit } = parseQuery(
-      id,
-      type,
-      req.query
-    );
+async function serveImage(req: express.Request, res: express.Response) {
+  const { type, id } = req.params as { type: ResolverType; id: string };
+  const { address, network, networkId, w, h, fallback, cb, resolver, fit } = parseQuery(
+    id,
+    type,
+    req.query
+  );
 
-    const disableCache = !!resolver;
+  const disableCache = !!resolver;
 
-    const key1 = getCacheKey({
-      type,
-      network,
-      address,
-      w: constants.max,
-      h: constants.max,
-      fallback,
-      cb,
-      fit
-    });
-    const key2 = getCacheKey({ type, network, address, w, h, fallback, cb, fit });
+  const key1 = getCacheKey({
+    type,
+    network,
+    address,
+    w: constants.max,
+    h: constants.max,
+    fallback,
+    cb,
+    fit
+  });
+  const key2 = getCacheKey({ type, network, address, w, h, fallback, cb, fit });
 
-    // Check resized cache
-    const cache = await get(`${key1}/${key2}`);
-    if (cache && !disableCache) {
-      // console.log('Got cache', address);
-      setHeader(res);
-      cache.on('error', err => failImage(res, err));
-      return cache.pipe(res);
-    }
-
-    // Check base cache
-    const base = await get(`${key1}/${key1}`);
-    let baseImage;
-    if (base) {
-      baseImage = await streamToBuffer(base);
-      // console.log('Got base cache');
-    } else {
-      // console.log('No cache for', key1, base);
-
-      let currentResolvers: string[] = constants.resolvers.avatar;
-      if (type === 'token') currentResolvers = constants.resolvers.token;
-      if (type === 'space') currentResolvers = constants.resolvers.space;
-      if (type === 'space-cover') currentResolvers = constants.resolvers['space-cover'];
-      if (type === 'space-logo') currentResolvers = constants.resolvers['space-logo'];
-      if (type === 'space-sx') currentResolvers = constants.resolvers['space-sx'];
-      if (type === 'space-cover-sx') currentResolvers = constants.resolvers['space-cover-sx'];
-      if (type === 'user-cover') currentResolvers = constants.resolvers['user-cover'];
-
-      if (resolver) {
-        if (!currentResolvers.includes(resolver)) {
-          return res.status(500).json({ status: 'error', error: 'invalid resolvers' });
-        }
-
-        currentResolvers = [resolver];
-      }
-
-      const files = await Promise.all(
-        currentResolvers.map(r => resolvers[r](address, network, networkId))
-      );
-      baseImage = files.find(Boolean);
-
-      if (!baseImage) {
-        const fallbackImage = await resolvers[fallback](address, network, networkId);
-        const resizedImage = await resize(fallbackImage, w, h, { fit });
-
-        setHeader(res, 'SHORT_CACHE');
-        return res.send(resizedImage);
-      }
-    }
-
-    // Resize and return image
-    const resizedImage = await resize(baseImage, w, h, { fit });
+  // Check resized cache
+  const cache = await get(`${key1}/${key2}`);
+  if (cache && !disableCache) {
+    // console.log('Got cache', address);
     setHeader(res);
-    res.send(resizedImage);
-
-    if (disableCache) return;
-
-    // Store cache
-    try {
-      if (!base) {
-        await set(`${key1}/${key1}`, baseImage);
-        console.log('Stored base cache', key1);
-      }
-      await set(`${key1}/${key2}`, resizedImage);
-      console.log('Stored cache', address);
-    } catch (err) {
-      capture(err);
-      console.log('Store cache failed', address, err);
-    }
-  } catch (err) {
-    failImage(res, err);
+    cache.on('error', err => failImage(res, err));
+    return cache.pipe(res);
   }
-});
+
+  // Check base cache
+  const base = await get(`${key1}/${key1}`);
+  let baseImage;
+  if (base) {
+    baseImage = await streamToBuffer(base);
+    // console.log('Got base cache');
+  } else {
+    // console.log('No cache for', key1, base);
+
+    let currentResolvers: string[] = constants.resolvers.avatar;
+    if (type === 'token') currentResolvers = constants.resolvers.token;
+    if (type === 'space') currentResolvers = constants.resolvers.space;
+    if (type === 'space-cover') currentResolvers = constants.resolvers['space-cover'];
+    if (type === 'space-logo') currentResolvers = constants.resolvers['space-logo'];
+    if (type === 'space-sx') currentResolvers = constants.resolvers['space-sx'];
+    if (type === 'space-cover-sx') currentResolvers = constants.resolvers['space-cover-sx'];
+    if (type === 'user-cover') currentResolvers = constants.resolvers['user-cover'];
+
+    if (resolver) {
+      if (!currentResolvers.includes(resolver)) {
+        return res.status(500).json({ status: 'error', error: 'invalid resolvers' });
+      }
+
+      currentResolvers = [resolver];
+    }
+
+    const files = await Promise.all(
+      currentResolvers.map(r => resolvers[r](address, network, networkId))
+    );
+    baseImage = files.find(Boolean);
+
+    if (!baseImage) {
+      const fallbackImage = await resolvers[fallback](address, network, networkId);
+      const resizedImage = await resize(fallbackImage, w, h, { fit });
+
+      setHeader(res, 'SHORT_CACHE');
+      return res.send(resizedImage);
+    }
+  }
+
+  // Resize and return image
+  const resizedImage = await resize(baseImage, w, h, { fit });
+  setHeader(res);
+  res.send(resizedImage);
+
+  if (disableCache) return;
+
+  // Store cache
+  try {
+    if (!base) {
+      await set(`${key1}/${key1}`, baseImage);
+      console.log('Stored base cache', key1);
+    }
+    await set(`${key1}/${key2}`, resizedImage);
+    console.log('Stored cache', address);
+  } catch (err) {
+    capture(err);
+    console.log('Store cache failed', address, err);
+  }
+}
+
+router.get(`/:type(${TYPE_CONSTRAINTS})/:id`, (req, res) =>
+  serveImage(req, res).catch(err => failImage(res, err))
+);
 
 export default router;
