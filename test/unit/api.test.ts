@@ -1,5 +1,7 @@
+import { Readable } from 'stream';
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import request from 'supertest';
+import { get } from '../../src/aws';
 import { httpError } from '../../src/helpers/errors';
 import { graphQlCall } from '../../src/helpers/graphql';
 import getOwner from '../../src/resolvers/getOwner';
@@ -8,6 +10,11 @@ import { createTestApp } from '../helpers/testServer';
 
 jest.mock('@snapshot-labs/snapshot-sentry', () => ({
   capture: jest.fn()
+}));
+
+jest.mock('../../src/aws', () => ({
+  ...jest.requireActual('../../src/aws'),
+  get: jest.fn()
 }));
 
 jest.mock('../../src/helpers/graphql', () => ({
@@ -30,6 +37,58 @@ function lookupDomains() {
 
 afterEach(() => {
   global.fetch = originalFetch;
+  (get as jest.Mock).mockReset();
+});
+
+function failingStream(chunks: Buffer[] = []) {
+  return new Readable({
+    read() {
+      if (chunks.length) this.push(chunks.shift());
+      else this.destroy(new Error('socket hang up'));
+    }
+  });
+}
+
+describe('GET /avatar/:id', () => {
+  function getAvatar() {
+    return request(app).get(`/avatar/${ADDRESS}?s=65`).timeout(5000);
+  }
+
+  function expectServerError(response: request.Response) {
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ status: 'error', error: 'failed to load image' });
+    expect(response.headers['content-type']).toMatch(/^application\/json/);
+    expect(response.headers['cache-control']).toBeUndefined();
+    expect(response.headers['expires']).toBeUndefined();
+    expect(capture).toHaveBeenCalledTimes(1);
+  }
+
+  it('returns a 500 when the cached base image cannot be decoded', async () => {
+    (get as jest.Mock)
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(Readable.from([Buffer.from('not an image')]));
+
+    expectServerError(await getAvatar());
+  });
+
+  it('returns a 500 when reading the cached base image fails', async () => {
+    (get as jest.Mock).mockResolvedValueOnce(false).mockResolvedValueOnce(failingStream());
+
+    expectServerError(await getAvatar());
+  });
+
+  it('returns a 500 when reading the cached image fails before any byte is sent', async () => {
+    (get as jest.Mock).mockResolvedValueOnce(failingStream());
+
+    expectServerError(await getAvatar());
+  });
+
+  it('aborts the response when reading the cached image fails mid-stream', async () => {
+    (get as jest.Mock).mockResolvedValueOnce(failingStream([Buffer.from('partial')]));
+
+    await expect(getAvatar()).rejects.toMatchObject({ code: 'ECONNRESET' });
+    expect(capture).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('GET /space-cover/:id', () => {

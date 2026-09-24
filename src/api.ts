@@ -18,6 +18,13 @@ const router = express.Router();
 const TYPE_CONSTRAINTS = [...Object.keys(constants.resolvers), 'address', 'name'].join('|');
 type Params<M extends keyof typeof schemas> = z.infer<(typeof schemas)[M]>;
 
+function failImage(res: express.Response, err: unknown) {
+  capture(err);
+  if (res.headersSent) return res.destroy();
+  ['Content-Type', 'Cache-Control', 'Expires'].forEach(name => res.removeHeader(name));
+  res.status(500).json({ status: 'error', error: 'failed to load image' });
+}
+
 router.post('/', async (req, res) => {
   const { id = null, method, params } = req.body;
   if (!method) return rpcError(res, 400, 'missing method', id);
@@ -75,7 +82,7 @@ router.get(`/clear/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
   }
 });
 
-router.get(`/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
+async function serveImage(req: express.Request, res: express.Response) {
   const { type, id } = req.params as { type: ResolverType; id: string };
   const { address, network, networkId, w, h, fallback, cb, resolver, fit } = parseQuery(
     id,
@@ -102,6 +109,7 @@ router.get(`/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
   if (cache && !disableCache) {
     // console.log('Got cache', address);
     setHeader(res);
+    cache.on('error', err => failImage(res, err));
     return cache.pipe(res);
   }
 
@@ -164,6 +172,10 @@ router.get(`/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
     capture(err);
     console.log('Store cache failed', address, err);
   }
-});
+}
+
+router.get(`/:type(${TYPE_CONSTRAINTS})/:id`, (req, res) =>
+  serveImage(req, res).catch(err => failImage(res, err))
+);
 
 export default router;
