@@ -39,7 +39,6 @@ const RESOLVERS = [
 const ADDRESS = '0xE6D0Dd18C6C3a9Af8C2FaB57d6e6A38E29d513cC';
 const ETHERS_504 =
   'bad response (status=504, headers={}, body="error code: 504", code=SERVER_ERROR, version=web/5.7.1)';
-const LENS_503 = '[api.lens.xyz] status code 503: Service Unavailable';
 
 beforeEach(() => {
   RESOLVERS.forEach(resolver => {
@@ -86,13 +85,6 @@ describe('address resolvers - resolver failures', () => {
     expect(capture).not.toHaveBeenCalled();
   });
 
-  it('does not capture an error listed in the resolver MUTED_ERRORS', async () => {
-    jest.spyOn(lens, 'lookupAddresses').mockRejectedValue(new Error(LENS_503));
-
-    await expect(lookupAddresses([ADDRESS])).resolves.toEqual({});
-    expect(capture).not.toHaveBeenCalled();
-  });
-
   it.each([
     [
       'a host that no longer resolves',
@@ -111,17 +103,6 @@ describe('address resolvers - resolver failures', () => {
 
   it('still reports a plain upstream 4xx from a fixed endpoint', async () => {
     const error = Object.assign(new Error('not found'), { status: 404 });
-    jest.spyOn(ens, 'lookupAddresses').mockRejectedValue(error);
-
-    await expect(lookupAddresses([ADDRESS])).resolves.toEqual({});
-    expect(capture).toHaveBeenCalledWith(error, {
-      tags: { provider: 'Ens' },
-      contexts: { input: { lookupAddresses: [ADDRESS] } }
-    });
-  });
-
-  it('applies MUTED_ERRORS only to the resolver exporting it', async () => {
-    const error = new Error(LENS_503);
     jest.spyOn(ens, 'lookupAddresses').mockRejectedValue(error);
 
     await expect(lookupAddresses([ADDRESS])).resolves.toEqual({});

@@ -124,14 +124,14 @@ describe('isSilencedError, on a failure an RPC library nests', () => {
     expect(isSilencedError(error)).toBe(true);
   });
 
-  it.each([429, 504])('silences an RPC %s viem nests as a status', async status => {
+  it.each([429, 502, 504])('silences an RPC %s viem nests as a status', async status => {
     const error = await viemCall(String(status));
 
     expect(error).toMatchObject({ cause: { cause: { status } } });
     expect(isSilencedError(error)).toBe(true);
   });
 
-  it.each([404, 502])('still reports an RPC %s viem nests as a status', async status => {
+  it.each([404])('still reports an RPC %s viem nests as a status', async status => {
     const error = await viemCall(String(status));
 
     expect(error).toMatchObject({ cause: { cause: { status } } });

@@ -18,7 +18,7 @@ function wrapped(error: any, seen = new Set()): any[] {
   ];
 }
 
-export function isSilencedError(error: any, additionalMessages?: string[]): boolean {
+export function isSilencedError(error: any): boolean {
   // A rejection carries whatever it was given, null included. There is nothing
   // in one to classify, and reporting it is not an option either: `capture`
   // dereferences it and throws, from inside the catch block that called this.
@@ -38,16 +38,15 @@ export function isSilencedError(error: any, additionalMessages?: string[]): bool
     'Received error status from DNS server: 2.',
     'The request took too long to respond.',
     'This operation was aborted',
-    'bad port',
-    ...(additionalMessages || [])
+    'bad port'
   ];
   const codes = wrapped(error).flatMap(e => [e.code, e.status]);
 
-  // ethers v5 re-labels a non-JSON response from an RPC as CALL_EXCEPTION.
-  // The nested HTTP status is the reliable signal that this was an upstream
-  // endpoint outage rather than a contract revert.
-  const upstreamStatus = Number(error.error?.status);
-  if (upstreamStatus >= 500 && upstreamStatus < 600) return true;
+  const upstream5xx = wrapped(error).some(e => {
+    const status = Number(e.status);
+    return status >= 500 && status < 600;
+  });
+  if (upstream5xx) return true;
 
   return (
     messages.some(

@@ -5,7 +5,7 @@ import defillama from './defillama';
 import ens from './ens';
 import farcaster from './farcaster';
 import jazzicon from './jazzicon';
-import lens, { MUTED_ERRORS as lensMutedErrors } from './lens';
+import lens from './lens';
 import {
   resolveSpaceAvatar as sResolveSpaceAvatar,
   resolveSpaceCover as sResolveSpaceCover,
@@ -27,7 +27,6 @@ type Resolver = {
   fn: ResolverFn;
   resize: boolean;
   failureContract: boolean;
-  mutedErrors?: string[];
 };
 
 // 401/402/403 are excluded from the routine band: withFailureContract wraps a
@@ -46,16 +45,12 @@ function isRoutineMiss(error: any): boolean {
   );
 }
 
-function withFailureContract(
-  name: string,
-  resolve: ResolverFn,
-  mutedErrors?: string[]
-): ResolverFn {
+function withFailureContract(name: string, resolve: ResolverFn): ResolverFn {
   return async (...args) => {
     try {
       return await resolve(...args);
     } catch (err) {
-      if (!isSilencedError(err, mutedErrors) && !isRoutineMiss(err)) {
+      if (!isSilencedError(err) && !isRoutineMiss(err)) {
         capture(err, { tags: { provider: name }, contexts: { input: { args } } });
       }
       return false;
@@ -96,13 +91,7 @@ export const RESOLVERS = [
   { name: 'space-logo', fn: sResolveSpaceLogo, resize: false, failureContract: true },
   { name: 'space-sx', fn: sxResolveAvatar, resize: true, failureContract: true },
   { name: 'space-cover-sx', fn: sxResolveCover, resize: false, failureContract: true },
-  {
-    name: 'lens',
-    fn: lens,
-    resize: true,
-    failureContract: true,
-    mutedErrors: lensMutedErrors
-  },
+  { name: 'lens', fn: lens, resize: true, failureContract: true },
   { name: 'starknet', fn: starknet, resize: true, failureContract: true },
   { name: 'farcaster', fn: farcaster, resize: true, failureContract: true }
 ] as const satisfies readonly Resolver[];
@@ -120,15 +109,6 @@ export default Object.fromEntries(
   RESOLVERS.map(entry => {
     const resolve = entry.resize ? withResize(entry.name, entry.fn) : entry.fn;
 
-    return [
-      entry.name,
-      entry.failureContract
-        ? withFailureContract(
-            entry.name,
-            resolve,
-            'mutedErrors' in entry ? entry.mutedErrors : undefined
-          )
-        : resolve
-    ];
+    return [entry.name, entry.failureContract ? withFailureContract(entry.name, resolve) : resolve];
   })
 ) as ResolverMap;
