@@ -1,6 +1,7 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import snapshot from '@snapshot-labs/snapshot.js';
 import testAddressResolver from './helper';
+import { getProvider } from '../../../../src/helpers/provider';
 import { lookupAddresses, resolveNames } from '../../../../src/resolvers/address/ens';
 
 jest.mock('@snapshot-labs/snapshot-sentry', () => ({
@@ -31,11 +32,19 @@ describe('ENS address resolver: CCIP-Read fallback', () => {
   it('falls back to per-address lookups when the batch reverse call reverts', async () => {
     const ccipAddress = '0x3a872f8FED4421E7d5BE5c98Ab5Ea0e0245169A0';
     const goodAddress = '0xE6D0Dd18C6C3a9Af8C2FaB57d6e6A38E29d513cC';
+    const gatewayError = Object.assign(new Error('gateway down'), { code: 'SERVER_ERROR' });
+    const provider = getProvider('1');
+    const gatewaySpy = jest.spyOn(provider, 'ccipReadFetch').mockRejectedValue(gatewayError);
 
-    await expect(lookupAddresses([ccipAddress])).resolves.toEqual({});
-    await expect(lookupAddresses([ccipAddress, goodAddress])).resolves.toEqual({
-      [goodAddress]: 'sdntestens.eth'
-    });
+    try {
+      await expect(provider.lookupAddress(ccipAddress)).rejects.toBe(gatewayError);
+      await expect(lookupAddresses([ccipAddress])).resolves.toEqual({});
+      await expect(lookupAddresses([ccipAddress, goodAddress])).resolves.toEqual({
+        [goodAddress]: 'sdntestens.eth'
+      });
+    } finally {
+      gatewaySpy.mockRestore();
+    }
   }, 20e3);
 
   it('still surfaces non-CALL_EXCEPTION batch errors', async () => {
