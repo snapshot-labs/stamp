@@ -38,9 +38,8 @@ async function readHttpImage(response: Response): Promise<Buffer> {
   if (!response.ok) {
     await response.body?.cancel();
     // No credentials are sent and nothing here retries, so any non-2xx is this
-    // host not serving this image: the 401/402/403 that isRoutineMiss keeps loud
-    // for authenticated API calls, and a 5xx from a host that is down for good,
-    // which would otherwise report on every cache miss for that name.
+    // host not serving this image, including the 401/402/403 that isRoutineMiss
+    // keeps loud for authenticated API calls.
     throw httpError(host, 404, response.statusText);
   }
 

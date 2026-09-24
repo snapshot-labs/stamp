@@ -2,6 +2,7 @@ import { Readable } from 'stream';
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import request from 'supertest';
 import { get } from '../../src/aws';
+import { httpError } from '../../src/helpers/errors';
 import { graphQlCall } from '../../src/helpers/graphql';
 import getOwner from '../../src/resolvers/getOwner';
 import { answeredFrom } from '../helpers/fetch';
@@ -163,6 +164,62 @@ describe('POST /', () => {
       expect(response.status).toBe(500);
       expect(capture).toHaveBeenCalledTimes(1);
       expect(capture).toHaveBeenCalledWith(expect.objectContaining({ message: 'unexpected' }));
+    });
+  });
+
+  describe('on get_owner upstream failures', () => {
+    async function getOwnerRequest() {
+      return request(app).post('/').send({ method: 'get_owner', params: 'test.shib' });
+    }
+
+    it('does not capture connection timeouts', async () => {
+      (getOwner as jest.Mock).mockRejectedValue(
+        Object.assign(new TypeError('fetch failed'), {
+          cause: { code: 'UND_ERR_CONNECT_TIMEOUT' }
+        })
+      );
+
+      expect((await getOwnerRequest()).status).toBe(500);
+      expect(capture).not.toHaveBeenCalled();
+    });
+
+    it('does not capture a D3 host that no longer resolves', async () => {
+      (getOwner as jest.Mock).mockRejectedValue(
+        Object.assign(new TypeError('fetch failed'), { cause: { code: 'ENOTFOUND' } })
+      );
+
+      expect((await getOwnerRequest()).status).toBe(500);
+      expect(capture).not.toHaveBeenCalled();
+    });
+
+    it('does not capture D3 5xx responses', async () => {
+      (getOwner as jest.Mock).mockRejectedValue(httpError('d3', 503, ''));
+
+      expect((await getOwnerRequest()).status).toBe(500);
+      expect(capture).not.toHaveBeenCalled();
+    });
+
+    it('captures D3 authorization failures with their status', async () => {
+      (getOwner as jest.Mock).mockRejectedValue(httpError('d3', 403, ''));
+
+      expect((await getOwnerRequest()).status).toBe(500);
+      expect(capture).toHaveBeenCalledWith(expect.objectContaining({ status: 403 }));
+    });
+
+    it('does not capture invalid input', async () => {
+      const response = await request(app)
+        .post('/')
+        .send({ method: 'get_owner', params: { invalid: true } });
+
+      expect(response.status).toBe(400);
+      expect(capture).not.toHaveBeenCalled();
+    });
+
+    it('does not throw when the rejection itself is null', async () => {
+      (getOwner as jest.Mock).mockRejectedValue(null);
+
+      expect((await getOwnerRequest()).status).toBe(500);
+      expect(capture).not.toHaveBeenCalled();
     });
   });
 });

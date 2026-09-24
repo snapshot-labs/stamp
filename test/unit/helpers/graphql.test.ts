@@ -145,10 +145,10 @@ describe('graphQlCall', () => {
       expect(isSilencedError(err)).toBe(true);
     });
 
-    it('is not silenced on a status that is not transient', async () => {
+    it('is silenced on an upstream 5xx', async () => {
       const err = await errorFrom({ errors: [{ message: 'boom' }], data: null }, 500);
 
-      expect(isSilencedError(err)).toBe(false);
+      expect(isSilencedError(err)).toBe(true);
     });
   });
 });

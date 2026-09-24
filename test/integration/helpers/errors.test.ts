@@ -57,6 +57,17 @@ describe('isSilencedError', () => {
     expect(isSilencedError(fetchError)).toBe(true);
   });
 
+  it('silences undici premature socket closes', () => {
+    const fetchError = new TypeError('fetch failed') as TypeError & {
+      cause?: Error & { code?: string };
+    };
+    fetchError.cause = Object.assign(new Error('Premature close'), {
+      code: 'UND_ERR_SOCKET'
+    });
+
+    expect(isSilencedError(fetchError)).toBe(true);
+  });
+
   it('silences errors matched by cause message', () => {
     const fetchError = new TypeError('fetch failed') as TypeError & {
       cause?: Error;
@@ -102,14 +113,13 @@ describe('isSilencedError', () => {
     expect(isSilencedError(upstreamError)).toBe(true);
   });
 
-  it('does not silence a non-transient status carried on error.response', () => {
+  it('silences a 5xx carried on error.response', () => {
     const upstreamError = {
       message: '[hub.snapshot.org] status code 500: Internal Server Error',
-      status: 500,
       response: { status: 500 }
     };
 
-    expect(isSilencedError(upstreamError)).toBe(false);
+    expect(isSilencedError(upstreamError)).toBe(true);
   });
 
   it('silences transient SERVFAIL DNS server status (2)', () => {

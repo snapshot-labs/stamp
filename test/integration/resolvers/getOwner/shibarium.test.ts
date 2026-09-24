@@ -71,3 +71,19 @@ describe('getOwner/shibarium deadline', () => {
     timers.mockRestore();
   });
 });
+
+describe('getOwner/shibarium upstream failures', () => {
+  it('carries the D3 status on the error, even with no reason phrase', async () => {
+    const fetchSpy = jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValue({ ok: false, status: 503, statusText: '' } as Response);
+
+    await expect(getOwner(HANDLE, CHAIN_ID)).rejects.toMatchObject({
+      message: '[d3] status code 503: ',
+      status: 503,
+      response: { status: 503 }
+    });
+
+    fetchSpy.mockRestore();
+  });
+});

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { clear, get, set, streamToBuffer } from './aws';
 import constants from './constants.json';
 import { getCacheKey, parseQuery, setHeader } from './helpers/api';
+import { isSilencedError, isTransportFailure } from './helpers/errors';
 import { resize } from './helpers/image';
 import { rpcError, rpcInvalidParams, rpcSuccess } from './helpers/rpc';
 import { ResolverType } from './helpers/types';
@@ -49,8 +50,8 @@ router.post('/', async (req, res) => {
     return rpcSuccess(res, result, id);
   } catch (err) {
     const error = err as any;
-    if (error.code !== 400) {
-      capture(error.error ? new Error(error.error) : error);
+    if (error?.code !== 400 && !isSilencedError(error) && !isTransportFailure(error)) {
+      capture(error);
     }
     return rpcError(res, 500, err, id);
   }
