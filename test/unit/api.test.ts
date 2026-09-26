@@ -116,6 +116,20 @@ describe('GET /space-cover/:id', () => {
 });
 
 describe('POST /', () => {
+  describe('when the method is an Object.prototype key', () => {
+    it('returns invalid method', async () => {
+      const response = await request(app).post('/').send({ id: 1, method: 'toString' });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        jsonrpc: '2.0',
+        error: { code: 400, message: 'unauthorized', data: 'invalid method' },
+        id: 1
+      });
+      expect(capture).not.toHaveBeenCalled();
+    });
+  });
+
   describe('on lookup_domains', () => {
     describe('when a resolver fails', () => {
       it('captures the resolver error only once', async () => {
