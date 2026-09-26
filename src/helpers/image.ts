@@ -1,7 +1,7 @@
 import { decodeHTMLStrict } from 'entities';
 import sharp from 'sharp';
 
-export const RESIZE_FITS = ['cover', 'contain', 'fill', 'inside', 'outside'];
+export const RESIZE_FITS = ['cover', 'contain', 'fill', 'inside', 'outside'] as const;
 
 function isUndefinedEntityError(err: unknown): boolean {
   return err instanceof Error && /Entity '[^']+' not defined/.test(err.message);

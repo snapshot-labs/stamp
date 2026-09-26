@@ -2,6 +2,7 @@ import { Readable } from 'stream';
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import sharp from 'sharp';
 import request from 'supertest';
+import { ZodError } from 'zod';
 import { clear, get } from '../../src/aws';
 import constants from '../../src/constants.json';
 import { httpError } from '../../src/helpers/errors';
@@ -140,6 +141,17 @@ describe('GET /avatar/:id?resolver=', () => {
     expect(spies.filter(([, spy]) => spy.mock.calls.length).map(([name]) => name)).toEqual([
       resolver
     ]);
+  });
+
+  it('returns a 500 for a zod error that is not about the query', async () => {
+    const error = new ZodError([{ code: 'custom', path: ['resolver'], message: 'x' }]);
+    error.issues.push({ code: 'custom', path: ['other'], message: 'y' });
+    spies.forEach(([, spy]) => spy.mockRejectedValue(error));
+
+    const response = await request(app).get(`/avatar/${ADDRESS}`).timeout(5000);
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ status: 'error', error: 'failed to load image' });
   });
 });
 

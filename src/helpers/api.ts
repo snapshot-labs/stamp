@@ -2,8 +2,8 @@ import { createHash } from 'crypto';
 import { Response } from 'express';
 import constants from '../constants.json';
 import { chainIdToShortName, shortNameToChainId } from './chains';
-import { RESIZE_FITS } from './image';
 import { ResolverType } from './types';
+import { imageQuerySchema } from './validation';
 
 export function sha256(str) {
   return createHash('sha256').update(str).digest('hex');
@@ -26,25 +26,21 @@ export function parseQuery(id: string, type: ResolverType, query) {
   }
 
   address = address.toLowerCase();
-  const size = 64;
-  const maxSize = type.includes('-cover') ? constants.maxCover : constants.max;
-  let s = query.s ? parseInt(query.s) : size;
-  if (s < 1 || s > maxSize || isNaN(s)) s = size;
-  let w = query.w ? parseInt(query.w) : s;
-  if (w < 1 || w > maxSize || isNaN(w)) w = size;
-  let h = query.h ? parseInt(query.h) : s;
-  if (h < 1 || h > maxSize || isNaN(h)) h = size;
+  const typeResolvers: string[] =
+    constants.resolvers[type as keyof typeof constants.resolvers] ?? constants.resolvers.avatar;
+  const { s, w, h, fb, cb, fit, resolver } = imageQuerySchema(type, typeResolvers).parse(query);
 
   return {
     address,
     network,
     networkId,
-    w,
-    h,
-    fallback: query.fb === 'jazzicon' ? 'jazzicon' : 'blockie',
-    cb: query.cb,
-    resolver: query.resolver,
-    fit: RESIZE_FITS.includes(query.fit) ? query.fit : undefined
+    w: w ?? s,
+    h: h ?? s,
+    fallback: fb as string,
+    cb,
+    resolver,
+    resolvers: resolver ? [resolver] : typeResolvers,
+    fit
   };
 }
 
