@@ -122,14 +122,8 @@ async function serveImage(req: express.Request, res: express.Response) {
   } else {
     // console.log('No cache for', key1, base);
 
-    let currentResolvers: string[] = constants.resolvers.avatar;
-    if (type === 'token') currentResolvers = constants.resolvers.token;
-    if (type === 'space') currentResolvers = constants.resolvers.space;
-    if (type === 'space-cover') currentResolvers = constants.resolvers['space-cover'];
-    if (type === 'space-logo') currentResolvers = constants.resolvers['space-logo'];
-    if (type === 'space-sx') currentResolvers = constants.resolvers['space-sx'];
-    if (type === 'space-cover-sx') currentResolvers = constants.resolvers['space-cover-sx'];
-    if (type === 'user-cover') currentResolvers = constants.resolvers['user-cover'];
+    let currentResolvers: string[] =
+      constants.resolvers[type as keyof typeof constants.resolvers] ?? constants.resolvers.avatar;
 
     if (resolver) {
       if (!currentResolvers.includes(resolver)) {
