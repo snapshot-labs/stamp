@@ -71,6 +71,8 @@ describe('parseQuery() query params', () => {
     ['s out of range falls back', 'avatar', { s: '501' }, { w: 64, h: 64 }],
     ['cover types allow a larger s', 'space-cover', { s: '1500' }, { w: 1500, h: 1500 }],
     ['non-numeric s falls back', 'avatar', { s: 'abc' }, { w: 64, h: 64 }],
+    ['s of 0 falls back', 'avatar', { s: '0' }, { w: 64, h: 64 }],
+    ['empty w falls back to s', 'avatar', { s: '32', w: '' }, { w: 32, h: 32 }],
     ['w overrides s', 'avatar', { s: '32', w: '100' }, { w: 100, h: 32 }],
     [
       'invalid w falls back to the default, not s',
