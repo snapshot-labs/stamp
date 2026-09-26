@@ -30,7 +30,7 @@ function imageQuerySchema(type: ResolverType, resolvers: string[]) {
     fit: z.enum(RESIZE_FITS).optional().catch(undefined),
     resolver: z.preprocess(
       v => v || undefined,
-      z.enum(resolvers as [string, ...string[]]).optional()
+      z.enum(resolvers as [string, ...string[]], { message: 'invalid resolvers' }).optional()
     )
   });
 }

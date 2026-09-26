@@ -94,6 +94,6 @@ describe('parseQuery() query params', () => {
     ['resolver of another type', 'space-cover', { resolver: 'ens' }],
     ['repeated resolver', 'avatar', { resolver: ['ens', 'lens'] }]
   ])('throws on %s', (_name, type, query) => {
-    expect(() => parseQuery('0xabc', type as any, query)).toThrow();
+    expect(() => parseQuery('0xabc', type as any, query)).toThrow('invalid resolvers');
   });
 });

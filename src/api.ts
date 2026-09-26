@@ -125,11 +125,12 @@ async function serveImage(req: express.Request, res: express.Response) {
 }
 
 router.get(`/:type(${TYPE_CONSTRAINTS})/:id`, (req, res) =>
-  serveImage(req, res).catch(err =>
-    err instanceof z.ZodError
-      ? res.status(400).json({ status: 'error', error: 'invalid resolvers' })
-      : failImage(res, err)
-  )
+  serveImage(req, res).catch(err => {
+    if (err instanceof z.ZodError && err.issues.every(issue => issue.path[0] === 'resolver')) {
+      return res.status(400).json({ status: 'error', error: err.issues[0].message });
+    }
+    failImage(res, err);
+  })
 );
 
 export default router;
