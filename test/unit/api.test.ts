@@ -1,5 +1,6 @@
 import { Readable } from 'stream';
 import { capture } from '@snapshot-labs/snapshot-sentry';
+import sharp from 'sharp';
 import request from 'supertest';
 import { clear, get } from '../../src/aws';
 import constants from '../../src/constants.json';
@@ -91,6 +92,54 @@ describe('GET /avatar/:id', () => {
 
     await expect(getAvatar()).rejects.toMatchObject({ code: 'ECONNRESET' });
     expect(capture).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('GET /avatar/:id?resolver=', () => {
+  let spies: [string, jest.SpyInstance][];
+
+  beforeEach(() => {
+    spies = (Object.keys(resolvers) as (keyof typeof resolvers)[])
+      .filter(name => name !== 'blockie')
+      .map(name => [name, jest.spyOn(resolvers, name).mockResolvedValue(false)]);
+  });
+
+  afterEach(() => spies.forEach(([, spy]) => spy.mockRestore()));
+
+  function expectInvalidResolver(response: request.Response) {
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ status: 'error', error: 'invalid resolvers' });
+  }
+
+  it('returns a 400 for an unknown resolver on a cold cache', async () => {
+    expectInvalidResolver(await request(app).get(`/avatar/${ADDRESS}?resolver=garbage`));
+  });
+
+  it('returns a 400 for an unknown resolver when the base image is cached', async () => {
+    const image = await sharp({
+      create: { width: 1, height: 1, channels: 4, background: '#000' }
+    })
+      .png()
+      .toBuffer();
+    (get as jest.Mock).mockResolvedValueOnce(false).mockResolvedValueOnce(Readable.from([image]));
+
+    expectInvalidResolver(await request(app).get(`/avatar/${ADDRESS}?resolver=garbage`));
+  });
+
+  it('returns a 400 when the resolver is given more than once', async () => {
+    const [a, b] = constants.resolvers.avatar;
+
+    expectInvalidResolver(await request(app).get(`/avatar/${ADDRESS}?resolver=${a}&resolver=${b}`));
+  });
+
+  it('runs only the requested resolver', async () => {
+    const resolver = constants.resolvers.avatar[1];
+    const response = await request(app).get(`/avatar/${ADDRESS}?resolver=${resolver}`);
+
+    expect(response.status).toBe(200);
+    expect(spies.filter(([, spy]) => spy.mock.calls.length).map(([name]) => name)).toEqual([
+      resolver
+    ]);
   });
 });
 

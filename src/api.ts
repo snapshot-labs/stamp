@@ -87,6 +87,17 @@ async function serveImage(req: express.Request, res: express.Response) {
   const query = parseQuery(id, type, req.query);
   const { address, network, networkId, w, h, fallback, cb, resolver, fit } = query;
 
+  let currentResolvers: string[] =
+    constants.resolvers[type as keyof typeof constants.resolvers] ?? constants.resolvers.avatar;
+
+  if (resolver) {
+    if (!currentResolvers.includes(resolver)) {
+      return res.status(400).json({ status: 'error', error: 'invalid resolvers' });
+    }
+
+    currentResolvers = [resolver];
+  }
+
   const disableCache = !!resolver;
 
   const key1 = getBaseCacheKey(type, query);
@@ -109,17 +120,6 @@ async function serveImage(req: express.Request, res: express.Response) {
     // console.log('Got base cache');
   } else {
     // console.log('No cache for', key1, base);
-
-    let currentResolvers: string[] =
-      constants.resolvers[type as keyof typeof constants.resolvers] ?? constants.resolvers.avatar;
-
-    if (resolver) {
-      if (!currentResolvers.includes(resolver)) {
-        return res.status(500).json({ status: 'error', error: 'invalid resolvers' });
-      }
-
-      currentResolvers = [resolver];
-    }
 
     const files = await Promise.all(
       currentResolvers.map(r => resolvers[r](address, network, networkId))
