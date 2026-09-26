@@ -43,6 +43,9 @@ describe('image cache', () => {
 
     expect(await cache('avatar', QUERY, callback)).toBe(stream);
     expect(callback).not.toHaveBeenCalled();
+    const [[key]] = (get as jest.Mock).mock.calls;
+    const [key1] = key.split('/');
+    expect(key).toMatch(new RegExp(`^${key1}/(?!${key1}$)`));
   });
 
   it('resizes the base-cache image and stores only the resized level', async () => {
@@ -86,6 +89,17 @@ describe('image cache', () => {
     expect(Buffer.isBuffer(result)).toBe(true);
     expect(callback).toHaveBeenCalledTimes(1);
     expect(set).not.toHaveBeenCalled();
+  });
+
+  it('does not wait for the cache writes', async () => {
+    (set as jest.Mock).mockReturnValue(new Promise(() => {}));
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('waited on the cache write')), 1000)
+    );
+
+    expect(Buffer.isBuffer(await Promise.race([cache('avatar', QUERY, callback), timeout]))).toBe(
+      true
+    );
   });
 
   it('captures a failed write without failing the lookup', async () => {
