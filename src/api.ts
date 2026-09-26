@@ -16,7 +16,19 @@ import lookupDomains from './resolvers/lookupDomains';
 
 const router = express.Router();
 const TYPE_CONSTRAINTS = [...Object.keys(constants.resolvers), 'address', 'name'].join('|');
-type Params<M extends keyof typeof schemas> = z.infer<(typeof schemas)[M]>;
+type Params = { [M in keyof typeof schemas]: z.infer<(typeof schemas)[M]> };
+
+// Indexing `schemas` directly in dispatch does not typecheck: this mapped type keeps
+// the parsed params correlated with the method they are passed to.
+const paramSchemas: { [M in keyof Params]: z.ZodType<Params[M]> } = schemas;
+
+const methods: { [M in keyof Params]: (params: Params[M], body: any) => Promise<unknown> } = {
+  lookup_domains: (params, body) => lookupDomains(params, body.network),
+  get_owner: (params, body) => getOwner(params, body.network),
+  lookup_addresses: params => lookupAddresses(params),
+  resolve_names: params => resolveNames(params)
+};
+const methodSchema = z.object(schemas).keyof();
 
 function failImage(res: express.Response, err: unknown) {
   capture(err);
@@ -25,29 +37,23 @@ function failImage(res: express.Response, err: unknown) {
   res.status(500).json({ status: 'error', error: 'failed to load image' });
 }
 
+async function dispatch<M extends keyof typeof methods>(
+  method: M,
+  body: any,
+  res: express.Response,
+  id: unknown
+) {
+  const parsedParams = paramSchemas[method].safeParse(body.params);
+  if (!parsedParams.success) return rpcInvalidParams(res, formatZodError(parsedParams.error), id);
+  return rpcSuccess(res, await methods[method](parsedParams.data, body), id);
+}
+
 router.post('/', async (req, res) => {
-  const { id = null, method, params } = req.body;
-  if (!method) return rpcError(res, 400, 'missing method', id);
+  const { id = null, method } = req.body;
   try {
-    let result: any = {};
-
-    const schema = schemas[method as keyof typeof schemas];
-    if (!schema) return rpcError(res, 400, 'invalid method', id);
-
-    const parsedParams = schema.safeParse(params);
-    if (!parsedParams.success) return rpcInvalidParams(res, formatZodError(parsedParams.error), id);
-    const data = parsedParams.data;
-
-    if (method === 'lookup_domains')
-      result = await lookupDomains(data as Params<'lookup_domains'>, req.body.network);
-    else if (method === 'get_owner')
-      result = await getOwner(data as Params<'get_owner'>, req.body.network);
-    else if (method === 'lookup_addresses')
-      result = await lookupAddresses(data as Params<'lookup_addresses'>);
-    else result = await resolveNames(data as Params<'resolve_names'>);
-
-    if (result?.error) return rpcError(res, result.code || 500, result.error, id);
-    return rpcSuccess(res, result, id);
+    const parsedMethod = methodSchema.safeParse(method);
+    if (!parsedMethod.success) return rpcError(res, 400, 'invalid method', id);
+    return await dispatch(parsedMethod.data, req.body, res, id);
   } catch (err) {
     const error = err as any;
     if (error?.code !== 400 && !isSilencedError(error) && !isTransportFailure(error)) {
