@@ -4,7 +4,6 @@ import request from 'supertest';
 let app: express.Application;
 
 beforeAll(async () => {
-  // src/index.ts listens at import time: capture the app instead of binding a port
   const listen = jest.spyOn(express.application, 'listen').mockReturnValue(undefined as any);
   await import('../../src/index');
   app = listen.mock.instances[0] as unknown as express.Application;
@@ -20,5 +19,9 @@ describe('unknown routes', () => {
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ message: 'Not found' });
+  });
+
+  it('still serves matched routes', async () => {
+    expect((await request(app).get('/')).status).toBe(200);
   });
 });
