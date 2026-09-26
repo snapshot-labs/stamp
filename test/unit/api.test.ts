@@ -2,9 +2,11 @@ import { Readable } from 'stream';
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import request from 'supertest';
 import { get } from '../../src/aws';
+import constants from '../../src/constants.json';
 import { httpError } from '../../src/helpers/errors';
 import { graphQlCall } from '../../src/helpers/graphql';
 import getOwner from '../../src/resolvers/getOwner';
+import resolvers from '../../src/resolvers/image';
 import { answeredFrom } from '../helpers/fetch';
 import { createTestApp } from '../helpers/testServer';
 
@@ -88,6 +90,26 @@ describe('GET /avatar/:id', () => {
 
     await expect(getAvatar()).rejects.toMatchObject({ code: 'ECONNRESET' });
     expect(capture).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe.each(['address', 'name'])('GET /%s/:id', type => {
+  afterEach(() => jest.restoreAllMocks());
+
+  it('uses the avatar resolvers', async () => {
+    const spies = (Object.keys(resolvers) as (keyof typeof resolvers)[])
+      .filter(name => name !== 'blockie')
+      .map(name => [name, jest.spyOn(resolvers, name).mockResolvedValue(false)] as const);
+
+    const response = await request(app).get(`/${type}/${ADDRESS}`);
+
+    expect(response.status).toBe(200);
+    expect(
+      spies
+        .filter(([, spy]) => spy.mock.calls.length)
+        .map(([name]) => name)
+        .sort()
+    ).toEqual([...constants.resolvers.avatar].sort());
   });
 });
 
