@@ -27,6 +27,7 @@ const methods: { [M in keyof typeof schemas]: Method<z.infer<(typeof schemas)[M]
   lookup_addresses: { schema: schemas.lookup_addresses, run: params => lookupAddresses(params) },
   resolve_names: { schema: schemas.resolve_names, run: params => resolveNames(params) }
 };
+const methodSchema = z.object(schemas).keyof();
 
 function failImage(res: express.Response, err: unknown) {
   capture(err);
@@ -49,10 +50,10 @@ async function dispatch<M extends keyof typeof methods>(
 
 router.post('/', async (req, res) => {
   const { id = null, method } = req.body;
-  if (!method) return rpcError(res, 400, 'missing method', id);
   try {
-    if (!Object.hasOwn(methods, method)) return rpcError(res, 400, 'invalid method', id);
-    return await dispatch(method, req.body, res, id);
+    const parsedMethod = methodSchema.safeParse(method);
+    if (!parsedMethod.success) return rpcError(res, 400, 'invalid method', id);
+    return await dispatch(parsedMethod.data, req.body, res, id);
   } catch (err) {
     const error = err as any;
     if (error?.code !== 400 && !isSilencedError(error) && !isTransportFailure(error)) {

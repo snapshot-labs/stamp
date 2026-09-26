@@ -116,9 +116,15 @@ describe('GET /space-cover/:id', () => {
 });
 
 describe('POST /', () => {
-  describe('when the method is an Object.prototype key', () => {
-    it('returns invalid method', async () => {
-      const response = await request(app).post('/').send({ id: 1, method: 'toString' });
+  describe('when the method is not a known method name', () => {
+    it.each([
+      ['an Object.prototype key', { method: 'toString' }],
+      ['an array-wrapped method name', { method: ['lookup_domains'] }],
+      ['missing', {}]
+    ])('returns invalid method when it is %s', async (_, body) => {
+      const response = await request(app)
+        .post('/')
+        .send({ id: 1, params: ADDRESS, ...body });
 
       expect(response.status).toBe(400);
       expect(response.body).toEqual({
