@@ -1,38 +1,12 @@
 import { createHash } from 'crypto';
 import { Response } from 'express';
-import { z } from 'zod';
 import constants from '../constants.json';
 import { chainIdToShortName, shortNameToChainId } from './chains';
-import { RESIZE_FITS } from './image';
 import { ResolverType } from './types';
+import { imageQuerySchema } from './validation';
 
 export function sha256(str) {
   return createHash('sha256').update(str).digest('hex');
-}
-
-const DEFAULT_SIZE = 64;
-
-function dimension(max: number) {
-  return z
-    .preprocess(v => (v ? parseInt(v as string) : undefined), z.number().min(1).max(max).optional())
-    .catch(DEFAULT_SIZE);
-}
-
-function imageQuerySchema(type: ResolverType, resolvers: string[]) {
-  const max = type.includes('-cover') ? constants.maxCover : constants.max;
-
-  return z.object({
-    s: dimension(max).transform(s => s ?? DEFAULT_SIZE),
-    w: dimension(max),
-    h: dimension(max),
-    fb: z.enum(['blockie', 'jazzicon']).catch('blockie'),
-    cb: z.any(),
-    fit: z.enum(RESIZE_FITS).optional().catch(undefined),
-    resolver: z.preprocess(
-      v => v || undefined,
-      z.enum(resolvers as [string, ...string[]], { message: 'invalid resolvers' }).optional()
-    )
-  });
 }
 
 export function parseQuery(id: string, type: ResolverType, query) {
