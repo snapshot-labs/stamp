@@ -74,6 +74,22 @@ export function getCacheKey({
   return sha256(JSON.stringify(data));
 }
 
+export function getBaseCacheKey(
+  type: ResolverType,
+  { network, address, fallback, cb, fit }: ReturnType<typeof parseQuery>
+) {
+  return getCacheKey({
+    type,
+    network,
+    address,
+    w: constants.max,
+    h: constants.max,
+    fallback,
+    cb,
+    fit
+  });
+}
+
 export function setHeader(res: Response, cacheType: 'SHORT_CACHE' | 'LONG_CACHE' = 'LONG_CACHE') {
   const ttl = cacheType === 'SHORT_CACHE' ? constants.shortTtl : constants.ttl;
   res.set({

@@ -3,7 +3,7 @@ import express from 'express';
 import { z } from 'zod';
 import { clear, get, set, streamToBuffer } from './aws';
 import constants from './constants.json';
-import { getCacheKey, parseQuery, setHeader } from './helpers/api';
+import { getBaseCacheKey, getCacheKey, parseQuery, setHeader } from './helpers/api';
 import { isSilencedError, isTransportFailure } from './helpers/errors';
 import { resize } from './helpers/image';
 import { rpcError, rpcInvalidParams, rpcSuccess } from './helpers/rpc';
@@ -66,14 +66,8 @@ router.get(`/clear/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
     if (type === 'address' || type === 'name') {
       result = await clearCache(id, type);
     } else {
-      const { address, network, w, h, fallback, cb, fit } = parseQuery(id, type, {
-        s: constants.max,
-        fb: req.query.fb,
-        cb: req.query.cb,
-        fit: req.query.fit
-      });
-      const key = getCacheKey({ type, network, address, w, h, fallback, cb, fit });
-      result = await clear(key);
+      const { fb, cb, fit } = req.query;
+      result = await clear(getBaseCacheKey(type, parseQuery(id, type, { fb, cb, fit })));
     }
     res.status(result ? 200 : 404).json({ status: result ? 'ok' : 'not found' });
   } catch (err) {
@@ -84,24 +78,12 @@ router.get(`/clear/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
 
 async function serveImage(req: express.Request, res: express.Response) {
   const { type, id } = req.params as { type: ResolverType; id: string };
-  const { address, network, networkId, w, h, fallback, cb, resolver, fit } = parseQuery(
-    id,
-    type,
-    req.query
-  );
+  const query = parseQuery(id, type, req.query);
+  const { address, network, networkId, w, h, fallback, cb, resolver, fit } = query;
 
   const disableCache = !!resolver;
 
-  const key1 = getCacheKey({
-    type,
-    network,
-    address,
-    w: constants.max,
-    h: constants.max,
-    fallback,
-    cb,
-    fit
-  });
+  const key1 = getBaseCacheKey(type, query);
   const key2 = getCacheKey({ type, network, address, w, h, fallback, cb, fit });
 
   // Check resized cache
