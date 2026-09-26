@@ -2,7 +2,7 @@ import { Readable } from 'stream';
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import sharp from 'sharp';
 import request from 'supertest';
-import { get } from '../../src/aws';
+import { clear, get } from '../../src/aws';
 import constants from '../../src/constants.json';
 import { httpError } from '../../src/helpers/errors';
 import { graphQlCall } from '../../src/helpers/graphql';
@@ -17,7 +17,8 @@ jest.mock('@snapshot-labs/snapshot-sentry', () => ({
 
 jest.mock('../../src/aws', () => ({
   ...jest.requireActual('../../src/aws'),
-  get: jest.fn()
+  get: jest.fn(),
+  clear: jest.fn()
 }));
 
 jest.mock('../../src/helpers/graphql', () => ({
@@ -167,6 +168,24 @@ describe.each([
         .map(([name]) => name)
         .sort()
     ).toEqual([...expected].sort());
+  });
+});
+
+describe('GET /clear/:type/:id', () => {
+  it.each([
+    ['a plain id', ADDRESS, ''],
+    ['a network:address id', `oeth:${ADDRESS}`, ''],
+    ['non-default fb/cb/fit', ADDRESS, '&fb=jazzicon&cb=42&fit=contain']
+  ])('clears the base key the image route writes, for %s', async (_, id, query) => {
+    (get as jest.Mock).mockResolvedValueOnce(Readable.from([Buffer.from('cached')]));
+    await request(app).get(`/avatar/${id}?s=65${query}`);
+    const baseKey = (get as jest.Mock).mock.calls[0][0].split('/')[0];
+
+    (clear as jest.Mock).mockResolvedValueOnce(true);
+    const response = await request(app).get(`/clear/avatar/${id}?s=65${query}`);
+
+    expect(response.status).toBe(200);
+    expect(clear).toHaveBeenLastCalledWith(baseKey);
   });
 });
 
