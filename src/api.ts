@@ -16,16 +16,17 @@ import lookupDomains from './resolvers/lookupDomains';
 
 const router = express.Router();
 const TYPE_CONSTRAINTS = [...Object.keys(constants.resolvers), 'address', 'name'].join('|');
-type Method<T> = { schema: z.ZodType<T>; run: (params: T, body: any) => Promise<unknown> };
+type Params = { [M in keyof typeof schemas]: z.infer<(typeof schemas)[M]> };
 
-const methods: { [M in keyof typeof schemas]: Method<z.infer<(typeof schemas)[M]>> } = {
-  lookup_domains: {
-    schema: schemas.lookup_domains,
-    run: (params, body) => lookupDomains(params, body.network)
-  },
-  get_owner: { schema: schemas.get_owner, run: (params, body) => getOwner(params, body.network) },
-  lookup_addresses: { schema: schemas.lookup_addresses, run: params => lookupAddresses(params) },
-  resolve_names: { schema: schemas.resolve_names, run: params => resolveNames(params) }
+// Indexing `schemas` directly in dispatch does not typecheck: this mapped type keeps
+// the parsed params correlated with the method they are passed to.
+const paramSchemas: { [M in keyof Params]: z.ZodType<Params[M]> } = schemas;
+
+const methods: { [M in keyof Params]: (params: Params[M], body: any) => Promise<unknown> } = {
+  lookup_domains: (params, body) => lookupDomains(params, body.network),
+  get_owner: (params, body) => getOwner(params, body.network),
+  lookup_addresses: params => lookupAddresses(params),
+  resolve_names: params => resolveNames(params)
 };
 const methodSchema = z.object(schemas).keyof();
 
@@ -42,10 +43,9 @@ async function dispatch<M extends keyof typeof methods>(
   res: express.Response,
   id: unknown
 ) {
-  const { schema, run } = methods[method];
-  const parsedParams = schema.safeParse(body.params);
+  const parsedParams = paramSchemas[method].safeParse(body.params);
   if (!parsedParams.success) return rpcInvalidParams(res, formatZodError(parsedParams.error), id);
-  return rpcSuccess(res, await run(parsedParams.data, body), id);
+  return rpcSuccess(res, await methods[method](parsedParams.data, body), id);
 }
 
 router.post('/', async (req, res) => {
