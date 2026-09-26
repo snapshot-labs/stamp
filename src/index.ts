@@ -28,7 +28,7 @@ app.get('/', (req, res) => {
 fallbackLogger(app);
 
 app.use((_, res) => {
-  res.status(400).json({ message: 'Not found' });
+  res.status(404).json({ message: 'Not found' });
 });
 
 app.listen(PORT, () => console.log(`Listening at http://localhost:${PORT}`));
