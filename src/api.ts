@@ -85,18 +85,17 @@ router.get(`/clear/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
 async function serveImage(req: express.Request, res: express.Response) {
   const { type, id } = req.params as { type: ResolverType; id: string };
   const query = parseQuery(id, type, req.query);
-  const { address, network, networkId, w, h, fallback, resolver, fit } = query;
-
-  let currentResolvers: string[] =
-    constants.resolvers[type as keyof typeof constants.resolvers] ?? constants.resolvers.avatar;
-
-  if (resolver) {
-    if (!currentResolvers.includes(resolver)) {
-      return res.status(400).json({ status: 'error', error: 'invalid resolvers' });
-    }
-
-    currentResolvers = [resolver];
-  }
+  const {
+    address,
+    network,
+    networkId,
+    w,
+    h,
+    fallback,
+    resolver,
+    resolvers: currentResolvers,
+    fit
+  } = query;
 
   const image = await cache(
     type,
@@ -126,7 +125,11 @@ async function serveImage(req: express.Request, res: express.Response) {
 }
 
 router.get(`/:type(${TYPE_CONSTRAINTS})/:id`, (req, res) =>
-  serveImage(req, res).catch(err => failImage(res, err))
+  serveImage(req, res).catch(err =>
+    err instanceof z.ZodError
+      ? res.status(400).json({ status: 'error', error: 'invalid resolvers' })
+      : failImage(res, err)
+  )
 );
 
 export default router;

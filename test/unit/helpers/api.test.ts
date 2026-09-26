@@ -61,3 +61,39 @@ describe('parseQuery()', () => {
     expect(result.networkId).toBe(expected.networkId);
   });
 });
+
+describe('parseQuery() query params', () => {
+  it.each([
+    ['defaults', 'avatar', {}, { w: 64, h: 64, fallback: 'blockie' }],
+    ['s sets both sides', 'avatar', { s: '32' }, { w: 32, h: 32 }],
+    ['s keeps parseInt leniency', 'avatar', { s: '32px' }, { w: 32, h: 32 }],
+    ['s given twice uses the first', 'avatar', { s: ['1', '2'] }, { w: 1, h: 1 }],
+    ['s out of range falls back', 'avatar', { s: '501' }, { w: 64, h: 64 }],
+    ['cover types allow a larger s', 'space-cover', { s: '1500' }, { w: 1500, h: 1500 }],
+    ['non-numeric s falls back', 'avatar', { s: 'abc' }, { w: 64, h: 64 }],
+    ['w overrides s', 'avatar', { s: '32', w: '100' }, { w: 100, h: 32 }],
+    [
+      'invalid w falls back to the default, not s',
+      'avatar',
+      { s: '32', w: '999' },
+      { w: 64, h: 32 }
+    ],
+    ['fb jazzicon', 'avatar', { fb: 'jazzicon' }, { fallback: 'jazzicon' }],
+    ['unknown fb falls back', 'avatar', { fb: 'JAZZICON' }, { fallback: 'blockie' }],
+    ['known fit', 'avatar', { fit: 'cover' }, { fit: 'cover' }],
+    ['unknown fit is dropped', 'avatar', { fit: 'bogus' }, { fit: undefined }],
+    ['cb is passed through as is', 'avatar', { cb: ['1', '2'] }, { cb: ['1', '2'] }],
+    ['known resolver', 'avatar', { resolver: 'ens' }, { resolver: 'ens' }],
+    ['empty resolver is no override', 'avatar', { resolver: '' }, { resolver: undefined }]
+  ])('%s', (_name, type, query, expected) => {
+    expect(parseQuery('0xabc', type as any, query)).toMatchObject(expected);
+  });
+
+  it.each([
+    ['unknown resolver', 'avatar', { resolver: 'garbage' }],
+    ['resolver of another type', 'space-cover', { resolver: 'ens' }],
+    ['repeated resolver', 'avatar', { resolver: ['ens', 'lens'] }]
+  ])('throws on %s', (_name, type, query) => {
+    expect(() => parseQuery('0xabc', type as any, query)).toThrow();
+  });
+});
