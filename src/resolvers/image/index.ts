@@ -1,6 +1,8 @@
+import { Readable } from 'stream';
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import basename from './basename';
 import blockie from './blockie';
+import cache, { clear } from './cache';
 import defillama from './defillama';
 import ens from './ens';
 import farcaster from './farcaster';
@@ -17,8 +19,10 @@ import { resolveAvatar as sxResolveAvatar, resolveCover as sxResolveCover } from
 import starknet from './starknet';
 import trustwallet from './trustwallet';
 import { max } from '../../constants.json';
+import { parseQuery } from '../../helpers/api';
 import { isSilencedError, isTransportFailure } from '../../helpers/errors';
 import { isUnsupportedImageError, resize } from '../../helpers/image';
+import { ResolverType } from '../../helpers/types';
 
 type ResolverFn = (...args: any[]) => Promise<Buffer | false>;
 
@@ -105,10 +109,52 @@ type ResolverMap = {
 };
 
 // Without the cast Object.fromEntries widens the keys to string.
-export default Object.fromEntries(
+const resolvers = Object.fromEntries(
   RESOLVERS.map(entry => {
     const resolve = entry.resize ? withResize(entry.name, entry.fn) : entry.fn;
 
     return [entry.name, entry.failureContract ? withFailureContract(entry.name, resolve) : resolve];
   })
 ) as ResolverMap;
+
+export default resolvers;
+
+export async function resolveImage(
+  type: ResolverType,
+  id: string,
+  rawQuery: any
+): Promise<{ image: Buffer | Readable; isFallback: boolean }> {
+  const query = parseQuery(id, type, rawQuery);
+  const {
+    address,
+    network,
+    networkId,
+    w,
+    h,
+    fallback,
+    resolver,
+    resolvers: currentResolvers,
+    fit
+  } = query;
+
+  const image = await cache(
+    type,
+    query,
+    async () => {
+      const files = await Promise.all(
+        currentResolvers.map(r => resolvers[r](address, network, networkId))
+      );
+      return files.find(Boolean) || false;
+    },
+    !!resolver
+  );
+  if (image) return { image, isFallback: false };
+
+  const fallbackImage = await resolvers[fallback](address, network, networkId);
+  return { image: await resize(fallbackImage, w, h, { fit }), isFallback: true };
+}
+
+export function clearCache(type: ResolverType, id: string, rawQuery: any) {
+  const { fb, cb, fit } = rawQuery;
+  return clear(type, parseQuery(id, type, { fb, cb, fit }));
+}
