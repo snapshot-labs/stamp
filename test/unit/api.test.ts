@@ -93,14 +93,22 @@ describe('GET /avatar/:id', () => {
   });
 });
 
-describe.each(['address', 'name'])('GET /%s/:id', type => {
-  afterEach(() => jest.restoreAllMocks());
+describe.each([
+  ...Object.entries(constants.resolvers),
+  ['address', constants.resolvers.avatar],
+  ['name', constants.resolvers.avatar]
+])('GET /%s/:id', (type, expected) => {
+  let spies: [string, jest.SpyInstance][];
 
-  it('uses the avatar resolvers', async () => {
-    const spies = (Object.keys(resolvers) as (keyof typeof resolvers)[])
+  beforeEach(() => {
+    spies = (Object.keys(resolvers) as (keyof typeof resolvers)[])
       .filter(name => name !== 'blockie')
-      .map(name => [name, jest.spyOn(resolvers, name).mockResolvedValue(false)] as const);
+      .map(name => [name, jest.spyOn(resolvers, name).mockResolvedValue(false)]);
+  });
 
+  afterEach(() => spies.forEach(([, spy]) => spy.mockRestore()));
+
+  it('uses its configured resolvers', async () => {
     const response = await request(app).get(`/${type}/${ADDRESS}`);
 
     expect(response.status).toBe(200);
@@ -109,7 +117,7 @@ describe.each(['address', 'name'])('GET /%s/:id', type => {
         .filter(([, spy]) => spy.mock.calls.length)
         .map(([name]) => name)
         .sort()
-    ).toEqual([...constants.resolvers.avatar].sort());
+    ).toEqual([...expected].sort());
   });
 });
 
