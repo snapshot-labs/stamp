@@ -2,8 +2,8 @@ import { Readable } from 'stream';
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import sharp from 'sharp';
 import { get, set } from '../../../../src/aws';
-import { parseQuery } from '../../../../src/helpers/api';
 import cache from '../../../../src/resolvers/image/cache';
+import { parseQuery } from '../../../../src/resolvers/image/query';
 
 jest.mock('@snapshot-labs/snapshot-sentry', () => ({
   capture: jest.fn()

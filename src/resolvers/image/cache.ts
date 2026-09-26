@@ -1,11 +1,59 @@
+import { createHash } from 'crypto';
 import { Readable } from 'stream';
 import { capture } from '@snapshot-labs/snapshot-sentry';
+import { parseQuery } from './query';
 import { clear as clearStore, get, set, streamToBuffer } from '../../aws';
-import { getBaseCacheKey, getCacheKey, parseQuery } from '../../helpers/api';
+import constants from '../../constants.json';
 import { resize } from '../../helpers/image';
 import { ResolverType } from '../../helpers/types';
 
 type Query = ReturnType<typeof parseQuery>;
+
+function sha256(str) {
+  return createHash('sha256').update(str).digest('hex');
+}
+
+export function getCacheKey({
+  type,
+  network,
+  address,
+  w,
+  h,
+  fallback,
+  cb,
+  fit
+}: {
+  type: ResolverType;
+  network: string;
+  address: string;
+  w: number;
+  h: number;
+  fallback: string;
+  cb?: string;
+  fit?: string;
+}) {
+  const data = { type, network, address, w, h };
+  if (fallback !== 'blockie') data['fallback'] = fallback;
+  if (cb) data['cb'] = cb;
+  if (fit) data['fit'] = fit;
+  return sha256(JSON.stringify(data));
+}
+
+export function getBaseCacheKey(
+  type: ResolverType,
+  { network, address, fallback, cb, fit }: ReturnType<typeof parseQuery>
+) {
+  return getCacheKey({
+    type,
+    network,
+    address,
+    w: constants.max,
+    h: constants.max,
+    fallback,
+    cb,
+    fit
+  });
+}
 
 async function store(
   key1: string,

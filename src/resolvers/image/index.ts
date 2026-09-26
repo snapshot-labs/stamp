@@ -8,6 +8,7 @@ import ens from './ens';
 import farcaster from './farcaster';
 import jazzicon from './jazzicon';
 import lens from './lens';
+import { parseQuery } from './query';
 import {
   resolveSpaceAvatar as sResolveSpaceAvatar,
   resolveSpaceCover as sResolveSpaceCover,
@@ -19,7 +20,6 @@ import { resolveAvatar as sxResolveAvatar, resolveCover as sxResolveCover } from
 import starknet from './starknet';
 import trustwallet from './trustwallet';
 import { max } from '../../constants.json';
-import { parseQuery } from '../../helpers/api';
 import { isSilencedError, isTransportFailure } from '../../helpers/errors';
 import { isUnsupportedImageError, resize } from '../../helpers/image';
 import { ResolverType } from '../../helpers/types';

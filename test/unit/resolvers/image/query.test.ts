@@ -1,4 +1,4 @@
-import { parseQuery } from '../../../src/helpers/api';
+import { parseQuery } from '../../../../src/resolvers/image/query';
 
 describe('parseQuery()', () => {
   it('is synchronous', () => {
