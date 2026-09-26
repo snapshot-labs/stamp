@@ -2,16 +2,14 @@ import { capture } from '@snapshot-labs/snapshot-sentry';
 import express from 'express';
 import { z } from 'zod';
 import constants from './constants.json';
-import { parseQuery, setHeader } from './helpers/api';
+import { setHeader } from './helpers/api';
 import { isSilencedError, isTransportFailure } from './helpers/errors';
-import { resize } from './helpers/image';
 import { rpcError, rpcInvalidParams, rpcSuccess } from './helpers/rpc';
 import { ResolverType } from './helpers/types';
 import { formatZodError, schemas } from './helpers/validation';
 import { clearCache, lookupAddresses, resolveNames } from './resolvers/address';
 import getOwner from './resolvers/getOwner';
-import resolvers from './resolvers/image';
-import cache, { clear as clearImageCache } from './resolvers/image/cache';
+import { clearCache as clearImageCache, resolveImage } from './resolvers/image';
 import lookupDomains from './resolvers/lookupDomains';
 
 const router = express.Router();
@@ -72,8 +70,7 @@ router.get(`/clear/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
     if (type === 'address' || type === 'name') {
       result = await clearCache(id, type);
     } else {
-      const { fb, cb, fit } = req.query;
-      result = await clearImageCache(type, parseQuery(id, type, { fb, cb, fit }));
+      result = await clearImageCache(type, id, req.query);
     }
     res.status(result ? 200 : 404).json({ status: result ? 'ok' : 'not found' });
   } catch (err) {
@@ -82,55 +79,23 @@ router.get(`/clear/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
   }
 });
 
-async function serveImage(req: express.Request, res: express.Response) {
+router.get(`/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
   const { type, id } = req.params as { type: ResolverType; id: string };
-  const query = parseQuery(id, type, req.query);
-  const {
-    address,
-    network,
-    networkId,
-    w,
-    h,
-    fallback,
-    resolver,
-    resolvers: currentResolvers,
-    fit
-  } = query;
 
-  const image = await cache(
-    type,
-    query,
-    async () => {
-      const files = await Promise.all(
-        currentResolvers.map(r => resolvers[r](address, network, networkId))
-      );
-      return files.find(Boolean) ?? false;
-    },
-    !!resolver
-  );
+  try {
+    const { image, isFallback } = await resolveImage(type, id, req.query);
 
-  if (!image) {
-    const fallbackImage = await resolvers[fallback](address, network, networkId);
-    const resizedImage = await resize(fallbackImage, w, h, { fit });
+    setHeader(res, isFallback ? 'SHORT_CACHE' : 'LONG_CACHE');
+    if (Buffer.isBuffer(image)) return res.send(image);
 
-    setHeader(res, 'SHORT_CACHE');
-    return res.send(resizedImage);
-  }
-
-  setHeader(res);
-  if (Buffer.isBuffer(image)) return res.send(image);
-
-  image.on('error', err => failImage(res, err));
-  image.pipe(res);
-}
-
-router.get(`/:type(${TYPE_CONSTRAINTS})/:id`, (req, res) =>
-  serveImage(req, res).catch(err => {
+    image.on('error', err => failImage(res, err));
+    image.pipe(res);
+  } catch (err) {
     if (err instanceof z.ZodError && err.issues.every(issue => issue.path[0] === 'resolver')) {
       return res.status(400).json({ status: 'error', error: err.issues[0].message });
     }
     failImage(res, err);
-  })
-);
+  }
+});
 
 export default router;
