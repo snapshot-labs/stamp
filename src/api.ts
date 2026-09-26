@@ -1,9 +1,8 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import express from 'express';
 import { z } from 'zod';
-import { clear, get, set, streamToBuffer } from './aws';
 import constants from './constants.json';
-import { getBaseCacheKey, getCacheKey, parseQuery, setHeader } from './helpers/api';
+import { parseQuery, setHeader } from './helpers/api';
 import { isSilencedError, isTransportFailure } from './helpers/errors';
 import { resize } from './helpers/image';
 import { rpcError, rpcInvalidParams, rpcSuccess } from './helpers/rpc';
@@ -12,6 +11,7 @@ import { formatZodError, schemas } from './helpers/validation';
 import { clearCache, lookupAddresses, resolveNames } from './resolvers/address';
 import getOwner from './resolvers/getOwner';
 import resolvers from './resolvers/image';
+import cache, { clear as clearImageCache } from './resolvers/image/cache';
 import lookupDomains from './resolvers/lookupDomains';
 
 const router = express.Router();
@@ -73,7 +73,7 @@ router.get(`/clear/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
       result = await clearCache(id, type);
     } else {
       const { fb, cb, fit } = req.query;
-      result = await clear(getBaseCacheKey(type, parseQuery(id, type, { fb, cb, fit })));
+      result = await clearImageCache(type, parseQuery(id, type, { fb, cb, fit }));
     }
     res.status(result ? 200 : 404).json({ status: result ? 'ok' : 'not found' });
   } catch (err) {
@@ -85,7 +85,7 @@ router.get(`/clear/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
 async function serveImage(req: express.Request, res: express.Response) {
   const { type, id } = req.params as { type: ResolverType; id: string };
   const query = parseQuery(id, type, req.query);
-  const { address, network, networkId, w, h, fallback, cb, resolver, fit } = query;
+  const { address, network, networkId, w, h, fallback, resolver, fit } = query;
 
   let currentResolvers: string[] =
     constants.resolvers[type as keyof typeof constants.resolvers] ?? constants.resolvers.avatar;
@@ -98,62 +98,31 @@ async function serveImage(req: express.Request, res: express.Response) {
     currentResolvers = [resolver];
   }
 
-  const disableCache = !!resolver;
+  const image = await cache(
+    type,
+    query,
+    async () => {
+      const files = await Promise.all(
+        currentResolvers.map(r => resolvers[r](address, network, networkId))
+      );
+      return files.find(Boolean) ?? false;
+    },
+    !!resolver
+  );
 
-  const key1 = getBaseCacheKey(type, query);
-  const key2 = getCacheKey({ type, network, address, w, h, fallback, cb, fit });
+  if (!image) {
+    const fallbackImage = await resolvers[fallback](address, network, networkId);
+    const resizedImage = await resize(fallbackImage, w, h, { fit });
 
-  // Check resized cache
-  const cache = await get(`${key1}/${key2}`);
-  if (cache && !disableCache) {
-    // console.log('Got cache', address);
-    setHeader(res);
-    cache.on('error', err => failImage(res, err));
-    return cache.pipe(res);
+    setHeader(res, 'SHORT_CACHE');
+    return res.send(resizedImage);
   }
 
-  // Check base cache
-  const base = await get(`${key1}/${key1}`);
-  let baseImage;
-  if (base) {
-    baseImage = await streamToBuffer(base);
-    // console.log('Got base cache');
-  } else {
-    // console.log('No cache for', key1, base);
-
-    const files = await Promise.all(
-      currentResolvers.map(r => resolvers[r](address, network, networkId))
-    );
-    baseImage = files.find(Boolean);
-
-    if (!baseImage) {
-      const fallbackImage = await resolvers[fallback](address, network, networkId);
-      const resizedImage = await resize(fallbackImage, w, h, { fit });
-
-      setHeader(res, 'SHORT_CACHE');
-      return res.send(resizedImage);
-    }
-  }
-
-  // Resize and return image
-  const resizedImage = await resize(baseImage, w, h, { fit });
   setHeader(res);
-  res.send(resizedImage);
+  if (Buffer.isBuffer(image)) return res.send(image);
 
-  if (disableCache) return;
-
-  // Store cache
-  try {
-    if (!base) {
-      await set(`${key1}/${key1}`, baseImage);
-      console.log('Stored base cache', key1);
-    }
-    await set(`${key1}/${key2}`, resizedImage);
-    console.log('Stored cache', address);
-  } catch (err) {
-    capture(err);
-    console.log('Store cache failed', address, err);
-  }
+  image.on('error', err => failImage(res, err));
+  image.pipe(res);
 }
 
 router.get(`/:type(${TYPE_CONSTRAINTS})/:id`, (req, res) =>
