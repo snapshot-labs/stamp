@@ -195,6 +195,26 @@ describe('GET /space-cover/:id', () => {
 });
 
 describe('POST /', () => {
+  describe('when the method is not a known method name', () => {
+    it.each([
+      ['an Object.prototype key', { method: 'toString' }],
+      ['an array-wrapped method name', { method: ['lookup_domains'] }],
+      ['missing', {}]
+    ])('returns invalid method when it is %s', async (_, body) => {
+      const response = await request(app)
+        .post('/')
+        .send({ id: 1, params: ADDRESS, ...body });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        jsonrpc: '2.0',
+        error: { code: 400, message: 'unauthorized', data: 'invalid method' },
+        id: 1
+      });
+      expect(capture).not.toHaveBeenCalled();
+    });
+  });
+
   describe('on lookup_domains', () => {
     describe('when a resolver fails', () => {
       it('captures the resolver error only once', async () => {
