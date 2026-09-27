@@ -12,11 +12,15 @@ export default {
   collectCoverageFrom: ['./src/**'],
   coveragePathIgnorePatterns: ['/node_modules/', '<rootDir>/dist/', '<rootDir>/test/fixtures/'],
 
-  preset: 'ts-jest',
+  // jsdom's dependency tree ships ESM-only packages, which Jest's CommonJS runtime cannot load untranspiled
+  transform: { '^.+\\.(tsx?|m?js)$': ['ts-jest', { tsconfig: { allowJs: true } }] },
+  transformIgnorePatterns: [
+    '^(?!.*/node_modules/(@exodus|@asamuzakjp|@csstools|parse5)/).*/node_modules/'
+  ],
   testEnvironment: 'node',
   setupFiles: ['<rootDir>/test/setup-dotenv.ts'],
   setupFilesAfterEnv: ['<rootDir>/test/setup-jest.ts'],
   testPathIgnorePatterns: ['/node_modules/', '<rootDir>/dist/', '<rootDir>/test/fixtures/'],
-  moduleFileExtensions: ['js', 'ts'],
+  moduleFileExtensions: ['js', 'mjs', 'ts'],
   testTimeout: 30000
 };

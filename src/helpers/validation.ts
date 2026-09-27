@@ -26,11 +26,11 @@ export function imageQuerySchema(type: ResolverType, resolvers: string[]) {
     w: dimension(max),
     h: dimension(max),
     fb: z.enum(['blockie', 'jazzicon']).catch('blockie'),
-    cb: z.any(),
+    cb: z.any().optional(),
     fit: z.enum(RESIZE_FITS).optional().catch(undefined),
     resolver: z.preprocess(
       v => v || undefined,
-      z.enum(resolvers as [string, ...string[]], { message: 'invalid resolvers' }).optional()
+      z.enum(resolvers as [string, ...string[]], { error: 'invalid resolvers' }).optional()
     )
   });
 }
