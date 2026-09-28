@@ -17,7 +17,12 @@ function normalizeAddresses(addresses: Address[]): Address[] {
 // TODO: Support unicode names, by converting to punycode
 // see https://docs.d3.app/resolve-d3-names#d3-connect-sdk
 function normalizeHandles(handles: Handle[]): Handle[] {
-  return handles.filter(handle => handle.endsWith(`.${TLD}`));
+  // A name outside DNS syntax makes dns-connect reject, which fails the whole batch.
+  return handles.filter(
+    handle =>
+      handle.length <= 253 &&
+      new RegExp(`^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+${TLD}$`, 'i').test(handle)
+  );
 }
 
 // dns-connect's resolver passes no signal to the DNS-over-HTTPS fetches it makes, so this
