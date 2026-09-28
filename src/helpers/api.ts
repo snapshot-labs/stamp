@@ -47,6 +47,7 @@ export function parseQuery(id: string, type: ResolverType, query) {
 export function getCacheKey({
   type,
   network,
+  networkId,
   address,
   w,
   h,
@@ -56,6 +57,7 @@ export function getCacheKey({
 }: {
   type: ResolverType;
   network: string;
+  networkId?: string;
   address: string;
   w: number;
   h: number;
@@ -64,6 +66,8 @@ export function getCacheKey({
   fit?: string;
 }) {
   const data = { type, network, address, w, h };
+  // Resolvers default a missing networkId to defaultOffchainNetwork, so both must share a key.
+  if (networkId && networkId !== constants.defaultOffchainNetwork) data['networkId'] = networkId;
   if (fallback !== 'blockie') data['fallback'] = fallback;
   if (cb) data['cb'] = cb;
   if (fit) data['fit'] = fit;
@@ -72,11 +76,12 @@ export function getCacheKey({
 
 export function getBaseCacheKey(
   type: ResolverType,
-  { network, address, fallback, cb, fit }: ReturnType<typeof parseQuery>
+  { network, networkId, address, fallback, cb, fit }: ReturnType<typeof parseQuery>
 ) {
   return getCacheKey({
     type,
     network,
+    networkId,
     address,
     w: constants.max,
     h: constants.max,

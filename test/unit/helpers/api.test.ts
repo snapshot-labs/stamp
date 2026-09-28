@@ -1,4 +1,4 @@
-import { parseQuery } from '../../../src/helpers/api';
+import { getBaseCacheKey, getCacheKey, parseQuery } from '../../../src/helpers/api';
 
 describe('parseQuery()', () => {
   it('is synchronous', () => {
@@ -97,5 +97,41 @@ describe('parseQuery() query params', () => {
     ['repeated resolver', 'avatar', { resolver: ['ens', 'lens'] }]
   ])('throws on %s', (_name, type, query) => {
     expect(() => parseQuery('0xabc', type as any, query)).toThrow('invalid resolvers');
+  });
+});
+
+describe('cache keys', () => {
+  const keys = (id: string) => {
+    const query = parseQuery(id, 'avatar', { s: '32' });
+    return [getBaseCacheKey('avatar', query), getCacheKey({ type: 'avatar', ...query })];
+  };
+
+  it('keeps plain address keys unchanged', () => {
+    expect(keys('0xabc')).toEqual([
+      '0f28547f168ecdec9ec886daaf74ed8f108c1228bec8d938cf74c4e553c1850f',
+      'cb1cf691bcfa6349821e0c03793f89810f6f611af376f7252c7c22d021b206d1'
+    ]);
+  });
+
+  it('shares the default offchain network key with the plain address', () => {
+    expect(keys('s:0xabc')).toEqual(keys('0xabc'));
+  });
+
+  it('shares a key between shortName and chainId forms of one networkId', () => {
+    expect(keys('1:1:0xabc')).toEqual(keys('eth:0xabc'));
+  });
+
+  it.each(['eth:0xabc', 'bogus:0xabc'])('separates %s from the plain address', id => {
+    const [plainBase, plainResized] = keys('0xabc');
+    const [base, resized] = keys(id);
+    expect(base).not.toBe(plainBase);
+    expect(resized).not.toBe(plainResized);
+  });
+
+  it.each([
+    ['pol', 'matic'],
+    ['sep', 's-tn']
+  ])('separates %s and %s, which share a chainId', (a, b) => {
+    expect(keys(`${a}:0xabc`)).not.toEqual(keys(`${b}:0xabc`));
   });
 });

@@ -33,9 +33,9 @@ export default async function cache(
   callback: () => Promise<Buffer | false>,
   bypass = false
 ): Promise<Buffer | Readable | false> {
-  const { network, address, w, h, fallback, cb, fit } = query;
+  const { network, networkId, address, w, h, fallback, cb, fit } = query;
   const key1 = getBaseCacheKey(type, query);
-  const key2 = getCacheKey({ type, network, address, w, h, fallback, cb, fit });
+  const key2 = getCacheKey({ type, network, networkId, address, w, h, fallback, cb, fit });
 
   // Check resized cache
   const cached = await get(`${key1}/${key2}`);
