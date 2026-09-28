@@ -1,8 +1,16 @@
+import { capture } from '@snapshot-labs/snapshot-sentry';
 import { RedisStore } from '../../cache';
 import constants from '../../constants.json';
 import { addressResolversCacheHitCount } from '../../helpers/metrics';
 
 export const KEY_PREFIX = 'address-resolvers';
+export const NON_CACHEABLE = Symbol('non-cacheable');
+export type CacheResult = Record<string, string> & { [NON_CACHEABLE]?: string[] };
+
+export function markNonCacheable(result: Record<string, string>, keys: string[]): CacheResult {
+  if (keys.length > 0) Object.defineProperty(result, NON_CACHEABLE, { value: keys });
+  return result;
+}
 
 const store = new RedisStore({ prefix: KEY_PREFIX, maxTtl: constants.ttl, cacheEmpty: true });
 
@@ -14,7 +22,10 @@ export function setCache(payload: Record<string, string>): Promise<void> {
   return store.setMany(payload);
 }
 
-export default async function cache(input: string[], callback) {
+export default async function cache(
+  input: string[],
+  callback: (input: string[]) => Promise<CacheResult>
+) {
   const cache = await getCache(input);
   const cachedKeys = Object.keys(cache);
   const uncachedInputs = input.filter(a => !cachedKeys.includes(a));
@@ -24,7 +35,11 @@ export default async function cache(input: string[], callback) {
 
   if (uncachedInputs.length > 0) {
     const results = await callback(uncachedInputs);
-    setCache(results);
+    const nonCacheable = new Set(results[NON_CACHEABLE] || []);
+    const cacheable = Object.fromEntries(
+      Object.entries(results).filter(([key]) => !nonCacheable.has(key))
+    );
+    setCache(cacheable).catch(capture);
 
     return { ...cache, ...results };
   }

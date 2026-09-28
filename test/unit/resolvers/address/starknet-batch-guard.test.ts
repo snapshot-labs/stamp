@@ -4,6 +4,7 @@ jest.mock('@snapshot-labs/snapshot-sentry', () => ({ capture: jest.fn() }));
 
 // Run the resolver fan-out on every call, without a redis round trip.
 jest.mock('../../../../src/resolvers/address/cache', () => ({
+  ...jest.requireActual('../../../../src/resolvers/address/cache'),
   __esModule: true,
   default: (input: string[], callback: (input: string[]) => any) => callback(input),
   clear: jest.fn()
