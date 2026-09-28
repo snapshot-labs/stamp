@@ -1,5 +1,4 @@
 import resolvers from '../../../../src/resolvers/image';
-import { remoteSnapshotOptions } from '../../../fixtures/image-snapshot-addresses';
 import { expectResolverImageSnapshot } from '../../../helpers/imageSnapshot';
 
 type ResolverName = keyof typeof resolvers;
@@ -65,7 +64,6 @@ export default function testResolverImageSnapshots({
           `matches the image snapshot for ${identifier}`,
           async () => {
             await expectResolverImageSnapshot(await call(resolver, input), {
-              ...remoteSnapshotOptions,
               customSnapshotIdentifier: identifier
             });
           },

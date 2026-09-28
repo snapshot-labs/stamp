@@ -1,10 +1,13 @@
 import { configureToMatchImageSnapshot } from 'jest-image-snapshot';
 import client from '../src/helpers/redis';
 
-// Allow a tiny percentage of differing pixels to absorb anti-aliasing noise
-// across platforms / sharp versions. The matcher fails above this threshold.
+// The per-pixel colour threshold absorbs resampling/re-encode noise across
+// platforms and libvips versions; the library default (0.01) counts those
+// invisible deltas as differing pixels. failureThreshold is a 0-1 ratio, not a
+// percentage: fail when more than 0.1% of pixels differ.
 const toMatchImageSnapshot = configureToMatchImageSnapshot({
-  failureThreshold: 0.01,
+  customDiffConfig: { threshold: 0.1 },
+  failureThreshold: 0.001,
   failureThresholdType: 'percent'
 });
 
