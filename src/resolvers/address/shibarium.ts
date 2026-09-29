@@ -9,6 +9,7 @@ export const NAME = 'Shibarium';
 const CHAIN_ID = '109';
 const NETWORK = 'BONE';
 const TLD = 'shib';
+const MAX_NAME_LENGTH = 253 - '_web3connect.'.length - constants.d3[CHAIN_ID].forwarder.length - 1;
 
 function normalizeAddresses(addresses: Address[]): Address[] {
   return addresses.filter(isEvmAddress);
@@ -17,7 +18,11 @@ function normalizeAddresses(addresses: Address[]): Address[] {
 // TODO: Support unicode names, by converting to punycode
 // see https://docs.d3.app/resolve-d3-names#d3-connect-sdk
 function normalizeHandles(handles: Handle[]): Handle[] {
-  return handles.filter(handle => handle.endsWith(`.${TLD}`));
+  return handles.filter(
+    handle =>
+      handle.length <= MAX_NAME_LENGTH &&
+      new RegExp(`^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+${TLD}$`, 'i').test(handle)
+  );
 }
 
 // dns-connect's resolver passes no signal to the DNS-over-HTTPS fetches it makes, so this
