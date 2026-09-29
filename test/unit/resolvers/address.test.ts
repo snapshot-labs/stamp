@@ -211,20 +211,27 @@ describe('address resolvers - invalid Space ID labels', () => {
 });
 
 describe('address resolvers - response metric', () => {
-  it('times each resolver, with status 1 on success and 0 on failure', async () => {
-    const end = jest.fn();
-    const startTimer = jest.spyOn(metrics.timeAddressResolverResponse, 'startTimer');
-    startTimer.mockReturnValue(end);
-    jest.spyOn(ens, 'lookupAddresses').mockRejectedValue(new Error('boom'));
+  it.each([
+    ['lookupAddresses', lookupAddresses, ADDRESS],
+    ['resolveNames', resolveNames, 'boorger.eth']
+  ] as const)(
+    'times each resolver on %s, with status 1 on success and 0 on failure',
+    async (method, call, input) => {
+      const ends = Object.fromEntries(RESOLVERS.map(resolver => [resolver.NAME, jest.fn()]));
+      const startTimer = jest
+        .spyOn(metrics.timeAddressResolverResponse, 'startTimer')
+        .mockImplementation(labels => ends[labels!.provider as string]);
+      RESOLVERS.forEach(resolver => jest.spyOn(resolver, method).mockResolvedValue({}));
+      jest.spyOn(ens, method).mockRejectedValue(new Error('boom'));
 
-    await lookupAddresses([ADDRESS]);
+      await call([input]);
 
-    expect(startTimer).toHaveBeenCalledTimes(RESOLVERS.length);
-    expect(startTimer).toHaveBeenCalledWith({ provider: 'Ens', method: 'lookupAddresses' });
-    expect(end).toHaveBeenCalledTimes(RESOLVERS.length);
-    expect(end.mock.calls.filter(([labels]) => labels.status === 0)).toHaveLength(1);
-    expect(end.mock.calls.filter(([labels]) => labels.status === 1)).toHaveLength(
-      RESOLVERS.length - 1
-    );
-  });
+      expect(startTimer).toHaveBeenCalledTimes(RESOLVERS.length);
+      RESOLVERS.forEach(resolver => {
+        expect(startTimer).toHaveBeenCalledWith({ provider: resolver.NAME, method });
+        expect(ends[resolver.NAME]).toHaveBeenCalledTimes(1);
+        expect(ends[resolver.NAME]).toHaveBeenCalledWith({ status: resolver === ens ? 0 : 1 });
+      });
+    }
+  );
 });
