@@ -1,4 +1,5 @@
 import { getBaseCacheKey, getCacheKey, parseQuery } from '../../../src/helpers/api';
+import { ResolverType } from '../../../src/helpers/types';
 
 describe('parseQuery()', () => {
   it('is synchronous', () => {
@@ -88,7 +89,7 @@ describe('parseQuery() query params', () => {
     ['known resolver', 'avatar', { resolver: 'ens' }, { resolver: 'ens' }],
     ['empty resolver is no override', 'avatar', { resolver: '' }, { resolver: undefined }]
   ])('%s', (_name, type, query, expected) => {
-    expect(parseQuery('0xabc', type as any, query)).toMatchObject(expected);
+    expect(parseQuery('0xabc', type as ResolverType, query)).toMatchObject(expected);
   });
 
   it.each([
@@ -96,7 +97,7 @@ describe('parseQuery() query params', () => {
     ['resolver of another type', 'space-cover', { resolver: 'ens' }],
     ['repeated resolver', 'avatar', { resolver: ['ens', 'lens'] }]
   ])('throws on %s', (_name, type, query) => {
-    expect(() => parseQuery('0xabc', type as any, query)).toThrow('invalid resolvers');
+    expect(() => parseQuery('0xabc', type as ResolverType, query)).toThrow('invalid resolvers');
   });
 });
 

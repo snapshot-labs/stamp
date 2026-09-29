@@ -1,4 +1,4 @@
-import { isSilencedError } from '../../../src/helpers/errors';
+import { httpError, isSilencedError } from '../../../src/helpers/errors';
 import { graphQlCall } from '../../../src/helpers/graphql';
 import { incompleteJsonResponse, jsonResponse, mockGlobalFetch } from '../../helpers/fetch';
 
@@ -7,17 +7,17 @@ const mockedFetch = mockGlobalFetch();
 const URL = 'https://hub.snapshot.org/graphql';
 const QUERY = 'query users { users { id } }';
 
-function respondWith(body: any, status = 200) {
+function respondWith(body: unknown, status = 200) {
   mockedFetch.mockResolvedValue(jsonResponse(body, status));
 }
 
-async function errorFrom(body: any, status = 200) {
+async function errorFrom(body: unknown, status = 200) {
   respondWith(body, status);
 
   try {
     await graphQlCall(URL, QUERY);
-  } catch (err: any) {
-    return err;
+  } catch (err) {
+    return err as ReturnType<typeof httpError>;
   }
 
   throw new Error('graphQlCall resolved, expected it to throw');
@@ -93,7 +93,7 @@ describe('graphQlCall', () => {
   });
 
   describe('when the data envelope is absent', () => {
-    it.each<[string, any]>([
+    it.each<[string, unknown]>([
       ['no data key at all', { errors: [{ message: 'boom' }] }],
       ['a null data envelope', { data: null }],
       ['an empty body', {}]
