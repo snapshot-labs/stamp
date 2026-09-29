@@ -14,6 +14,7 @@ import lookupDomains from './resolvers/lookupDomains';
 
 const router = express.Router();
 const TYPE_CONSTRAINTS = [...Object.keys(constants.resolvers), 'address', 'name'].join('|');
+const TYPE_PATTERN = new RegExp(`^(?:${TYPE_CONSTRAINTS})$`, 'i');
 type Params = { [M in keyof typeof schemas]: z.infer<(typeof schemas)[M]> };
 
 // Indexing `schemas` directly in dispatch does not typecheck: this mapped type keeps
@@ -46,8 +47,10 @@ async function dispatch<M extends keyof typeof methods>(
   return rpcSuccess(res, await methods[method](parsedParams.data, body), id);
 }
 
+router.param('type', (req, res, next, type) => next(TYPE_PATTERN.test(type) ? undefined : 'route'));
+
 router.post('/', async (req, res) => {
-  const { id = null, method } = req.body;
+  const { id = null, method } = req.body ?? {};
   try {
     const parsedMethod = methodSchema.safeParse(method);
     if (!parsedMethod.success) return rpcError(res, 400, 'invalid method', id);
@@ -61,7 +64,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.get(`/clear/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
+router.get('/clear/:type/:id', async (req, res) => {
   const { type, id } = req.params as { type: ResolverType; id: string };
 
   try {
@@ -79,7 +82,7 @@ router.get(`/clear/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
   }
 });
 
-router.get(`/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
+router.get('/:type/:id', async (req, res) => {
   const { type, id } = req.params as { type: ResolverType; id: string };
 
   try {

@@ -13,7 +13,9 @@ describe('unknown routes', () => {
   it.each([
     ['GET', '/nope'],
     ['POST', '/nope'],
-    ['GET', '/bogus/0xabc']
+    ['GET', '/bogus/0xabc'],
+    ['GET', '/clear/bogus/0xabc'],
+    ['GET', '/clear/0xabc']
   ])('answers %s %s with 404', async (method, path) => {
     const response = await request(app)[method.toLowerCase() as 'get' | 'post'](path);
 
