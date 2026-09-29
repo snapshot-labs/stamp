@@ -1,6 +1,12 @@
+jest.mock('../../../../src/helpers/deadline', () =>
+  jest.requireActual('../../../helpers/deadline')
+);
+
 import http from 'http';
 import { AddressInfo, Socket } from 'net';
+import { withDeadline } from '../../../../src/helpers/deadline';
 import { Address } from '../../../../src/helpers/types';
+import { shortenNextDeadline } from '../../../helpers/deadline';
 
 const ADDRESS = '0x91fd2c8d24767db4ece7069aa27832ffaf8590f3';
 
@@ -9,6 +15,7 @@ type Stall = 'headers' | 'body';
 let server: http.Server;
 const sockets = new Set<Socket>();
 let stall: Stall;
+let answered: boolean;
 
 let defillama: (address: Address, chainId: string) => Promise<Buffer | false>;
 let farcaster: (address: Address) => Promise<Buffer | false>;
@@ -31,7 +38,11 @@ beforeAll(async () => {
   const mockHangingUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}/`;
 
   const realFetch = global.fetch;
-  jest.spyOn(global, 'fetch').mockImplementation((_url, init) => realFetch(mockHangingUrl, init));
+  jest.spyOn(global, 'fetch').mockImplementation(async (_url, init) => {
+    const response = await realFetch(mockHangingUrl, init);
+    answered = true;
+    return response;
+  });
 
   defillama = (await import('../../../../src/resolvers/image/defillama')).default;
   farcaster = (await import('../../../../src/resolvers/image/farcaster')).default;
@@ -42,11 +53,6 @@ afterAll(async () => {
   await new Promise<void>(resolve => server.close(() => resolve()));
 });
 
-// These wait out the real deadline rather than firing its timer by hand.
-// Reaching into the timer would abort the signal even where the code under test
-// had already cleared it, which is exactly the case these need to be able to
-// fail on.
-//
 // The body case is the one that needs the deadline to cover more than the
 // request: a response settles for the caller as soon as the headers land, so a
 // 200 whose body then stops is the shape that outlives a budget ending at the
@@ -56,15 +62,24 @@ describe('resolvers, against an upstream that never finishes answering', () => {
     ['no headers at all', 'headers'],
     ['headers and then nothing more', 'body']
   ] as const)('when it sends %s', (_, at) => {
-    it('farcaster raises the abort', async () => {
+    beforeEach(() => {
       stall = at;
+      answered = false;
+      shortenNextDeadline();
+    });
 
+    // A head that lands after the shortened deadline would turn the body case
+    // into the headers one.
+    afterEach(() => {
+      expect(answered).toBe(at === 'body');
+    });
+
+    it('farcaster raises the abort', async () => {
       await expect(farcaster(ADDRESS)).rejects.toMatchObject({ name: 'AbortError' });
+      expect(withDeadline).toHaveBeenCalledWith(expect.any(Function));
     });
 
     it('defillama raises the abort', async () => {
-      stall = at;
-
       await expect(defillama(ADDRESS, '1')).rejects.toMatchObject({ name: 'AbortError' });
     });
   });

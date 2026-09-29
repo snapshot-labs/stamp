@@ -1,5 +1,9 @@
+jest.mock('../../../src/helpers/deadline', () => jest.requireActual('../../helpers/deadline'));
+
+import { withDeadline } from '../../../src/helpers/deadline';
 import { httpError, isSilencedError } from '../../../src/helpers/errors';
 import { graphQlCall } from '../../../src/helpers/graphql';
+import { shortenNextDeadline } from '../../helpers/deadline';
 import { incompleteJsonResponse, jsonResponse, mockGlobalFetch } from '../../helpers/fetch';
 
 const mockedFetch = mockGlobalFetch();
@@ -60,6 +64,7 @@ describe('graphQlCall', () => {
   });
 
   it('aborts an incomplete response body at the total deadline', async () => {
+    shortenNextDeadline();
     mockedFetch.mockImplementation(async (_url, init) =>
       incompleteJsonResponse('{"data":', (init as RequestInit | undefined)?.signal)
     );
@@ -67,6 +72,7 @@ describe('graphQlCall', () => {
     await expect(graphQlCall(URL, QUERY)).rejects.toMatchObject({
       name: 'AbortError'
     });
+    expect(withDeadline).toHaveBeenCalledWith(expect.any(Function), 5e3);
   });
 
   describe('when the body carries errors', () => {
