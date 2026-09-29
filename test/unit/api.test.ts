@@ -133,12 +133,6 @@ describe('GET /avatar/:id?resolver=', () => {
     expectInvalidResolver(await request(app).get(`/avatar/${ADDRESS}?resolver=${a}&resolver=${b}`));
   });
 
-  it('returns a 400 when the resolver is given in bracket notation', async () => {
-    const resolver = constants.resolvers.avatar[1];
-
-    expectInvalidResolver(await request(app).get(`/avatar/${ADDRESS}?resolver[]=${resolver}`));
-  });
-
   it('matches the image type case-insensitively', async () => {
     expectInvalidResolver(await request(app).get(`/AVATAR/${ADDRESS}?resolver=garbage`));
   });

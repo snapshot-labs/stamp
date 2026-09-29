@@ -13,7 +13,8 @@ import { clearCache as clearImageCache, resolveImage } from './resolvers/image';
 import lookupDomains from './resolvers/lookupDomains';
 
 const router = express.Router();
-const TYPES = new Set([...Object.keys(constants.resolvers), 'address', 'name']);
+const TYPE_CONSTRAINTS = [...Object.keys(constants.resolvers), 'address', 'name'].join('|');
+const TYPE_ID = `(?<type>${TYPE_CONSTRAINTS})/(?<id>[^/]+?)/?$`;
 type Params = { [M in keyof typeof schemas]: z.infer<(typeof schemas)[M]> };
 
 // Indexing `schemas` directly in dispatch does not typecheck: this mapped type keeps
@@ -46,10 +47,6 @@ async function dispatch<M extends keyof typeof methods>(
   return rpcSuccess(res, await methods[method](parsedParams.data, body), id);
 }
 
-router.param('type', (req, res, next, type) =>
-  next(TYPES.has(type.toLowerCase()) ? undefined : 'route')
-);
-
 router.post('/', async (req, res) => {
   const { id = null, method } = req.body ?? {};
   try {
@@ -65,7 +62,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.get('/clear/:type/:id', async (req, res) => {
+router.get(new RegExp(`^/clear/${TYPE_ID}`, 'i'), async (req, res) => {
   const { type, id } = req.params as { type: ResolverType; id: string };
 
   try {
@@ -83,7 +80,7 @@ router.get('/clear/:type/:id', async (req, res) => {
   }
 });
 
-router.get('/:type/:id', async (req, res) => {
+router.get(new RegExp(`^/${TYPE_ID}`, 'i'), async (req, res) => {
   const { type, id } = req.params as { type: ResolverType; id: string };
 
   try {

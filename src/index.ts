@@ -32,4 +32,7 @@ app.use((_, res) => {
   res.status(404).json({ message: 'Not found' });
 });
 
-app.listen(PORT, () => console.log(`Listening at http://localhost:${PORT}`));
+app.listen(PORT, err => {
+  if (err) throw err;
+  console.log(`Listening at http://localhost:${PORT}`);
+});

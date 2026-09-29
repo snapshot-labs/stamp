@@ -15,12 +15,22 @@ describe('unknown routes', () => {
     ['POST', '/nope'],
     ['GET', '/bogus/0xabc'],
     ['GET', '/clear/bogus/0xabc'],
-    ['GET', '/clear/0xabc']
+    ['GET', '/clear/0xabc'],
+    ['GET', '/bogus/%'],
+    ['GET', '/bogus%/0xabc'],
+    ['GET', '/clear/bogus/%']
   ])('answers %s %s with 404', async (method, path) => {
     const response = await request(app)[method.toLowerCase() as 'get' | 'post'](path);
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ message: 'Not found' });
+  });
+
+  it('parses bracket query params the way the image route validates them', async () => {
+    const response = await request(app).get('/avatar/0xabc?resolver[]=ens');
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ status: 'error', error: 'invalid resolvers' });
   });
 
   it('still serves matched routes', async () => {
