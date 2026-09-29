@@ -13,7 +13,7 @@ export class RedisStore implements CacheStore {
   }
 
   private expiry(ttl = this.options.maxTtl) {
-    return { EX: Math.min(ttl, this.options.maxTtl) };
+    return { expiration: { type: 'EX' as const, value: Math.min(ttl, this.options.maxTtl) } };
   }
 
   private stores(value: string): boolean {
