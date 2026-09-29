@@ -29,10 +29,10 @@ const STARKNET_ADDRESS = '0x07ff6b17f07c4d83236e3fc5f94259a19d1ed41bbcf1822397ea
 const UNPADDED_STARKNET_ADDRESS = `0x${STARKNET_ADDRESS.slice(3)}`;
 const NOT_AN_ADDRESS = '0x00006ba9855965EeEc09B5D43B113944c27F45aD3Ce';
 
-const graphQlResponse = (data: Record<string, any>) => jsonResponse({ data });
+const graphQlResponse = (data: Record<string, unknown>) => jsonResponse({ data });
 
-const entry = (found: any) => graphQlResponse({ entry: found });
-const spaces = (found: any[]) => graphQlResponse({ spaces: found });
+const entry = (found: unknown) => graphQlResponse({ entry: found });
+const spaces = (found: unknown[]) => graphQlResponse({ spaces: found });
 
 const sentVariables = () => JSON.parse(mockedFetch.mock.calls[0][1].body).variables;
 

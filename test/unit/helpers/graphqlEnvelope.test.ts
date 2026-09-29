@@ -20,11 +20,11 @@ const IMAGE_URL = 'https://example.com/avatar.png';
 const ENS_SUBGRAPH = '[subgrapher.snapshot.org]';
 const ENS_HASH = 'e691d0079f79eca4304219d11ee5e5ff3df65a87c2595597cc15b4efd1dfda2b';
 
-function respondWith(body: any, status = 200) {
+function respondWith(body: unknown, status = 200) {
   mockedFetch.mockResolvedValue(jsonResponse(body, status));
 }
 
-function upstreamFailure(message: string, data: any = null) {
+function upstreamFailure(message: string, data: unknown = null) {
   return { errors: [{ message }], data };
 }
 
@@ -68,7 +68,7 @@ describe('graphQlCall callers surface an envelope failure', () => {
       }
     };
 
-    function answerWith(second: any) {
+    function answerWith(second: unknown) {
       mockedFetch
         .mockResolvedValueOnce(jsonResponse(hashedDomain))
         .mockResolvedValueOnce(jsonResponse(second));

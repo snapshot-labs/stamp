@@ -1,10 +1,11 @@
+import { Server } from 'http';
 import request from 'supertest';
 import redis from '../../src/helpers/redis';
 import { KEY_PREFIX } from '../../src/resolvers/address/cache';
 import { createTestApp } from '../helpers/testServer';
 
 const app = createTestApp();
-let server: any;
+let server: Server;
 
 async function purge(): Promise<void> {
   if (!redis) return;
@@ -28,12 +29,11 @@ describe('E2E api', () => {
         server.closeAllConnections();
       }
       await new Promise<void>((resolve, reject) => {
-        server.close((err: any) => {
+        server.close(err => {
           if (err) reject(err);
           else resolve();
         });
       });
-      server = null;
     }
   });
   describe('GET type/TYPE/ID', () => {
@@ -102,7 +102,7 @@ describe('E2E api', () => {
       await purge();
     });
 
-    async function expectInvalidParams(method: string, params: any) {
+    async function expectInvalidParams(method: string, params: unknown) {
       const response = await request(server).post('/').send({ method, params });
 
       expect(response.status).toBe(400);
@@ -140,13 +140,13 @@ describe('E2E api', () => {
         ['get_owner', 123],
         ['get_owner', []],
         ['get_owner', Array(6).fill(validHandle)]
-      ])('returns invalid params for %s with %p', async (method: string, params: any) => {
+      ])('returns invalid params for %s with %p', async (method: string, params: unknown) => {
         await expectInvalidParams(method, params);
       });
     });
 
     describe('on lookup_addresses', () => {
-      function fetchLookupAddresses(params: any) {
+      function fetchLookupAddresses(params: unknown) {
         return request(server).post('/').send({ method: 'lookup_addresses', params });
       }
 
@@ -160,7 +160,7 @@ describe('E2E api', () => {
           ['a boolean', true]
         ];
         // @ts-ignore
-        it.each(tests)('returns an error when passing %s', async (_: string, params: any) => {
+        it.each(tests)('returns an error when passing %s', async (_: string, params: unknown) => {
           const response = await fetchLookupAddresses(params);
           expect(response.status).toBe(400);
         });

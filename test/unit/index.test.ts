@@ -1,10 +1,13 @@
+import { Server } from 'http';
 import express from 'express';
 import request from 'supertest';
 
 let app: express.Application;
 
 beforeAll(async () => {
-  const listen = jest.spyOn(express.application, 'listen').mockReturnValue(undefined as any);
+  const listen = jest
+    .spyOn(express.application, 'listen')
+    .mockReturnValue(undefined as unknown as Server);
   await import('../../src/index');
   app = listen.mock.instances[0] as unknown as express.Application;
 });

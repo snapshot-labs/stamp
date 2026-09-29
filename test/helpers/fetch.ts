@@ -16,7 +16,13 @@ export function answeredFrom(url: string, response: Response): Response {
   return response;
 }
 
-export function jsonResponse(body: any, status = 200) {
+export function signalOf(init?: RequestInit): AbortSignal {
+  if (!init?.signal) throw new Error('fetch was called without an abort signal');
+
+  return init.signal;
+}
+
+export function jsonResponse(body: unknown, status = 200) {
   return new Response(typeof body === 'string' ? body : JSON.stringify(body), {
     status,
     statusText: status === 200 ? 'OK' : 'Upstream Error',
