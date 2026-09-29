@@ -14,7 +14,10 @@ export function setCache(payload: Record<string, string>): Promise<void> {
   return store.setMany(payload);
 }
 
-export default async function cache(input: string[], callback) {
+export default async function cache(
+  input: string[],
+  callback: (input: string[]) => Promise<Record<string, string>>
+) {
   const cache = await getCache(input);
   const cachedKeys = Object.keys(cache);
   const uncachedInputs = input.filter(a => !cachedKeys.includes(a));

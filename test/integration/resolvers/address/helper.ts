@@ -6,6 +6,14 @@ export default function testAddressResolver({
   validDomain,
   blankAddress,
   invalidDomains
+}: {
+  name: string;
+  lookupAddresses: (addresses: string[]) => Promise<Record<string, string>>;
+  resolveNames: ((handles: string[]) => Promise<Record<string, string>>) | null;
+  validAddress: string;
+  validDomain: string;
+  blankAddress: string;
+  invalidDomains: string[];
 }) {
   describe(`${name} address resolver`, () => {
     describe('lookupAddresses()', () => {

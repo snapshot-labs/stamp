@@ -10,11 +10,15 @@ export function isTestnet(chainId: string): boolean {
 }
 
 export function shortNameToChainId(shortName: string): string | null {
-  return shortName in chains.SHORTNAME_TO_CHAIN_ID ? chains.SHORTNAME_TO_CHAIN_ID[shortName] : null;
+  return shortName in chains.SHORTNAME_TO_CHAIN_ID
+    ? (chains.SHORTNAME_TO_CHAIN_ID as Record<string, string>)[shortName]
+    : null;
 }
 
 export function chainIdToShortName(chainId: string): string | null {
-  return chainId in chains.CHAIN_ID_TO_SHORTNAME ? chains.CHAIN_ID_TO_SHORTNAME[chainId] : null;
+  return chainId in chains.CHAIN_ID_TO_SHORTNAME
+    ? (chains.CHAIN_ID_TO_SHORTNAME as Record<string, string>)[chainId]
+    : null;
 }
 
 export function chainIdToName(chainId: string): string | null {

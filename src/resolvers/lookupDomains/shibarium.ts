@@ -7,7 +7,9 @@ const MAINNET = '109';
 const TESTNET = '157';
 const PAGE_SIZE = 25;
 
-const API_KEYS = {
+const D3: Record<string, { apiUrl: string; forwarder: string }> = constants.d3;
+
+const API_KEYS: Record<string, string | undefined> = {
   [MAINNET]: process.env.D3_API_KEY_MAINNET,
   [TESTNET]: process.env.D3_API_KEY_TESTNET
 };
@@ -20,7 +22,8 @@ export default async function lookupDomains(
   address: Address,
   chainId = DEFAULT_CHAIN_ID
 ): Promise<Handle[]> {
-  if (!constants.d3[chainId]?.apiUrl || !API_KEYS[chainId]) return [];
+  const apiKey = API_KEYS[chainId];
+  if (!D3[chainId]?.apiUrl || !apiKey) return [];
 
   return withDeadline(async signal => {
     const allDomains: Handle[] = [];
@@ -29,9 +32,9 @@ export default async function lookupDomains(
 
     while (hasMore) {
       const response = await fetch(
-        `${constants.d3[chainId].apiUrl}/v1/partner/tokens/EVM/${address}?limit=${PAGE_SIZE}&skip=${skip}`,
+        `${D3[chainId].apiUrl}/v1/partner/tokens/EVM/${address}?limit=${PAGE_SIZE}&skip=${skip}`,
         {
-          headers: { 'Content-Type': 'application/json', 'Api-Key': API_KEYS[chainId] },
+          headers: { 'Content-Type': 'application/json', 'Api-Key': apiKey },
           signal
         }
       );

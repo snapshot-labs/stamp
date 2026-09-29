@@ -93,7 +93,7 @@ function renderSvg(seed: string, size: number, scale: number) {
   )}</svg>`;
 }
 
-export default async function resolve(address) {
+export default async function resolve(address: string) {
   const svg = renderSvg(address, 8, 64);
   const input = await sharp(Buffer.from(svg, 'utf-8')).png().toBuffer();
 

@@ -13,7 +13,7 @@ async function getSpaceProperty(
   // Drop once https://github.com/snapshot-labs/sx-monorepo/issues/2261 ships.
   const {
     data: { spaces }
-  } = await graphQlCall(
+  } = await graphQlCall<{ spaces: { metadata: Record<string, string> | null }[] | null }>(
     url,
     `query GetSpaces($ids: [String!]!) {
       spaces(where: { id_in: $ids, metadata_not: "" }) {
@@ -29,7 +29,7 @@ async function getSpaceProperty(
 }
 
 function createPropertyResolver(property: 'avatar' | 'cover') {
-  return async key => {
+  return async (key: string) => {
     const ids = spaceIds(key);
     if (!ids) return false;
 

@@ -6,6 +6,8 @@ export const NAME = 'Ens V2';
 export const DEFAULT_CHAIN_ID = '11155111';
 export const CHAIN_IDS = Object.keys(constants.ensV2Graphql);
 
+const ENDPOINTS: Record<string, string> = constants.ensV2Graphql;
+
 type Domain = {
   name: string;
   expiryDate?: number;
@@ -18,7 +20,7 @@ export default async function lookupDomains(
   address: Address,
   chainId = DEFAULT_CHAIN_ID
 ): Promise<Handle[]> {
-  const endpoint = constants.ensV2Graphql[chainId];
+  const endpoint = ENDPOINTS[chainId];
 
   if (!endpoint) return [];
 

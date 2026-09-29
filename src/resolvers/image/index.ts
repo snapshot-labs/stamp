@@ -117,6 +117,9 @@ const resolvers = Object.fromEntries(
   })
 ) as ResolverMap;
 
+const resolverFns: Record<string, ResolverFn> = resolvers;
+const FALLBACKS = { blockie, jazzicon };
+
 export default resolvers;
 
 export async function resolveImage(
@@ -142,7 +145,7 @@ export async function resolveImage(
     query,
     async () => {
       const files = await Promise.all(
-        currentResolvers.map(r => resolvers[r](address, network, networkId))
+        currentResolvers.map(r => resolverFns[r](address, network, networkId))
       );
       return files.find(Boolean) || false;
     },
@@ -150,7 +153,7 @@ export async function resolveImage(
   );
   if (image) return { image, isFallback: false };
 
-  const fallbackImage = await resolvers[fallback](address, network, networkId);
+  const fallbackImage = await FALLBACKS[fallback](address);
   return { image: await resize(fallbackImage, w, h, { fit }), isFallback: true };
 }
 

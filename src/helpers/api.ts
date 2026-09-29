@@ -5,11 +5,11 @@ import { chainIdToShortName, shortNameToChainId } from './chains';
 import { ResolverType } from './types';
 import { imageQuerySchema } from './validation';
 
-export function sha256(str) {
+export function sha256(str: string) {
   return createHash('sha256').update(str).digest('hex');
 }
 
-export function parseQuery(id: string, type: ResolverType, query) {
+export function parseQuery(id: string, type: ResolverType, query: unknown) {
   id = id.trim().toLowerCase();
   let address = id;
   let network = '1';
@@ -36,7 +36,7 @@ export function parseQuery(id: string, type: ResolverType, query) {
     networkId,
     w: w ?? s,
     h: h ?? s,
-    fallback: fb as string,
+    fallback: fb,
     cb,
     resolver,
     resolvers: resolver ? [resolver] : typeResolvers,
@@ -65,7 +65,7 @@ export function getCacheKey({
   cb?: string;
   fit?: string;
 }) {
-  const data = { type, network, address, w, h };
+  const data: Record<string, unknown> = { type, network, address, w, h };
   // Resolvers default a missing networkId to defaultOffchainNetwork, so both must share a key.
   if (networkId && networkId !== constants.defaultOffchainNetwork) data['networkId'] = networkId;
   if (fallback !== 'blockie') data['fallback'] = fallback;

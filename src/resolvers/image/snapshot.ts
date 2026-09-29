@@ -7,7 +7,7 @@ import { fetchHttpImage, getUrl, spaceIds } from '../../helpers/http';
 const UNIFIED_API_URL = 'https://api.snapshot.box';
 const UNIFIED_API_TESTNET_URL = 'https://testnet-api.snapshot.box';
 
-const API_URLS = {
+const API_URLS: Record<string, string> = {
   s: `${process.env.HUB_URL ?? 'https://hub.snapshot.org'}/graphql`,
   's-tn': `${process.env.HUB_URL_TN ?? 'https://testnet.hub.snapshot.org'}/graphql`,
   // SX mainnets
@@ -86,7 +86,7 @@ async function getOnchainProperty(
   // Drop once https://github.com/snapshot-labs/sx-monorepo/issues/2261 ships.
   const {
     data: { spaces }
-  } = await graphQlCall(
+  } = await graphQlCall<{ spaces: { metadata: Record<string, string> | null }[] | null }>(
     API_URLS[networkId],
     `query GetSpaces($ids: [String!]!) {
       spaces(where: { id_in: $ids, metadata_not: "" }) {
