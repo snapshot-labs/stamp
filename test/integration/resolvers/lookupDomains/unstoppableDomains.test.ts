@@ -4,6 +4,7 @@ import lookupDomainsThroughIndex from '../../../../src/resolvers/lookupDomains';
 import lookupDomains, {
   DEFAULT_CHAIN_ID
 } from '../../../../src/resolvers/lookupDomains/unstoppableDomains';
+import { signalOf } from '../../../helpers/fetch';
 
 jest.mock('@snapshot-labs/snapshot-sentry', () => ({
   capture: jest.fn()
@@ -12,7 +13,7 @@ jest.mock('@snapshot-labs/snapshot-sentry', () => ({
 const ADDRESS = '0x220bc93D88C0aF11f1159eA89a885d5ADd3A7Cf6';
 const TIMEOUT = 10000;
 
-function mockFetch(response: { status: number; statusText: string; body: any }) {
+function mockFetch(response: { status: number; statusText: string; body: unknown }) {
   return jest.spyOn(global, 'fetch').mockResolvedValue({
     ok: response.status >= 200 && response.status < 300,
     status: response.status,
@@ -26,11 +27,11 @@ function abortError() {
 }
 
 async function recordedFor(provider: string) {
-  const metric: any = await timeLookupDomainsResponse.get();
+  const metric = await timeLookupDomainsResponse.get();
 
   return metric.values
-    .filter((v: any) => String(v.metricName).endsWith('_count') && v.labels.provider === provider)
-    .map((v: any) => ({ chainId: v.labels.chainId, status: v.labels.status, count: v.value }));
+    .filter(v => String(v.metricName).endsWith('_count') && v.labels.provider === provider)
+    .map(v => ({ chainId: v.labels.chainId, status: v.labels.status, count: v.value }));
 }
 
 // This resolver reports nothing itself: it throws the original error and
@@ -122,10 +123,11 @@ describe('lookupDomains/unstoppableDomains deadline', () => {
     const timers = jest.spyOn(global, 'setTimeout');
     const signals: AbortSignal[] = [];
     jest.spyOn(global, 'fetch').mockImplementation(
-      (_url: any, options: any) =>
+      (_url, options) =>
         new Promise((_resolve, reject) => {
-          signals.push(options.signal);
-          options.signal.addEventListener('abort', () => reject(abortError()));
+          const signal = signalOf(options);
+          signals.push(signal);
+          signal.addEventListener('abort', () => reject(abortError()));
         })
     );
 
@@ -146,8 +148,8 @@ describe('lookupDomains/unstoppableDomains deadline', () => {
   it('sets one deadline for the whole call, not one per page', async () => {
     const timers = jest.spyOn(global, 'setTimeout');
     const signals: AbortSignal[] = [];
-    jest.spyOn(global, 'fetch').mockImplementation((_url: any, options: any) => {
-      signals.push(options.signal);
+    jest.spyOn(global, 'fetch').mockImplementation((_url, options) => {
+      signals.push(signalOf(options));
       const body =
         signals.length === 1
           ? { data: [{ meta: { domain: 'first.sonic' } }], next: '?cursor=1' }
