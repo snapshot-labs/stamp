@@ -20,8 +20,8 @@ import starknet from './starknet';
 import trustwallet from './trustwallet';
 import { max } from '../../constants.json';
 import { parseQuery } from '../../helpers/api';
-import { isSilencedError, isTransportFailure } from '../../helpers/errors';
 import { isUnsupportedImageError, resize } from '../../helpers/image';
+import { callResolver } from '../../helpers/resolver';
 import { ResolverType } from '../../helpers/types';
 
 type ResolverFn = (...args: any[]) => Promise<Buffer | false>;
@@ -43,23 +43,17 @@ const AUTH_STATUS_CODES = [401, 402, 403];
 function isRoutineMiss(error: any): boolean {
   const status = Number(error?.status ?? error?.response?.status);
 
-  return (
-    (status >= 400 && status < 500 && !AUTH_STATUS_CODES.includes(status)) ||
-    isTransportFailure(error)
-  );
+  return status >= 400 && status < 500 && !AUTH_STATUS_CODES.includes(status);
 }
 
 function withFailureContract(name: string, resolve: ResolverFn): ResolverFn {
-  return async (...args) => {
-    try {
-      return await resolve(...args);
-    } catch (err) {
-      if (!isSilencedError(err) && !isRoutineMiss(err)) {
-        capture(err, { tags: { provider: name }, contexts: { input: { args } } });
-      }
-      return false;
-    }
-  };
+  return (...args) =>
+    callResolver(() => resolve(...args), {
+      provider: name,
+      input: { args },
+      empty: false,
+      isRoutineMiss
+    });
 }
 
 function withResize(name: string, resolve: ResolverFn): ResolverFn {

@@ -1,6 +1,7 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import { namehash } from 'viem/ens';
 import { EMPTY_ADDRESS } from '../../../src/helpers/address';
+import * as metrics from '../../../src/helpers/metrics';
 import * as provider from '../../../src/helpers/provider';
 import { lookupAddresses, resolveNames } from '../../../src/resolvers/address';
 import * as basename from '../../../src/resolvers/address/basename';
@@ -207,4 +208,30 @@ describe('address resolvers - invalid Space ID labels', () => {
       contexts: { input: { resolveNames: [HANDLE] } }
     });
   });
+});
+
+describe('address resolvers - response metric', () => {
+  it.each([
+    ['lookupAddresses', lookupAddresses, ADDRESS],
+    ['resolveNames', resolveNames, 'boorger.eth']
+  ] as const)(
+    'times each resolver on %s, with status 1 on success and 0 on failure',
+    async (method, call, input) => {
+      const ends = Object.fromEntries(RESOLVERS.map(resolver => [resolver.NAME, jest.fn()]));
+      const startTimer = jest
+        .spyOn(metrics.timeAddressResolverResponse, 'startTimer')
+        .mockImplementation(labels => ends[labels!.provider as string]);
+      RESOLVERS.forEach(resolver => jest.spyOn(resolver, method).mockResolvedValue({}));
+      jest.spyOn(ens, method).mockRejectedValue(new Error('boom'));
+
+      await call([input]);
+
+      expect(startTimer).toHaveBeenCalledTimes(RESOLVERS.length);
+      RESOLVERS.forEach(resolver => {
+        expect(startTimer).toHaveBeenCalledWith({ provider: resolver.NAME, method });
+        expect(ends[resolver.NAME]).toHaveBeenCalledTimes(1);
+        expect(ends[resolver.NAME]).toHaveBeenCalledWith({ status: resolver === ens ? 0 : 1 });
+      });
+    }
+  );
 });

@@ -1,12 +1,11 @@
 import { isAddress } from '@ethersproject/address';
-import { capture } from '@snapshot-labs/snapshot-sentry';
 import * as ens from './ens';
 import * as ensV2 from './ensV2';
 import * as shibarium from './shibarium';
 import * as unstoppableDomains from './unstoppableDomains';
 import { isTestnet } from '../../helpers/chains';
-import { isSilencedError, isTransportFailure } from '../../helpers/errors';
 import { timeLookupDomainsResponse as timeResponse } from '../../helpers/metrics';
+import { callResolver } from '../../helpers/resolver';
 import { Address, Handle } from '../../helpers/types';
 
 type Provider = {
@@ -38,26 +37,12 @@ export default async function lookupDomains(
       chainIds
         .filter(chainId => CHAIN_IDS.includes(chainId))
         .map(chainId =>
-          (async () => {
-            const end = timeResponse.startTimer({ provider: NAME, chainId });
-            let status = 0;
-
-            try {
-              const result = await fn(address, chainId);
-              status = 1;
-              return result;
-            } catch (err) {
-              if (!isSilencedError(err) && !isTransportFailure(err)) {
-                capture(err, {
-                  tags: { provider: NAME },
-                  contexts: { input: { address, chainId } }
-                });
-              }
-              return [];
-            } finally {
-              end({ status });
-            }
-          })()
+          callResolver(() => fn(address, chainId), {
+            provider: NAME,
+            input: { address, chainId },
+            empty: [],
+            endTimer: timeResponse.startTimer({ provider: NAME, chainId })
+          })
         )
     )
   );
