@@ -13,7 +13,9 @@ export default {
   coveragePathIgnorePatterns: ['/node_modules/', '<rootDir>/dist/', '<rootDir>/test/fixtures/'],
 
   // jsdom's dependency tree ships ESM-only packages, which Jest's CommonJS runtime cannot load untranspiled
-  transform: { '^.+\\.(tsx?|m?js)$': ['ts-jest', { tsconfig: { allowJs: true } }] },
+  transform: {
+    '^.+\\.(tsx?|m?js)$': ['ts-jest', { tsconfig: { allowJs: true, isolatedModules: true } }]
+  },
   transformIgnorePatterns: [
     '^(?!.*/node_modules/(@exodus|@asamuzakjp|@csstools|parse5)/).*/node_modules/'
   ],
