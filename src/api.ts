@@ -13,8 +13,7 @@ import { clearCache as clearImageCache, resolveImage } from './resolvers/image';
 import lookupDomains from './resolvers/lookupDomains';
 
 const router = express.Router();
-const TYPE_CONSTRAINTS = [...Object.keys(constants.resolvers), 'address', 'name'].join('|');
-const TYPE_PATTERN = new RegExp(`^(?:${TYPE_CONSTRAINTS})$`, 'i');
+const TYPES = new Set([...Object.keys(constants.resolvers), 'address', 'name']);
 type Params = { [M in keyof typeof schemas]: z.infer<(typeof schemas)[M]> };
 
 // Indexing `schemas` directly in dispatch does not typecheck: this mapped type keeps
@@ -47,7 +46,9 @@ async function dispatch<M extends keyof typeof methods>(
   return rpcSuccess(res, await methods[method](parsedParams.data, body), id);
 }
 
-router.param('type', (req, res, next, type) => next(TYPE_PATTERN.test(type) ? undefined : 'route'));
+router.param('type', (req, res, next, type) =>
+  next(TYPES.has(type.toLowerCase()) ? undefined : 'route')
+);
 
 router.post('/', async (req, res) => {
   const { id = null, method } = req.body ?? {};
