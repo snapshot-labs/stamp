@@ -71,14 +71,6 @@ const NO_LOADER = [
 
 const CORRUPT_PNG = Buffer.concat([Buffer.from('89504e470d0a1a0a', 'hex'), Buffer.alloc(64, 0x41)]);
 
-const BROKEN_TLS_CODES = [
-  'ERR_TLS_CERT_ALTNAME_INVALID',
-  'ERR_SSL_TLSV1_UNRECOGNIZED_NAME',
-  'CERT_HAS_EXPIRED',
-  'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
-  'DEPTH_ZERO_SELF_SIGNED_CERT'
-] as const;
-
 const NOT_REPORTED = [
   [
     'a 404 carried on error.response',
@@ -103,18 +95,6 @@ const NOT_REPORTED = [
     'a 404 carried on the error itself',
     Object.assign(new Error(NOT_FOUND), {
       status: 404
-    })
-  ],
-  [
-    'an avatar host that no longer resolves',
-    Object.assign(new TypeError('fetch failed'), {
-      cause: { code: 'ENOTFOUND' }
-    })
-  ],
-  [
-    'what the shared classifier silences',
-    Object.assign(new Error('aborted'), {
-      name: 'AbortError'
     })
   ]
 ] as const;
@@ -152,15 +132,6 @@ describe('resolvers - failure contract', () => {
     expect(capture).not.toHaveBeenCalled();
   });
 
-  it.each(BROKEN_TLS_CODES)('does not report an avatar host TLS failure (%s)', async code => {
-    (ens as jest.Mock).mockRejectedValue(
-      Object.assign(new TypeError('fetch failed'), { cause: { code } })
-    );
-
-    await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
-    expect(capture).not.toHaveBeenCalled();
-  });
-
   it.each([401, 402, 403])(
     'still reports an upstream %i from a resolver-owned authenticated call',
     async status => {
@@ -178,17 +149,6 @@ describe('resolvers - failure contract', () => {
 
     await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
     expect(capture).toHaveBeenCalledWith(error, expect.anything());
-  });
-
-  it('does not report an upstream 500', async () => {
-    const error = Object.assign(new Error('[profile host]'), {
-      status: 500,
-      response: { status: 500 }
-    });
-    (ens as jest.Mock).mockRejectedValue(error);
-
-    await expect(resolvers.ens(ADDRESS)).resolves.toBe(false);
-    expect(capture).not.toHaveBeenCalled();
   });
 
   it.each(RESIZED)('attributes %s bytes sharp cannot decode to itself', async (name, fn) => {

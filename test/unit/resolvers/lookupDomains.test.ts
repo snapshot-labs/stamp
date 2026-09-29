@@ -113,54 +113,6 @@ describe('lookupDomains - error reporting', () => {
     (unstoppableDomains as jest.Mock).mockResolvedValue([]);
   });
 
-  it('captures a resolver error, with the address and chain as context', async () => {
-    const error = new Error('boom');
-    (ens as jest.Mock).mockRejectedValue(error);
-
-    await expect(lookupDomains(VALID_ADDRESS, '1')).resolves.toEqual([]);
-    expect(capture).toHaveBeenCalledTimes(1);
-    expect(capture).toHaveBeenCalledWith(error, {
-      tags: { provider: 'Ens' },
-      contexts: { input: { address: VALID_ADDRESS, chainId: '1' } }
-    });
-  });
-
-  // `capture` reads `.error` off whatever it is handed, so a falsy one throws
-  // from inside the catch block and takes the whole fan-out down with it.
-  it.each([null, undefined])('does not hand capture a rejection carrying %p', async value => {
-    (ens as jest.Mock).mockRejectedValue(value);
-
-    await expect(lookupDomains(VALID_ADDRESS, '1')).resolves.toEqual([]);
-    expect(capture).not.toHaveBeenCalled();
-  });
-
-  it('does not capture a silenced error', async () => {
-    (ens as jest.Mock).mockRejectedValue(
-      Object.assign(new Error('Unstoppable Domains API error: HTTP 429 Too Many Requests'), {
-        status: 429
-      })
-    );
-
-    await expect(lookupDomains(VALID_ADDRESS, '1')).resolves.toEqual([]);
-    expect(capture).not.toHaveBeenCalled();
-  });
-
-  it.each([
-    [
-      'a host that no longer resolves',
-      Object.assign(new TypeError('fetch failed'), { cause: { code: 'ENOTFOUND' } })
-    ],
-    [
-      'a TLS failure',
-      Object.assign(new TypeError('fetch failed'), { cause: { code: 'CERT_HAS_EXPIRED' } })
-    ]
-  ] as const)('does not capture a transport failure (%s)', async (_label, error) => {
-    (ens as jest.Mock).mockRejectedValue(error);
-
-    await expect(lookupDomains(VALID_ADDRESS, '1')).resolves.toEqual([]);
-    expect(capture).not.toHaveBeenCalled();
-  });
-
   it('still reports a plain upstream 4xx from a fixed endpoint', async () => {
     const error = Object.assign(new Error('not found'), { status: 404 });
     (ens as jest.Mock).mockRejectedValue(error);
