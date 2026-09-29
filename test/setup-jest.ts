@@ -17,7 +17,7 @@ afterAll(async () => {
   if (client) {
     try {
       await client.flushDb();
-      await client.quit();
+      await client.close();
     } catch {
       // Ignore errors during cleanup
     }
