@@ -1,4 +1,5 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
+import * as metrics from '../../../src/helpers/metrics';
 import lookupDomains from '../../../src/resolvers/lookupDomains';
 import ens from '../../../src/resolvers/lookupDomains/ens';
 import ensV2 from '../../../src/resolvers/lookupDomains/ensV2';
@@ -203,5 +204,26 @@ describe('lookupDomains - error reporting', () => {
         contexts: { input: { address: VALID_ADDRESS, chainId } }
       });
     });
+  });
+});
+
+describe('lookupDomains - response metric', () => {
+  it('times each provider call, with status 1 on success and 0 on failure', async () => {
+    const ends = { '1': jest.fn(), '109': jest.fn(), '146': jest.fn() };
+    const startTimer = jest
+      .spyOn(metrics.timeLookupDomainsResponse, 'startTimer')
+      .mockImplementation(labels => ends[labels!.chainId as string]);
+    (ens as jest.Mock).mockRejectedValue(new Error('boom'));
+    (shibarium as jest.Mock).mockResolvedValue([]);
+    (unstoppableDomains as jest.Mock).mockResolvedValue([]);
+
+    await lookupDomains(VALID_ADDRESS, CHAINS);
+
+    expect(startTimer).toHaveBeenCalledWith({ provider: 'Ens', chainId: '1' });
+    expect(startTimer).toHaveBeenCalledWith({ provider: 'Shibarium', chainId: '109' });
+    expect(startTimer).toHaveBeenCalledWith({ provider: 'Unstoppable Domains', chainId: '146' });
+    expect(ends['1']).toHaveBeenCalledWith({ status: 0 });
+    expect(ends['109']).toHaveBeenCalledWith({ status: 1 });
+    expect(ends['146']).toHaveBeenCalledWith({ status: 1 });
   });
 });
