@@ -1,10 +1,10 @@
 import { getBaseAssetIconUrl, isTestnet } from '../../../src/helpers/chains';
 
-const ETH_LOGO = getBaseAssetIconUrl('1');
+const ETH_LOGO = 'https://static.cdnlogo.com/logos/e/81/ethereum-eth.svg';
 
 describe('helpers/chains', () => {
   describe('getBaseAssetIconUrl', () => {
-    it.each(['1', '8453', '59144', '11155111'])(
+    it.each(['1', '8453', '59144', '4663', '46630', '11155111'])(
       'gives chain %s, native ETH, the ETH logo',
       chainId => {
         expect(getBaseAssetIconUrl(chainId)).toBe(ETH_LOGO);
@@ -12,7 +12,9 @@ describe('helpers/chains', () => {
     );
 
     it('gives a mapped non-ETH chain its own logo', () => {
-      expect(getBaseAssetIconUrl('56')).not.toBe(ETH_LOGO);
+      expect(getBaseAssetIconUrl('56')).toBe(
+        'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/info/logo.png'
+      );
     });
 
     it.each(['43114', '146', '250', '999999999'])('has no logo for chain %s', chainId => {

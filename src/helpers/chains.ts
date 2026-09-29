@@ -27,7 +27,6 @@ export function chainIdToName(chainId: string): string | null {
   return null;
 }
 
-// Chains from snapshot.js networks whose native currency is ETH
 const ETH_NATIVE_CHAIN_IDS = new Set([
   '1',
   '10',
@@ -36,11 +35,13 @@ const ETH_NATIVE_CHAIN_IDS = new Set([
   '300',
   '324',
   '1101',
+  '4663',
   '7560',
   '8453',
   '26514',
   '42161',
   '42170',
+  '46630',
   '57073',
   '59141',
   '59144',
