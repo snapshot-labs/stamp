@@ -3,5 +3,6 @@ import { blockieSnapshotAddresses } from '../../../fixtures/image-snapshot-addre
 
 testResolverImageSnapshots({
   id: 'blockie',
-  withAvatar: [...blockieSnapshotAddresses]
+  withAvatar: [...blockieSnapshotAddresses],
+  snapshotOptions: { customDiffConfig: { threshold: 0.05 } }
 });

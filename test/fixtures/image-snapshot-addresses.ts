@@ -8,10 +8,6 @@
 // Every resolver integration test is an image test: it calls the resolver for
 // REAL (real network for the remote-fetch resolvers) and asserts the output
 // against a committed baseline with toMatchImageSnapshot. No network mocking.
-// Remote-fetch resolvers (ens, lens, snapshot, space-sx, basename, trustwallet,
-// ...) download a live upstream avatar, so their inputs are chosen to be stable
-// identities whose avatar is unlikely to change. The match tolerance, shared by
-// every resolver, lives in test/setup-jest.ts.
 
 export const blockieSnapshotAddresses = [
   '0x89ceF96c58A85d9bE6DFa46D667e71f45f9Ad046',

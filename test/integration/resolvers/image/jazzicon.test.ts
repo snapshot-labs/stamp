@@ -3,5 +3,6 @@ import { jazziconSnapshotAddresses } from '../../../fixtures/image-snapshot-addr
 
 testResolverImageSnapshots({
   id: 'jazzicon',
-  withAvatar: [...jazziconSnapshotAddresses]
+  withAvatar: [...jazziconSnapshotAddresses],
+  snapshotOptions: { customDiffConfig: { threshold: 0.05 } }
 });

@@ -1,3 +1,4 @@
+import { MatchImageSnapshotOptions } from 'jest-image-snapshot';
 import resolvers from '../../../../src/resolvers/image';
 import { expectResolverImageSnapshot } from '../../../helpers/imageSnapshot';
 
@@ -26,6 +27,7 @@ type Config = {
   skip?: boolean;
   requireEnv?: string[];
   todoCases?: string[];
+  snapshotOptions?: MatchImageSnapshotOptions;
 };
 
 const toArgs = (input: Input): ResolverArgs => (typeof input === 'string' ? [input] : input.args);
@@ -41,7 +43,8 @@ export default function testResolverImageSnapshots({
   withoutAvatar = [],
   skip = false,
   requireEnv = [],
-  todoCases = []
+  todoCases = [],
+  snapshotOptions
 }: Config) {
   jest.retryTimes(RETRY_TIMES);
 
@@ -64,6 +67,7 @@ export default function testResolverImageSnapshots({
           `matches the image snapshot for ${identifier}`,
           async () => {
             await expectResolverImageSnapshot(await call(resolver, input), {
+              ...snapshotOptions,
               customSnapshotIdentifier: identifier
             });
           },
