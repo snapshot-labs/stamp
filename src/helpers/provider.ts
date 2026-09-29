@@ -37,7 +37,7 @@ export async function batchContractCalls(
   network: string,
   rpcProvider: StaticJsonRpcProvider,
   abi: string[],
-  args: any[],
+  args: string[],
   addresses: Address[],
   fnName: string
 ) {

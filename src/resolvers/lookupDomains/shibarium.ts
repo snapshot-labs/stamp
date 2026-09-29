@@ -1,6 +1,6 @@
 import constants from '../../constants.json';
 import { withDeadline } from '../../helpers/deadline';
-import { httpError } from '../../helpers/errors';
+import { asErrorLike, httpError } from '../../helpers/errors';
 import { Address, Handle } from '../../helpers/types';
 
 const MAINNET = '109';
@@ -55,7 +55,7 @@ export default async function lookupDomains(
       try {
         data = await response.json();
       } catch (err) {
-        throw Object.assign(new Error(`Invalid JSON response: ${(err as any).message}`), {
+        throw Object.assign(new Error(`Invalid JSON response: ${asErrorLike(err).message}`), {
           cause: err
         });
       }

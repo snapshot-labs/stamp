@@ -16,7 +16,7 @@ async function fetchDomains(
   address: string,
   cursor: string,
   signal: AbortSignal
-): Promise<Record<'data' | 'next', any>> {
+): Promise<{ data: { meta: { domain: string } }[]; next?: string | null }> {
   const response = await fetch(
     `https://api.unstoppabledomains.com/resolve/owners/${address}/domains?cursor=${cursor}`,
     {
@@ -53,12 +53,12 @@ export default async function lookupDomains(address: Address, chainId: string): 
 
   return withDeadline(async signal => {
     const domains: string[] = [];
-    let cursor = '0';
+    let cursor: string | null = '0';
 
     while (cursor !== null) {
       const data = await fetchDomains(address, cursor, signal);
       cursor = data.next?.split('cursor=').pop() || null;
-      domains.push(...data.data.map((domain: any) => domain.meta.domain));
+      domains.push(...data.data.map(domain => domain.meta.domain));
     }
 
     return normalizeHandles(domains);

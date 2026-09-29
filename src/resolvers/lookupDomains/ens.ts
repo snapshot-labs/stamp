@@ -61,7 +61,7 @@ async function fetchDomainNames(domains: Domain[], chainId: string): Promise<Han
 async function fetchOwnedDomains(address: Address, chainId: string): Promise<Domain[]> {
   const {
     data: { account }
-  } = await graphQlCall(
+  } = await graphQlCall<{ account: { domains: Domain[]; wrappedDomains: Domain[] } | null }>(
     SUBGRAPHS[chainId],
     `query Domain($id: String!, $first: Int!) {
       account(id: $id) {
