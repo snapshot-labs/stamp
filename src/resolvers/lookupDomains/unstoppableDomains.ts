@@ -1,4 +1,5 @@
 import { withDeadline } from '../../helpers/deadline';
+import { httpError } from '../../helpers/errors';
 import { Address, Handle } from '../../helpers/types';
 
 export const NAME = 'Unstoppable Domains';
@@ -27,9 +28,10 @@ async function fetchDomains(
   );
 
   if (!response.ok) {
-    throw Object.assign(
-      new Error(`Unstoppable Domains API error: HTTP ${response.status} ${response.statusText}`),
-      { status: response.status }
+    throw httpError(
+      'unstoppable-domains',
+      response.status,
+      `HTTP ${response.status} ${response.statusText}`
     );
   }
 
