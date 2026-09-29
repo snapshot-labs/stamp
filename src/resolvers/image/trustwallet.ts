@@ -13,8 +13,12 @@ export default async function resolve(address, chainId) {
   const networkName = chainIdToName(chainId) || 'ethereum';
   const checksum = getAddress(address);
 
-  let url = `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/${networkName}/assets/${checksum}/logo.png`;
-  if (ETH.includes(checksum)) url = getBaseAssetIconUrl(chainId);
+  if (ETH.includes(checksum)) {
+    const url = getBaseAssetIconUrl(chainId);
+    return url ? await fetchHttpImage(url) : false;
+  }
 
-  return await fetchHttpImage(url);
+  return await fetchHttpImage(
+    `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/${networkName}/assets/${checksum}/logo.png`
+  );
 }

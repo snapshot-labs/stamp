@@ -27,7 +27,37 @@ export function chainIdToName(chainId: string): string | null {
   return null;
 }
 
-export const getBaseAssetIconUrl = (chainId: string) => {
+// Chains from snapshot.js networks whose native currency is ETH
+const ETH_NATIVE_CHAIN_IDS = new Set([
+  '1',
+  '10',
+  '169',
+  '291',
+  '300',
+  '324',
+  '1101',
+  '7560',
+  '8453',
+  '26514',
+  '42161',
+  '42170',
+  '57073',
+  '59141',
+  '59144',
+  '81457',
+  '84532',
+  '763373',
+  '810180',
+  '810181',
+  '2651420',
+  '11155111',
+  '11155420',
+  '111557560',
+  '168587773',
+  '1313161554'
+]);
+
+export const getBaseAssetIconUrl = (chainId: string): string | null => {
   // BNB
   if (chainId === '56')
     return 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/info/logo.png';
@@ -44,5 +74,7 @@ export const getBaseAssetIconUrl = (chainId: string) => {
   // Celo
   if (chainId === '42220')
     return 'https://ipfs.snapshot.box/ipfs/bafkreidvcofeczigbjr7ddapgdugwso6v2l4iolfxys7qg6kfvu2uduyva';
-  return 'https://static.cdnlogo.com/logos/e/81/ethereum-eth.svg';
+  if (ETH_NATIVE_CHAIN_IDS.has(chainId))
+    return 'https://static.cdnlogo.com/logos/e/81/ethereum-eth.svg';
+  return null;
 };

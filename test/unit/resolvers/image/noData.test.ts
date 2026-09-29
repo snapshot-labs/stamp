@@ -169,6 +169,19 @@ describe('resolvers answer false rather than throwing when there is no data', ()
     });
   });
 
+  describe('trustwallet', () => {
+    it.each([
+      '0x0000000000000000000000000000000000000000',
+      '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
+    ])(
+      'answers false for the native asset %s of a chain with no known icon, without asking',
+      async address => {
+        await expect(trustwallet(address, '43114')).resolves.toBe(false);
+        expect(mockedFetchHttpImage).not.toHaveBeenCalled();
+      }
+    );
+  });
+
   describe('defillama', () => {
     it('answers false for a chain id that is not numeric, without asking', async () => {
       await expect(defillama(ADDRESS, 'not-a-chain-id')).resolves.toBe(false);
