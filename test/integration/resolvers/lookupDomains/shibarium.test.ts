@@ -1,7 +1,7 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import { timeLookupDomainsResponse } from '../../../../src/helpers/metrics';
 import { Address, Handle } from '../../../../src/helpers/types';
-import { mockGlobalFetch } from '../../../helpers/fetch';
+import { mockGlobalFetch, signalOf } from '../../../helpers/fetch';
 
 jest.mock('@snapshot-labs/snapshot-sentry', () => ({
   capture: jest.fn()
@@ -36,7 +36,7 @@ afterAll(() => {
   }
 });
 
-function httpResponse(status: number, statusText: string, body: any = {}) {
+function httpResponse(status: number, statusText: string, body: unknown = {}) {
   return {
     ok: status >= 200 && status < 300,
     status,
@@ -126,11 +126,11 @@ function abortError() {
 }
 
 async function recordedFor(provider: string) {
-  const metric: any = await timeLookupDomainsResponse.get();
+  const metric = await timeLookupDomainsResponse.get();
 
   return metric.values
-    .filter((v: any) => String(v.metricName).endsWith('_count') && v.labels.provider === provider)
-    .map((v: any) => ({ chainId: v.labels.chainId, status: v.labels.status, count: v.value }));
+    .filter(v => String(v.metricName).endsWith('_count') && v.labels.provider === provider)
+    .map(v => ({ chainId: v.labels.chainId, status: v.labels.status, count: v.value }));
 }
 
 describe('lookupDomains/shibarium deadline', () => {
@@ -138,10 +138,11 @@ describe('lookupDomains/shibarium deadline', () => {
     const timers = jest.spyOn(global, 'setTimeout');
     const signals: AbortSignal[] = [];
     mockedFetch.mockImplementation(
-      (_url: string, options: any) =>
+      (_url: string, options?: RequestInit) =>
         new Promise((_resolve, reject) => {
-          signals.push(options.signal);
-          options.signal.addEventListener('abort', () => reject(abortError()));
+          const signal = signalOf(options);
+          signals.push(signal);
+          signal.addEventListener('abort', () => reject(abortError()));
         })
     );
 

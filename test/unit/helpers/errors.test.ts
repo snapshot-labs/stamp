@@ -38,7 +38,7 @@ describe('isSilencedError', () => {
   });
 
   it('classifies an error that is its own cause', () => {
-    const error: any = new Error('boom');
+    const error = new Error('boom');
     error.cause = error;
 
     expect(isSilencedError(error)).toBe(false);
