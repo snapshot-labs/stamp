@@ -8,17 +8,6 @@
 // Every resolver integration test is an image test: it calls the resolver for
 // REAL (real network for the remote-fetch resolvers) and asserts the output
 // against a committed baseline with toMatchImageSnapshot. No network mocking.
-//
-// Two flavours of snapshot live here:
-//   - EXACT: deterministic resolvers (blockie, jazzicon) render purely from the
-//     input, so the baseline matches byte-for-byte (within anti-aliasing noise).
-//   - TOLERANT: remote-fetch resolvers (ens, lens, snapshot, space-sx,
-//     basename, trustwallet, ...) download a live upstream avatar then resize/
-//     re-encode it via sharp. The output can drift slightly with CDN re-encodes,
-//     so these use a higher failureThreshold (see remoteSnapshotOptions). Inputs
-//     are chosen to be stable identities whose avatar is unlikely to change.
-
-import { MatchImageSnapshotOptions } from 'jest-image-snapshot';
 
 export const blockieSnapshotAddresses = [
   '0x89ceF96c58A85d9bE6DFa46D667e71f45f9Ad046',
@@ -59,15 +48,6 @@ export const remoteSnapshotInputs = {
   // farcaster: address with a Farcaster pfp (needs NEYNAR_API_KEY).
   farcaster: '0xd1a8Dd23e356B9fAE27dF5DeF9ea025A602EC81e'
 } as const;
-
-// Tolerant config for remote-fetch resolvers: allow a small percentage of
-// differing pixels so a benign upstream/CDN re-encode does not fail the test.
-// The default setup-jest threshold (0.01%) is too strict for remotely fetched,
-// re-encoded images.
-export const remoteSnapshotOptions: MatchImageSnapshotOptions = {
-  failureThreshold: 1.5,
-  failureThresholdType: 'percent'
-};
 
 // The canonical "no avatar set" input used to exercise each resolver's real
 // no-avatar path.
