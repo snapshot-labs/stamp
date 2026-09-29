@@ -9,23 +9,38 @@ export function httpError(source: string, status: number, message: string) {
 
 // ethers v5 nests a transport error under `error.serverError`, viem four `cause`
 // levels down, five on a CCIP-Read callback. `seen` stops on an error that is its own cause.
-function wrapped(error: any, seen = new Set()): any[] {
+function wrapped(error: unknown, seen = new Set<unknown>()): ErrorLike[] {
   if (!error || typeof error !== 'object' || seen.has(error)) return [];
   seen.add(error);
-  return [
-    error,
-    ...[error.cause, error.error, error.serverError, error.response].flatMap(e => wrapped(e, seen))
-  ];
+  const e = asErrorLike(error);
+  return [e, ...[e.cause, e.error, e.serverError, e.response].flatMap(c => wrapped(c, seen))];
 }
 
-export function isSilencedError(error: any): boolean {
+type ErrorLike = Partial<
+  Record<
+    'name' | 'message' | 'code' | 'status' | 'cause' | 'error' | 'serverError' | 'response',
+    unknown
+  >
+>;
+
+export function asErrorLike(error: unknown): ErrorLike {
+  return error && typeof error === 'object' ? error : {};
+}
+
+function includesMessage(error: unknown, message: string): boolean {
+  const e = asErrorLike(error);
+  return typeof e.message === 'string' && e.message.includes(message);
+}
+
+export function isSilencedError(error: unknown): boolean {
   // A rejection carries whatever it was given, null included. There is nothing
   // in one to classify, and reporting it is not an option either: `capture`
   // dereferences it and throws, from inside the catch block that called this.
   if (!error) return true;
 
   // An abort is always one of our own deadlines, and each transport words it differently.
-  if (error.name === 'AbortError') return true;
+  const e = asErrorLike(error);
+  if (e.name === 'AbortError') return true;
 
   const messages = [
     'invalid token ID',
@@ -49,12 +64,7 @@ export function isSilencedError(error: any): boolean {
   if (upstream5xx) return true;
 
   return (
-    messages.some(
-      m =>
-        error.message?.includes(m) ||
-        error.error?.message?.includes(m) ||
-        error.cause?.message?.includes(m)
-    ) ||
+    messages.some(m => [e, e.error, e.cause].some(x => includesMessage(x, m))) ||
     ['TIMEOUT', 'ETIMEDOUT', 'ECONNRESET', 'UND_ERR_SOCKET', 504, 429].some(c =>
       codes.some(v => String(v ?? '').includes(String(c)))
     )
@@ -74,6 +84,8 @@ const TRANSPORT_FAILURE_CODES = [
   'DEPTH_ZERO_SELF_SIGNED_CERT'
 ];
 
-export function isTransportFailure(error: any): boolean {
-  return TRANSPORT_FAILURE_CODES.includes(error?.cause?.code ?? error?.code);
+export function isTransportFailure(error: unknown): boolean {
+  const e = asErrorLike(error);
+  const code = asErrorLike(e.cause).code ?? e.code;
+  return typeof code === 'string' && TRANSPORT_FAILURE_CODES.includes(code);
 }

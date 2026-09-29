@@ -42,7 +42,7 @@ testResolverImageSnapshots({
 describe('snapshot space with an empty metadata link', () => {
   it('returns false instead of throwing', async () => {
     await expect(
-      resolveSpaceAvatar(noAvatarInputs.snapshotSpaceEmptyMetadata, 1, 'eth')
+      resolveSpaceAvatar(noAvatarInputs.snapshotSpaceEmptyMetadata, '1', 'eth')
     ).resolves.toBe(false);
   }, 30e3);
 });

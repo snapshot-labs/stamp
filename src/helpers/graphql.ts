@@ -13,21 +13,21 @@ function graphQlEnvelopeError(url: string, status: number, message: string) {
   return httpError(source, status, message);
 }
 
-function parseGraphQlResponse(body: string): any {
+function parseGraphQlResponse(body: string): Partial<GraphQlResponse> | null {
   try {
     return JSON.parse(body);
   } catch {
-    return body;
+    return null;
   }
 }
 
-export async function graphQlCall<T = any>(
+export async function graphQlCall<T = unknown>(
   url: string,
   query: string,
-  variables?: Record<string, any>,
-  options: any = { headers: {} }
+  variables?: Record<string, unknown>,
+  options: { headers: Record<string, string | undefined> } = { headers: {} }
 ): Promise<GraphQlResponse<T>> {
-  const data: { query: string; variables?: Record<string, any> } = { query };
+  const data: { query: string; variables?: Record<string, unknown> } = { query };
   if (variables) data.variables = variables;
 
   return withDeadline(async signal => {
@@ -66,6 +66,6 @@ export async function graphQlCall<T = any>(
       throw graphQlEnvelopeError(url, response.status, 'GraphQL response has no data envelope');
     }
 
-    return body;
+    return body as GraphQlResponse<T>;
   }, 5e3);
 }

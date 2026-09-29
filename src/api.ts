@@ -3,10 +3,10 @@ import express from 'express';
 import { z } from 'zod';
 import constants from './constants.json';
 import { setHeader } from './helpers/api';
-import { isSilencedError, isTransportFailure } from './helpers/errors';
+import { asErrorLike, isSilencedError, isTransportFailure } from './helpers/errors';
 import { rpcError, rpcInvalidParams, rpcSuccess } from './helpers/rpc';
 import { ResolverType } from './helpers/types';
-import { formatZodError, schemas } from './helpers/validation';
+import { formatZodError, networkSchemas, schemas } from './helpers/validation';
 import { clearCache, lookupAddresses, resolveNames } from './resolvers/address';
 import getOwner from './resolvers/getOwner';
 import { clearCache as clearImageCache, resolveImage } from './resolvers/image';
@@ -16,14 +16,18 @@ const router = express.Router();
 const TYPE_CONSTRAINTS = [...Object.keys(constants.resolvers), 'address', 'name'].join('|');
 const TYPE_ID = `(?<type>${TYPE_CONSTRAINTS})/(?<id>[^/]+?)/?$`;
 type Params = { [M in keyof typeof schemas]: z.infer<(typeof schemas)[M]> };
+type Networks = { [M in keyof typeof networkSchemas]: z.infer<(typeof networkSchemas)[M]> };
 
 // Indexing `schemas` directly in dispatch does not typecheck: this mapped type keeps
 // the parsed params correlated with the method they are passed to.
 const paramSchemas: { [M in keyof Params]: z.ZodType<Params[M]> } = schemas;
+const networkSchemasByMethod: { [M in keyof Networks]: z.ZodType<Networks[M]> } = networkSchemas;
 
-const methods: { [M in keyof Params]: (params: Params[M], body: any) => Promise<unknown> } = {
-  lookup_domains: (params, body) => lookupDomains(params, body.network),
-  get_owner: (params, body) => getOwner(params, body.network),
+const methods: {
+  [M in keyof Params]: (params: Params[M], network: Networks[M]) => Promise<unknown>;
+} = {
+  lookup_domains: (params, network) => lookupDomains(params, network),
+  get_owner: (params, network) => getOwner(params, network),
   lookup_addresses: params => lookupAddresses(params),
   resolve_names: params => resolveNames(params)
 };
@@ -38,13 +42,17 @@ function failImage(res: express.Response, err: unknown) {
 
 async function dispatch<M extends keyof typeof methods>(
   method: M,
-  body: any,
+  body: { params?: unknown; network?: unknown },
   res: express.Response,
   id: unknown
 ) {
   const parsedParams = paramSchemas[method].safeParse(body.params);
   if (!parsedParams.success) return rpcInvalidParams(res, formatZodError(parsedParams.error), id);
-  return rpcSuccess(res, await methods[method](parsedParams.data, body), id);
+  const parsedNetwork = networkSchemasByMethod[method].safeParse(body.network);
+  if (!parsedNetwork.success) {
+    return rpcInvalidParams(res, formatZodError(parsedNetwork.error), id);
+  }
+  return rpcSuccess(res, await methods[method](parsedParams.data, parsedNetwork.data), id);
 }
 
 router.post('/', async (req, res) => {
@@ -54,9 +62,8 @@ router.post('/', async (req, res) => {
     if (!parsedMethod.success) return rpcError(res, 400, 'invalid method', id);
     return await dispatch(parsedMethod.data, req.body, res, id);
   } catch (err) {
-    const error = err as any;
-    if (error?.code !== 400 && !isSilencedError(error) && !isTransportFailure(error)) {
-      capture(error);
+    if (asErrorLike(err).code !== 400 && !isSilencedError(err) && !isTransportFailure(err)) {
+      capture(err);
     }
     return rpcError(res, 500, err, id);
   }

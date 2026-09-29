@@ -33,6 +33,18 @@ describe('isSilencedError', () => {
     ).toBe(true);
   });
 
+  it.each([
+    ['its own message', { message: 'execution reverted' }],
+    ['a wrapped error', { error: { message: 'execution reverted' } }],
+    ['its cause', { cause: { message: 'execution reverted' } }]
+  ])('silences a known message carried by %s', (_, error) => {
+    expect(isSilencedError(error)).toBe(true);
+  });
+
+  it('does not throw on a non-string message', () => {
+    expect(isSilencedError({ message: 42, cause: { message: null } })).toBe(false);
+  });
+
   it('does not silence unrelated errors', () => {
     expect(isSilencedError(new Error('boom'))).toBe(false);
   });

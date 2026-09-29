@@ -4,7 +4,7 @@ import { capture } from '@snapshot-labs/snapshot-sentry';
 import snapshot from '@snapshot-labs/snapshot.js';
 import constants from '../../constants.json';
 import { isEvmAddress } from '../../helpers/address';
-import { isSilencedError, isTransportFailure } from '../../helpers/errors';
+import { asErrorLike, isSilencedError, isTransportFailure } from '../../helpers/errors';
 import { graphQlCall } from '../../helpers/graphql';
 import { getProvider } from '../../helpers/provider';
 import { Address, Handle } from '../../helpers/types';
@@ -45,8 +45,8 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
       ['0x3671aE578E63FdF66ad4F3E12CC0c0d71Ac7510C', 'getNames', [normalizedAddresses]],
       { blockTag: 'latest' }
     );
-  } catch (err: any) {
-    if (err?.code !== 'CALL_EXCEPTION') throw err;
+  } catch (err) {
+    if (asErrorLike(err).code !== 'CALL_EXCEPTION') throw err;
   }
   const validNames = normalizeEns(reverseRecords);
 
@@ -81,7 +81,13 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
   try {
     const {
       data: { domains: items }
-    } = await graphQlCall(
+    } = await graphQlCall<{
+      domains: {
+        name: string;
+        expiryDate: string | null;
+        resolvedAddress: { id: string } | null;
+      }[];
+    }>(
       constants.ensSubgraph[NETWORK],
       `query Domains($handles: [String!]!) {
         domains(where: {name_in: $handles}) {

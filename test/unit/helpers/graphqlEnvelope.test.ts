@@ -110,7 +110,7 @@ describe('graphQlCall callers surface an envelope failure', () => {
         upstreamFailure('subgraph is down', { spaces: [{ metadata: { avatar: IMAGE_URL } }] })
       );
 
-      await expect(resolveSpaceAvatar(ADDRESS, 1, 'eth')).rejects.toThrow(
+      await expect(resolveSpaceAvatar(ADDRESS, '1', 'eth')).rejects.toThrow(
         '[api.snapshot.box] subgraph is down'
       );
       expect(fetchHttpImage).not.toHaveBeenCalled();

@@ -5,7 +5,7 @@ type CallOptions<T> = {
   provider: string;
   input: Record<string, unknown>;
   empty: T;
-  isRoutineMiss?: (error: any) => boolean;
+  isRoutineMiss?: (error: unknown) => boolean;
   endTimer?: (labels: { status: number }) => void;
 };
 

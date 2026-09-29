@@ -1,4 +1,5 @@
 import { graphQlCall } from '../../helpers/graphql';
+import { withoutEmptyValues } from '../../helpers/object';
 import { Address, Handle } from '../../helpers/types';
 
 const HUB_URL = process.env.HUB_URL ?? 'https://hub.snapshot.org';
@@ -7,7 +8,7 @@ export const NAME = 'Snapshot';
 export async function lookupAddresses(addresses: Address[]): Promise<Record<Address, Handle>> {
   const {
     data: { users }
-  } = await graphQlCall(
+  } = await graphQlCall<{ users: { id: string; name: string | null }[] }>(
     `${HUB_URL}/graphql`,
     `query users($addresses: [String!]!) {
       users(where: {id_in: $addresses}) {
@@ -21,9 +22,7 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
     }
   );
 
-  return Object.fromEntries(
-    users.filter((user: any) => user.name).map((user: any) => [user.id, user.name])
-  );
+  return withoutEmptyValues(Object.fromEntries(users.map(user => [user.id, user.name])));
 }
 
 export async function resolveNames(): Promise<Record<Handle, Address>> {
