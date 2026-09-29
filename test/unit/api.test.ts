@@ -133,6 +133,10 @@ describe('GET /avatar/:id?resolver=', () => {
     expectInvalidResolver(await request(app).get(`/avatar/${ADDRESS}?resolver=${a}&resolver=${b}`));
   });
 
+  it('matches the image type case-insensitively', async () => {
+    expectInvalidResolver(await request(app).get(`/AVATAR/${ADDRESS}?resolver=garbage`));
+  });
+
   it('runs only the requested resolver', async () => {
     const resolver = constants.resolvers.avatar[1];
     const response = await request(app).get(`/avatar/${ADDRESS}?resolver=${resolver}`);
@@ -243,6 +247,21 @@ describe('POST /', () => {
         id: 1
       });
       expect(capture).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['no body', undefined],
+      ['a non-JSON body', 'text/plain']
+    ])('returns invalid method when there is %s', async (_, contentType) => {
+      const post = request(app).post('/');
+      const response = await (contentType ? post.set('Content-Type', contentType).send('x') : post);
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        jsonrpc: '2.0',
+        error: { code: 400, message: 'unauthorized', data: 'invalid method' },
+        id: null
+      });
     });
   });
 

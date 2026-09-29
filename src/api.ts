@@ -14,6 +14,7 @@ import lookupDomains from './resolvers/lookupDomains';
 
 const router = express.Router();
 const TYPE_CONSTRAINTS = [...Object.keys(constants.resolvers), 'address', 'name'].join('|');
+const TYPE_ID = `(?<type>${TYPE_CONSTRAINTS})/(?<id>[^/]+?)/?$`;
 type Params = { [M in keyof typeof schemas]: z.infer<(typeof schemas)[M]> };
 type Networks = { [M in keyof typeof networkSchemas]: z.infer<(typeof networkSchemas)[M]> };
 
@@ -55,7 +56,7 @@ async function dispatch<M extends keyof typeof methods>(
 }
 
 router.post('/', async (req, res) => {
-  const { id = null, method } = req.body;
+  const { id = null, method } = req.body ?? {};
   try {
     const parsedMethod = methodSchema.safeParse(method);
     if (!parsedMethod.success) return rpcError(res, 400, 'invalid method', id);
@@ -68,7 +69,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.get(`/clear/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
+router.get(new RegExp(`^/clear/${TYPE_ID}`, 'i'), async (req, res) => {
   const { type, id } = req.params as { type: ResolverType; id: string };
 
   try {
@@ -86,7 +87,7 @@ router.get(`/clear/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
   }
 });
 
-router.get(`/:type(${TYPE_CONSTRAINTS})/:id`, async (req, res) => {
+router.get(new RegExp(`^/${TYPE_ID}`, 'i'), async (req, res) => {
   const { type, id } = req.params as { type: ResolverType; id: string };
 
   try {
