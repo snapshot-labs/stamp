@@ -11,7 +11,14 @@ expect.extend({ toMatchImageSnapshot });
 
 jest.spyOn(console, 'log').mockImplementation(() => {});
 
-jest.retryTimes(3);
+// Only tests that reach live third-party upstreams retry; the loopback-only ones are deterministic.
+const { testPath = '' } = expect.getState();
+if (
+  /\/test\/(e2e|integration\/resolvers)\//.test(testPath) &&
+  !/\/(address\/cache|image\/deadline)\.test\.ts$/.test(testPath)
+) {
+  jest.retryTimes(3, { logErrorsBeforeRetry: true });
+}
 
 // Lazy so only files that load redis connect; importing it here would connect in every file.
 let mockRedis:
