@@ -14,6 +14,7 @@ const PORT = process.env.PORT || 3008;
 initMetrics(app);
 
 app.disable('x-powered-by');
+app.set('query parser', 'extended');
 app.use(express.json({ limit: '4mb' }));
 app.use(express.urlencoded({ limit: '4mb', extended: false }));
 app.use(cors({ maxAge: 86400 }));
@@ -31,4 +32,7 @@ app.use((_, res) => {
   res.status(404).json({ message: 'Not found' });
 });
 
-app.listen(PORT, () => console.log(`Listening at http://localhost:${PORT}`));
+app.listen(PORT, err => {
+  if (err) throw err;
+  console.log(`Listening at http://localhost:${PORT}`);
+});
