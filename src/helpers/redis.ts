@@ -16,10 +16,10 @@ let client: RedisClientType<NoExtensions, NoExtensions, NoExtensions, 2> | undef
   });
   client.on('connect', () => console.log('[redis] Redis connect'));
   client.on('ready', () => console.log('[redis] Redis ready'));
-  client.on('reconnecting', err => console.log('[redis] Redis reconnecting', err));
+  client.on('reconnecting', () => client?.isOpen && console.log('[redis] Redis reconnecting'));
   client.on('error', err => console.log('[redis] Redis error', err));
   client.on('end', () => console.log('[redis] Redis end'));
-  await client.connect();
+  await client.connect().catch(() => {});
 })();
 
 export default client;
