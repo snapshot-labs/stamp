@@ -38,7 +38,11 @@ const RESOLVERS: Resolver[] = [
   gweiResolver
 ];
 
-async function _call(fnName: string, input: string[], maxInputLength: number) {
+async function _call(
+  fnName: 'lookupAddresses' | 'resolveNames',
+  input: string[],
+  maxInputLength: number
+) {
   if (input.length > maxInputLength) {
     return Promise.reject({
       error: `params must contains less than ${maxInputLength} items`,

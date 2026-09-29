@@ -74,7 +74,7 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
 
   if (normalizedHandles.length === 0) return {};
 
-  const results = {};
+  const results: Record<Handle, Address> = {};
   const expiredHandles = new Set<Handle>();
   const now = Date.now() / 1000;
 

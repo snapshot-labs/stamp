@@ -212,7 +212,7 @@ describe('lookupDomains - response metric', () => {
     const ends = { '1': jest.fn(), '109': jest.fn(), '146': jest.fn() };
     const startTimer = jest
       .spyOn(metrics.timeLookupDomainsResponse, 'startTimer')
-      .mockImplementation(labels => ends[labels!.chainId as string]);
+      .mockImplementation(labels => ends[labels!.chainId as keyof typeof ends]);
     (ens as jest.Mock).mockRejectedValue(new Error('boom'));
     (shibarium as jest.Mock).mockResolvedValue([]);
     (unstoppableDomains as jest.Mock).mockResolvedValue([]);

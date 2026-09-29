@@ -1,7 +1,7 @@
 import { Readable } from 'stream';
 import * as AWS from '@aws-sdk/client-s3';
 
-let client;
+let client: AWS.S3 | undefined;
 const bucket = process.env.AWS_BUCKET_NAME;
 const region = process.env.AWS_REGION;
 const endpoint = process.env.AWS_ENDPOINT || undefined;
@@ -17,7 +17,7 @@ export async function streamToBuffer(stream: Readable) {
   });
 }
 
-export async function set(key, value) {
+export async function set(key: string, value: Buffer) {
   if (!client) throw new Error('AWS cache not initialized');
 
   try {
@@ -35,7 +35,7 @@ export async function set(key, value) {
   }
 }
 
-export async function clear(path) {
+export async function clear(path: string) {
   if (!client) throw new Error('AWS cache not initialized');
 
   try {
@@ -51,14 +51,16 @@ export async function clear(path) {
     });
     if (listedObjects.IsTruncated) await clear(path);
     console.log('Cleared cache', path);
-    return path;
+    return true;
   } catch (err) {
     console.log('Clear cache failed', err);
     throw err;
   }
 }
 
-export async function get(key) {
+export async function get(key: string) {
+  if (!client) return false;
+
   try {
     const command = new AWS.GetObjectCommand({
       Bucket: bucket,
@@ -67,7 +69,7 @@ export async function get(key) {
 
     const { Body } = await client.send(command);
 
-    return Body;
+    return Body as Readable | undefined;
   } catch {
     return false;
   }

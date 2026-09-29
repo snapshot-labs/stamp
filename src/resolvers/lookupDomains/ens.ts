@@ -7,6 +7,8 @@ export const NAME = 'Ens';
 export const DEFAULT_CHAIN_ID = '1';
 export const CHAIN_IDS = Object.keys(constants.ensSubgraph);
 
+const SUBGRAPHS: Record<string, string> = constants.ensSubgraph;
+
 const ACCOUNT_DOMAINS_LIMIT = 1000;
 
 type Domain = {
@@ -35,7 +37,7 @@ async function fetchDomainNames(domains: Domain[], chainId: string): Promise<Han
   if (!hashes.length) return domains.map(domain => domain.name);
 
   const { data } = await graphQlCall<{ domains: ResolvedLabel[] }>(
-    constants.ensSubgraph[chainId],
+    SUBGRAPHS[chainId],
     `query Labels($hashes: [Bytes!]!, $first: Int!) {
       domains(first: $first, where: { labelhash_in: $hashes, labelName_not: null }) {
         labelhash
@@ -60,7 +62,7 @@ async function fetchOwnedDomains(address: Address, chainId: string): Promise<Dom
   const {
     data: { account }
   } = await graphQlCall(
-    constants.ensSubgraph[chainId],
+    SUBGRAPHS[chainId],
     `query Domain($id: String!, $first: Int!) {
       account(id: $id) {
         domains(first: $first) {
@@ -94,7 +96,7 @@ export default async function lookupDomains(
   address: Address,
   chainId = DEFAULT_CHAIN_ID
 ): Promise<Handle[]> {
-  if (!constants.ensSubgraph[chainId]) return [];
+  if (!SUBGRAPHS[chainId]) return [];
 
   const owned = await fetchOwnedDomains(address, chainId);
   const now = Date.now() / 1000;

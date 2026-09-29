@@ -71,7 +71,7 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
     namehash(`${addr.slice(2).toLowerCase()}.addr.reverse`)
   );
   const names: Record<string, Handle> = await resolveNameHashes(reverseNamehashes, 'name');
-  const results = {};
+  const results: Record<Address, Handle> = {};
 
   Object.entries(names).forEach(([hash, name]) => {
     const addr = normalizedAddresses[reverseNamehashes.indexOf(hash)];
@@ -97,7 +97,7 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
     pairs.map(([, hash]) => hash),
     'addr'
   );
-  const results = {};
+  const results: Record<Handle, Address> = {};
 
   Object.entries(addresses).forEach(([hash, addr]) => {
     const handle = pairs.find(([, pairHash]) => pairHash === hash)?.[0];

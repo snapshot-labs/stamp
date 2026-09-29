@@ -51,11 +51,21 @@ export function isUnsupportedImageError(err: unknown): boolean {
   return err instanceof Error && err.message === 'Input buffer contains unsupported image format';
 }
 
-function toWebp(input, w, h, options?): Promise<Buffer> {
+function toWebp(
+  input: Buffer,
+  w: number,
+  h: number,
+  options?: sharp.ResizeOptions
+): Promise<Buffer> {
   return sharp(input).resize(w, h, options).webp().toBuffer();
 }
 
-export async function resize(input: Buffer, w, h, options?): Promise<Buffer> {
+export async function resize(
+  input: Buffer,
+  w: number,
+  h: number,
+  options?: sharp.ResizeOptions
+): Promise<Buffer> {
   try {
     return await toWebp(input, w, h, options);
   } catch (err) {

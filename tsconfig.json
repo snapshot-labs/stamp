@@ -6,7 +6,6 @@
     "outDir": "./dist",
     "esModuleInterop": true,
     "strict": true,
-    "noImplicitAny": false,
     "resolveJsonModule": true,
     "moduleResolution": "Node",
     "skipLibCheck": true,

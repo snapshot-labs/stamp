@@ -7,7 +7,7 @@ const ETH = [
   '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
 ];
 
-export default async function resolve(address, chainId) {
+export default async function resolve(address: string, chainId: string) {
   if (!isAddress(address)) return false;
 
   const networkName = chainIdToName(chainId) || 'ethereum';

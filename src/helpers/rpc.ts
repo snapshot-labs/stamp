@@ -1,4 +1,6 @@
-export function rpcSuccess(res, result, id) {
+import { Response } from 'express';
+
+export function rpcSuccess(res: Response, result: unknown, id: unknown) {
   res.json({
     jsonrpc: '2.0',
     result,
@@ -6,7 +8,7 @@ export function rpcSuccess(res, result, id) {
   });
 }
 
-export function rpcError(res, code, e, id) {
+export function rpcError(res: Response, code: number, e: unknown, id: unknown) {
   res.status(code).json({
     jsonrpc: '2.0',
     error: {
@@ -18,7 +20,7 @@ export function rpcError(res, code, e, id) {
   });
 }
 
-export function rpcInvalidParams(res, data, id) {
+export function rpcInvalidParams(res: Response, data: unknown, id: unknown) {
   res.status(400).json({
     jsonrpc: '2.0',
     error: {
