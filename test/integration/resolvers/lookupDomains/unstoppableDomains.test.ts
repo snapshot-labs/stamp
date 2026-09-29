@@ -63,8 +63,9 @@ describe('lookupDomains/unstoppableDomains', () => {
     mockFetch({ status: status as number, statusText: statusText as string, body: {} });
 
     await expect(lookupDomains(ADDRESS, DEFAULT_CHAIN_ID)).rejects.toMatchObject({
-      message: `Unstoppable Domains API error: HTTP ${status} ${statusText}`,
-      status
+      message: `[unstoppable-domains] HTTP ${status} ${statusText}`,
+      status,
+      response: { status }
     });
   });
 
