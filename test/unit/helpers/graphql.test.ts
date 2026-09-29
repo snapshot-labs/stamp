@@ -28,7 +28,7 @@ describe('graphQlCall', () => {
     it('returns the response', async () => {
       respondWith({ data: { users: [{ id: '0x1' }] } });
 
-      const body = await graphQlCall(URL, QUERY);
+      const body = await graphQlCall<Record<string, unknown>>(URL, QUERY);
 
       expect(body.data.users).toEqual([{ id: '0x1' }]);
     });
@@ -36,7 +36,7 @@ describe('graphQlCall', () => {
     it('returns a response prefixed by a UTF-8 BOM', async () => {
       respondWith(`\uFEFF${JSON.stringify({ data: { users: [{ id: '0x1' }] } })}`);
 
-      const body = await graphQlCall(URL, QUERY);
+      const body = await graphQlCall<Record<string, unknown>>(URL, QUERY);
 
       expect(body.data.users).toEqual([{ id: '0x1' }]);
     });
@@ -53,7 +53,7 @@ describe('graphQlCall', () => {
     it('does not throw on a field that resolved to null', async () => {
       respondWith({ data: { account: null } });
 
-      const body = await graphQlCall(URL, QUERY);
+      const body = await graphQlCall<Record<string, unknown>>(URL, QUERY);
 
       expect(body.data.account).toBeNull();
     });

@@ -103,17 +103,17 @@ describe('resolvers answer false rather than throwing when there is no data', ()
     ])('preserves an offchain space %s', async (_type, id, expected) => {
       mockedFetch.mockResolvedValue(entry({ avatar: null }));
 
-      await expect(resolveSpaceAvatar(id, 1, 's')).resolves.toBe(false);
+      await expect(resolveSpaceAvatar(id, '1', 's')).resolves.toBe(false);
       expect(sentVariables()).toEqual({ id: expected });
     });
 
     it('answers false for a space id that is not an address, without asking', async () => {
-      await expect(resolveSpaceAvatar('ens.eth', 1, 'eth')).resolves.toBe(false);
+      await expect(resolveSpaceAvatar('ens.eth', '1', 'eth')).resolves.toBe(false);
       expect(mockedFetch).not.toHaveBeenCalled();
     });
 
     it('answers false for an onchain logo instead of asking for a field that is not there', async () => {
-      await expect(resolveSpaceLogo(ADDRESS, 1, 'eth')).resolves.toBe(false);
+      await expect(resolveSpaceLogo(ADDRESS, '1', 'eth')).resolves.toBe(false);
       expect(mockedFetch).not.toHaveBeenCalled();
     });
 

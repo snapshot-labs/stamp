@@ -302,6 +302,38 @@ describe('POST /', () => {
     });
   });
 
+  describe('network', () => {
+    it.each([
+      ['a numeric chain id', 109, '109'],
+      ['a string chain id', '109', '109'],
+      ['no chain id', undefined, undefined]
+    ])('passes %s to get_owner as a string', async (_, network, expected) => {
+      (getOwner as jest.Mock).mockResolvedValue(ADDRESS);
+
+      const response = await request(app)
+        .post('/')
+        .send({ method: 'get_owner', params: 'test.shib', network });
+
+      expect(response.status).toBe(200);
+      expect(getOwner).toHaveBeenCalledWith('test.shib', expected);
+    });
+
+    it.each([
+      ['get_owner', 'an array', ['109']],
+      ['get_owner', 'an object', { id: 109 }],
+      ['lookup_domains', 'an object', { id: 1 }],
+      ['lookup_domains', 'an array holding an object', [{ id: 1 }]]
+    ])('rejects %s given %s', async (method, _, network) => {
+      const response = await request(app)
+        .post('/')
+        .send({ method, params: method === 'get_owner' ? 'test.shib' : ADDRESS, network });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe(-32602);
+      expect(getOwner).not.toHaveBeenCalled();
+    });
+  });
+
   describe('when an unexpected error is thrown', () => {
     it('captures it', async () => {
       (getOwner as jest.Mock).mockRejectedValue(new Error('unexpected'));

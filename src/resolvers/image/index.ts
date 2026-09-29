@@ -20,11 +20,12 @@ import starknet from './starknet';
 import trustwallet from './trustwallet';
 import { max } from '../../constants.json';
 import { parseQuery } from '../../helpers/api';
+import { asErrorLike } from '../../helpers/errors';
 import { isUnsupportedImageError, resize } from '../../helpers/image';
 import { callResolver } from '../../helpers/resolver';
 import { ResolverType } from '../../helpers/types';
 
-type ResolverFn = (...args: any[]) => Promise<Buffer | false>;
+type ResolverFn = (address: string, network: string, networkId?: string) => Promise<Buffer | false>;
 
 type Resolver = {
   name: string;
@@ -40,8 +41,9 @@ type Resolver = {
 // instead of a missing avatar.
 const AUTH_STATUS_CODES = [401, 402, 403];
 
-function isRoutineMiss(error: any): boolean {
-  const status = Number(error?.status ?? error?.response?.status);
+function isRoutineMiss(error: unknown): boolean {
+  const e = asErrorLike(error);
+  const status = Number(e.status ?? asErrorLike(e.response).status);
 
   return status >= 400 && status < 500 && !AUTH_STATUS_CODES.includes(status);
 }
@@ -119,7 +121,7 @@ export default resolvers;
 export async function resolveImage(
   type: ResolverType,
   id: string,
-  rawQuery: any
+  rawQuery: unknown
 ): Promise<{ image: Buffer | Readable; isFallback: boolean }> {
   const query = parseQuery(id, type, rawQuery);
   const {
@@ -151,7 +153,7 @@ export async function resolveImage(
   return { image: await resize(fallbackImage, w, h, { fit }), isFallback: true };
 }
 
-export function clearCache(type: ResolverType, id: string, rawQuery: any) {
+export function clearCache(type: ResolverType, id: string, rawQuery: Record<string, unknown>) {
   const { fb, cb, fit } = rawQuery;
   return clear(type, parseQuery(id, type, { fb, cb, fit }));
 }

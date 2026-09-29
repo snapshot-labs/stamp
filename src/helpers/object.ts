@@ -1,3 +1,6 @@
-export function withoutEmptyValues(obj: Record<string, any>) {
-  return Object.fromEntries(Object.entries(obj).filter(([, value]) => value));
+export function withoutEmptyValues<T>(obj: Record<string, T>) {
+  return Object.fromEntries(Object.entries(obj).filter(([, value]) => value)) as Record<
+    string,
+    NonNullable<T>
+  >;
 }

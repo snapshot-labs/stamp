@@ -73,7 +73,7 @@ async function batchRecords(nodes: string[], fnName: string): Promise<Record<str
   );
 }
 
-async function call(node: string, method: string, params: any[]): Promise<string> {
+async function call(node: string, method: string, params: string[]): Promise<string> {
   const resolver = (await resolversFor([node]))[node];
   if (!resolver) return '';
 

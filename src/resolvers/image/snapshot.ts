@@ -28,19 +28,24 @@ const API_URLS: Record<string, string> = {
 
 type Entity = 'user' | 'space';
 type Property = 'avatar' | 'cover' | 'logo';
+type Entry = {
+  avatar?: string | null;
+  cover?: string | null;
+  skinSettings?: { logo?: string | null } | null;
+} | null;
 
 const QUERIES = {
   avatar: {
     query: 'avatar',
-    extract: (data: any) => data?.avatar
+    extract: (data: Entry) => data?.avatar
   },
   cover: {
     query: 'cover',
-    extract: (data: any) => data?.cover
+    extract: (data: Entry) => data?.cover
   },
   logo: {
     query: 'skinSettings { logo }',
-    extract: (data: any) => data?.skinSettings?.logo
+    extract: (data: Entry) => data?.skinSettings?.logo
   }
 };
 
@@ -52,7 +57,7 @@ async function getOffchainProperty(
 ) {
   const {
     data: { entry }
-  } = await graphQlCall(
+  } = await graphQlCall<{ entry: Entry }>(
     API_URLS[networkId],
     `query GetEntry($id: String!) {
       entry: ${entity}(id: $id) {
@@ -120,7 +125,7 @@ function normalizeSpaceId(value: string) {
 
 function createPropertyResolver(entity: Entity, property: Property) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  return async (address: string, chainId = 1, networkId = defaultOffchainNetwork) => {
+  return async (address: string, chainId = '1', networkId = defaultOffchainNetwork) => {
     let value = null;
 
     if (!Object.keys(API_URLS).includes(networkId)) return false;

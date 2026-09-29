@@ -12,7 +12,7 @@ export type ResolverType =
   | 'address'
   | 'name';
 
-export type GraphQlResponse<T = any> = {
+export type GraphQlResponse<T = unknown> = {
   data: T;
   errors?: { message?: string }[];
 };
