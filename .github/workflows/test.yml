@@ -12,14 +12,14 @@ jobs:
       UNSTOPPABLE_DOMAINS_API_KEY: ${{ secrets.UNSTOPPABLE_DOMAINS_API_KEY }}
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: 'yarn'
 
       - name: Setup Redis
-        uses: supercharge/redis-github-action@1.7.0
+        uses: supercharge/redis-github-action@1.8.1
         with:
           redis-version: '7'
 
@@ -30,6 +30,6 @@ jobs:
         run: yarn test:coverage
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
