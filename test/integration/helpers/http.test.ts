@@ -1,7 +1,11 @@
+jest.mock('../../../src/helpers/deadline', () => jest.requireActual('../../helpers/deadline'));
+
 import http from 'http';
 import { AddressInfo, Socket } from 'net';
+import { withDeadline } from '../../../src/helpers/deadline';
 import { isSilencedError } from '../../../src/helpers/errors';
 import { fetchHttpImage, MAX_IMAGE_BYTES, MAX_URL_BYTES } from '../../../src/helpers/http';
+import { shortenNextDeadline } from '../../helpers/deadline';
 
 const BODY = Buffer.from('as much of an image as the fetch cares about');
 const CHUNK = Buffer.alloc(1024 * 1024, 'x');
@@ -131,7 +135,7 @@ beforeAll(async () => {
     if (req.url === '/image.png') return res.end(BODY);
 
     res.flushHeaders();
-    const timer = setInterval(() => res.write('x'), 250);
+    const timer = setInterval(() => res.write('x'), 50);
     res.on('close', () => clearInterval(timer));
   });
   server.on('connection', socket => {
@@ -263,20 +267,14 @@ describe('fetchHttpImage', () => {
     });
   });
 
-  it('raises a silenced abort against an upstream that never stops sending', async () => {
+  it('raises a silenced abort, inside its own budget, against an upstream that never stops sending', async () => {
+    shortenNextDeadline();
+
     const error = await fetchHttpImage(neverEndingUrl).catch(err => err);
 
     expect(error.name).toBe('AbortError');
     expect(isSilencedError(error)).toBe(true);
-  });
-
-  it('gives up on that upstream inside its own budget rather than the shared one', async () => {
-    const startedAt = Date.now();
-    await fetchHttpImage(neverEndingUrl).catch(() => undefined);
-
-    const elapsed = Date.now() - startedAt;
-    expect(elapsed).toBeGreaterThan(3000);
-    expect(elapsed).toBeLessThan(8000);
+    expect(withDeadline).toHaveBeenCalledWith(expect.any(Function), 5e3);
   });
 
   describe('given a data: URL', () => {
