@@ -7,6 +7,9 @@ const MAX = 500;
 
 const AVATAR_FIXTURE = path.resolve(__dirname, '../../fixtures/ens-avatar-html-entities.svg');
 
+// Keep anything compared byte for byte out of <text>: with no font installed,
+// text renders are not reproducible across a parallel test run. <title>, <desc>
+// and attributes are still parsed, so entities placed there still count.
 function svg(body: string): Buffer {
   return Buffer.from(
     `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">${body}</svg>`,
@@ -71,8 +74,7 @@ describe('numericizeHtmlEntities', () => {
     expect(numericizeHtmlEntities('&copy')).toBe('&copy');
   });
 
-  // The byte half of what resize() relies on, pinned here because the render
-  // half below only shows it where a text font is installed.
+  // The byte half of what resize() relies on; the render half is below.
   it('carries non-ASCII bytes through a latin1 round trip', () => {
     const input = Buffer.from('caf\xE9&nbsp;', 'latin1');
 
@@ -96,26 +98,31 @@ describe('resize', () => {
     });
 
     // libxml2 honours the prolog, so the retry has to hand back the bytes it
-    // was given. Decoding as utf8 turns the raw 0xE9 into U+FFFD, and the
-    // document then renders, wrongly, instead of failing.
+    // was given. Decoding as utf8 turns the raw 0xE9 into U+FFFD, the id no
+    // longer matches the &#233; reference to it, and the red square is not
+    // drawn. A raw byte in the reference would be mangled alike and hide that.
     it('keeps the bytes of a document that is not UTF-8', async () => {
       const latin1 = (nbsp: string) =>
         Buffer.from(
           `<?xml version="1.0" encoding="ISO-8859-1"?>` +
             `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">` +
-            `<text y="20">caf\xE9${nbsp}</text></svg>`,
+            `<desc>${nbsp}</desc>` +
+            `<defs><rect id="caf\xE9" width="64" height="64" fill="#ff0000"/></defs>` +
+            `<use href="#caf&#233;"/></svg>`,
           'latin1'
         );
 
       const output = await resize(latin1('&nbsp;'), MAX, MAX);
 
       expect(output.equals(await resize(latin1('&#160;'), MAX, MAX))).toBe(true);
+      // The comparison alone would also pass on two blanks.
+      const [red] = (await sharp(output).stats()).channels;
+      expect(red.mean).toBeGreaterThan(240);
     });
 
-    // The comparison above only bites where a text font is installed. This one
-    // holds anywhere: the byte is undecodable as utf8, so decoding it that way
-    // would substitute U+FFFD, and a document nobody can read would come back
-    // renderable and get cached. Refusing it is the correct answer.
+    // The byte is undecodable as utf8, so decoding it that way would substitute
+    // U+FFFD, and a document nobody can read would come back renderable and get
+    // cached. Refusing it is the correct answer.
     it('does not repair bytes it cannot decode', async () => {
       const undecodable = Buffer.from(
         `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">` +
@@ -129,20 +136,15 @@ describe('resize', () => {
     // api.ts resizes covers with a fit option, and that call is the one an
     // entity SVG cover reaches, so the retry has to carry the options through.
     it('applies the caller options to the retry', async () => {
-      const contain = await resize(svg('<text y="20">&nbsp;wide</text>'), 200, 60, {
-        fit: 'contain'
-      });
+      const square = (nbsp: string) =>
+        svg(`<desc>${nbsp}</desc><rect width="64" height="64" fill="#ff0000"/>`);
 
-      expect(
-        contain.equals(
-          await resize(svg('<text y="20">&#160;wide</text>'), 200, 60, { fit: 'contain' })
-        )
-      ).toBe(true);
-      expect(
-        contain.equals(
-          await resize(svg('<text y="20">&#160;wide</text>'), 200, 60, { fit: 'cover' })
-        )
-      ).toBe(false);
+      const contain = await resize(square('&nbsp;'), 200, 60, { fit: 'contain' });
+
+      expect(contain.equals(await resize(square('&#160;'), 200, 60, { fit: 'contain' }))).toBe(
+        true
+      );
+      expect(contain.equals(await resize(square('&#160;'), 200, 60, { fit: 'cover' }))).toBe(false);
     });
   });
 
@@ -216,7 +218,7 @@ describe('resize', () => {
     });
 
     it('does not rewrite a valid SVG carrying XML entities', async () => {
-      const input = svg('<text y="20">A &amp; B &lt;tag&gt; &quot;q&quot; &apos;a&apos;</text>');
+      const input = svg('<title>A &amp; B &lt;tag&gt; &quot;q&quot; &apos;a&apos;</title>');
 
       expect((await resize(input, MAX, MAX)).equals(await directPipeline(input))).toBe(true);
     });
