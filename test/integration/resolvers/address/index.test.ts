@@ -55,7 +55,7 @@ describe('address resolvers', () => {
         ).resolves.toEqual({
           '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7': 'less'
         });
-        expect(failures).toEqual([]);
+        expect(failures()).toEqual([]);
       }, 10e3);
 
       it('keeps the original input case formatting', () => {
@@ -145,7 +145,7 @@ describe('address resolvers', () => {
         await expect(resolveNames(['test-snapshot.eth'])).resolves.toEqual({
           'test-snapshot.eth': undefined
         });
-        expect(failures).toEqual([]);
+        expect(failures()).toEqual([]);
       }, 10e3);
 
       it('keeps the original case formatting', () => {

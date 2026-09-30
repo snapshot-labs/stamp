@@ -2,8 +2,29 @@ import { JsonRpcProvider } from '@ethersproject/providers';
 import * as graphql from '../../src/helpers/graphql';
 import * as resolver from '../../src/helpers/resolver';
 
-export function recordResolverFailures(): unknown[] {
-  const failures: unknown[] = [];
+type Attempt = { invocations: number; failures: unknown[] };
+
+// Not one array reset in beforeEach: *Each hooks never run for it.concurrent tests, so
+// concurrent peers and earlier retry attempts would leak into each other's failures.
+const attempts = new WeakMap<object, Attempt>();
+
+function attemptFailures(): unknown[] | undefined {
+  const test = expect.getState().currentTestIdentity?.() as { invocations: number } | undefined;
+  if (!test) return undefined;
+
+  let attempt = attempts.get(test);
+  if (attempt?.invocations !== test.invocations) {
+    attempt = { invocations: test.invocations, failures: [] };
+    attempts.set(test, attempt);
+  }
+  return attempt.failures;
+}
+
+function record(err: unknown): void {
+  attemptFailures()?.push(err);
+}
+
+export function recordResolverFailures(): () => unknown[] {
   const { callResolver } = resolver;
   const { graphQlCall } = graphql;
   const { fetch } = global;
@@ -14,7 +35,7 @@ export function recordResolverFailures(): unknown[] {
       try {
         return await fn();
       } catch (err) {
-        if (!options.isRoutineMiss?.(err)) failures.push(err);
+        if (!options.isRoutineMiss?.(err)) record(err);
         throw err;
       }
     }, options)
@@ -23,11 +44,11 @@ export function recordResolverFailures(): unknown[] {
     try {
       const response = await fetch(input, init);
       if (!response.ok && response.status !== 404) {
-        failures.push(new Error(`HTTP ${response.status} from ${response.url}`));
+        record(new Error(`HTTP ${response.status} from ${response.url}`));
       }
       return response;
     } catch (err) {
-      failures.push(err);
+      record(err);
       throw err;
     }
   });
@@ -35,7 +56,7 @@ export function recordResolverFailures(): unknown[] {
     try {
       return await graphQlCall(...args);
     } catch (err) {
-      failures.push(err);
+      record(err);
       throw err;
     }
   });
@@ -50,14 +71,14 @@ export function recordResolverFailures(): unknown[] {
       if (
         !/^execution reverted/.test((err as { error?: { message?: string } }).error?.message ?? '')
       ) {
-        failures.push(err);
+        record(err);
       }
       throw err;
     }
   });
-  beforeEach(() => {
-    failures.length = 0;
-  });
-
-  return failures;
+  return () => {
+    const failures = attemptFailures();
+    if (!failures) throw new Error('resolver failures are only tracked inside a test');
+    return failures;
+  };
 }

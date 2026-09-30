@@ -63,7 +63,7 @@ export default function testResolverImageSnapshots({
         // Single input: the base name is identifier enough. Multiple inputs
         // disambiguate by their first argument (address/name).
         const identifier = withAvatar.length <= 1 ? base : `${base}-${String(toArgs(input)[0])}`;
-        it(
+        it.concurrent(
           `matches the image snapshot for ${identifier}`,
           async () => {
             await expectResolverImageSnapshot(await call(resolver, input), {
@@ -76,11 +76,11 @@ export default function testResolverImageSnapshots({
       });
 
       withoutAvatar.forEach(input => {
-        it(
+        it.concurrent(
           'returns false when no avatar is set',
           async () => {
             expect(await call(resolver, input)).toBe(false);
-            expect(failures).toEqual([]);
+            expect(failures()).toEqual([]);
           },
           TIMEOUT
         );
