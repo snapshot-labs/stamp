@@ -4,8 +4,6 @@ import * as resolver from '../../src/helpers/resolver';
 
 type Attempt = { invocations: number; failures: unknown[] };
 
-// Not one array reset in beforeEach: *Each hooks never run for it.concurrent tests, so
-// concurrent peers and earlier retry attempts would leak into each other's failures.
 const attempts = new WeakMap<object, Attempt>();
 
 function attemptFailures(): unknown[] | undefined {
@@ -20,43 +18,44 @@ function attemptFailures(): unknown[] | undefined {
   return attempt.failures;
 }
 
-function record(err: unknown): void {
-  attemptFailures()?.push(err);
-}
-
+// Each spy takes its attempt's list when the call starts, not when it fails: an attempt
+// that timed out can still fail afterwards, and must not blame the retry.
 export function recordResolverFailures(): () => unknown[] {
   const { callResolver } = resolver;
   const { graphQlCall } = graphql;
   const { fetch } = global;
   const { send } = JsonRpcProvider.prototype;
 
-  jest.spyOn(resolver, 'callResolver').mockImplementation((fn, options) =>
-    callResolver(async () => {
+  jest.spyOn(resolver, 'callResolver').mockImplementation((fn, options) => {
+    const failures = attemptFailures();
+    return callResolver(async () => {
       try {
         return await fn();
       } catch (err) {
-        if (!options.isRoutineMiss?.(err)) record(err);
+        if (!options.isRoutineMiss?.(err)) failures?.push(err);
         throw err;
       }
-    }, options)
-  );
+    }, options);
+  });
   jest.spyOn(global, 'fetch').mockImplementation(async (input, init) => {
+    const failures = attemptFailures();
     try {
       const response = await fetch(input, init);
       if (!response.ok && response.status !== 404) {
-        record(new Error(`HTTP ${response.status} from ${response.url}`));
+        failures?.push(new Error(`HTTP ${response.status} from ${response.url}`));
       }
       return response;
     } catch (err) {
-      record(err);
+      failures?.push(err);
       throw err;
     }
   });
   jest.spyOn(graphql, 'graphQlCall').mockImplementation(async (...args) => {
+    const failures = attemptFailures();
     try {
       return await graphQlCall(...args);
     } catch (err) {
-      record(err);
+      failures?.push(err);
       throw err;
     }
   });
@@ -65,13 +64,14 @@ export function recordResolverFailures(): () => unknown[] {
     method,
     params
   ) {
+    const failures = attemptFailures();
     try {
       return await send.call(this, method, params);
     } catch (err) {
       if (
         !/^execution reverted/.test((err as { error?: { message?: string } }).error?.message ?? '')
       ) {
-        record(err);
+        failures?.push(err);
       }
       throw err;
     }

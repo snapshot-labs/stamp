@@ -15,7 +15,6 @@ export default function testAddressResolver({
   blankAddress: string;
   invalidDomains: string[];
 }) {
-  // Flat: it.concurrent only runs a describe block's own tests together.
   describe(`${name} address resolver`, () => {
     it.concurrent(
       'lookupAddresses() when the address is associated to a domain returns the domain associated to the address',
