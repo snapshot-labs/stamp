@@ -16,7 +16,7 @@ async function purge(): Promise<void> {
   const transaction = redis.multi();
 
   keys.map((key: string) => transaction.del(key));
-  transaction.exec();
+  await transaction.exec();
 }
 
 describe('E2E api', () => {
