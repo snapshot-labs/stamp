@@ -74,7 +74,6 @@ describe('numericizeHtmlEntities', () => {
     expect(numericizeHtmlEntities('&copy')).toBe('&copy');
   });
 
-  // The byte half of what resize() relies on; the render half is below.
   it('carries non-ASCII bytes through a latin1 round trip', () => {
     const input = Buffer.from('caf\xE9&nbsp;', 'latin1');
 
@@ -217,10 +216,19 @@ describe('resize', () => {
       expect(Math.max(green.mean, blue.mean)).toBeLessThan(10);
     });
 
+    // The reference is written numerically so a rewrite that deletes or
+    // mis-decodes the named entities in the id breaks the link and draws nothing.
     it('does not rewrite a valid SVG carrying XML entities', async () => {
-      const input = svg('<title>A &amp; B &lt;tag&gt; &quot;q&quot; &apos;a&apos;</title>');
+      const input = svg(
+        '<defs><rect id="A&amp;B&lt;&gt;&quot;&apos;" width="64" height="64" fill="#ff0000"/></defs>' +
+          '<use href="#A&#38;B&#60;&#62;&#34;&#39;"/>'
+      );
 
-      expect((await resize(input, MAX, MAX)).equals(await directPipeline(input))).toBe(true);
+      const output = await resize(input, MAX, MAX);
+
+      expect(output.equals(await directPipeline(input))).toBe(true);
+      const [red] = (await sharp(output).stats()).channels;
+      expect(red.mean).toBeGreaterThan(240);
     });
 
     it('does not rewrite raster input', async () => {
