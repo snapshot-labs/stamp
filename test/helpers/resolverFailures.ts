@@ -1,61 +1,47 @@
+import { AsyncLocalStorage } from 'async_hooks';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import * as graphql from '../../src/helpers/graphql';
 import * as resolver from '../../src/helpers/resolver';
 
-type Attempt = { invocations: number; failures: unknown[] };
+const attemptFailures = new AsyncLocalStorage<unknown[]>();
 
-const attempts = new WeakMap<object, Attempt>();
-
-function attemptFailures(): unknown[] | undefined {
-  const test = expect.getState().currentTestIdentity?.() as { invocations: number } | undefined;
-  if (!test) return undefined;
-
-  let attempt = attempts.get(test);
-  if (attempt?.invocations !== test.invocations) {
-    attempt = { invocations: test.invocations, failures: [] };
-    attempts.set(test, attempt);
-  }
-  return attempt.failures;
+function record(err: unknown): void {
+  attemptFailures.getStore()?.push(err);
 }
 
-// Each spy takes its attempt's list when the call starts, not when it fails: an attempt
-// that timed out can still fail afterwards, and must not blame the retry.
-export function recordResolverFailures(): () => unknown[] {
+export function recordResolverFailures() {
   const { callResolver } = resolver;
   const { graphQlCall } = graphql;
   const { fetch } = global;
   const { send } = JsonRpcProvider.prototype;
 
-  jest.spyOn(resolver, 'callResolver').mockImplementation((fn, options) => {
-    const failures = attemptFailures();
-    return callResolver(async () => {
+  jest.spyOn(resolver, 'callResolver').mockImplementation((fn, options) =>
+    callResolver(async () => {
       try {
         return await fn();
       } catch (err) {
-        if (!options.isRoutineMiss?.(err)) failures?.push(err);
+        if (!options.isRoutineMiss?.(err)) record(err);
         throw err;
       }
-    }, options);
-  });
+    }, options)
+  );
   jest.spyOn(global, 'fetch').mockImplementation(async (input, init) => {
-    const failures = attemptFailures();
     try {
       const response = await fetch(input, init);
       if (!response.ok && response.status !== 404) {
-        failures?.push(new Error(`HTTP ${response.status} from ${response.url}`));
+        record(new Error(`HTTP ${response.status} from ${response.url}`));
       }
       return response;
     } catch (err) {
-      failures?.push(err);
+      record(err);
       throw err;
     }
   });
   jest.spyOn(graphql, 'graphQlCall').mockImplementation(async (...args) => {
-    const failures = attemptFailures();
     try {
       return await graphQlCall(...args);
     } catch (err) {
-      failures?.push(err);
+      record(err);
       throw err;
     }
   });
@@ -64,21 +50,21 @@ export function recordResolverFailures(): () => unknown[] {
     method,
     params
   ) {
-    const failures = attemptFailures();
     try {
       return await send.call(this, method, params);
     } catch (err) {
       if (
         !/^execution reverted/.test((err as { error?: { message?: string } }).error?.message ?? '')
       ) {
-        failures?.push(err);
+        record(err);
       }
       throw err;
     }
   });
-  return () => {
-    const failures = attemptFailures();
-    if (!failures) throw new Error('resolver failures are only tracked inside a test');
-    return failures;
+  // One list per call of the test function, i.e. per attempt: shared by the test instead, a
+  // timed-out attempt's late failures and follow-up calls would land in its retry's list.
+  return (test: (failures: unknown[]) => Promise<void>) => () => {
+    const failures: unknown[] = [];
+    return attemptFailures.run(failures, () => test(failures));
   };
 }

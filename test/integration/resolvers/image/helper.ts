@@ -7,7 +7,7 @@ type ResolverName = keyof typeof resolvers;
 
 type ResolverArgs = unknown[];
 
-const failures = recordResolverFailures();
+const withFailures = recordResolverFailures();
 
 const TIMEOUT = 30e3;
 
@@ -78,10 +78,10 @@ export default function testResolverImageSnapshots({
       withoutAvatar.forEach(input => {
         it.concurrent(
           'returns false when no avatar is set',
-          async () => {
+          withFailures(async failures => {
             expect(await call(resolver, input)).toBe(false);
-            expect(failures()).toEqual([]);
-          },
+            expect(failures).toEqual([]);
+          }),
           TIMEOUT
         );
       });

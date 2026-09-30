@@ -13,7 +13,7 @@ function purge() {
 }
 
 describe('address resolvers', () => {
-  const failures = recordResolverFailures();
+  const withFailures = recordResolverFailures();
 
   describe('lookupAddresses()', () => {
     describe('when passing more than 50 addresses', () => {
@@ -46,17 +46,21 @@ describe('address resolvers', () => {
         });
       }, 10e3);
 
-      it('does not return addresses without domain', async () => {
-        await expect(
-          lookupAddresses([
-            '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7',
-            '0x0C67A201b93cf58D4a5e8D4E970093f0FB4bb0D1'
-          ])
-        ).resolves.toEqual({
-          '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7': 'less'
-        });
-        expect(failures()).toEqual([]);
-      }, 10e3);
+      it(
+        'does not return addresses without domain',
+        withFailures(async failures => {
+          await expect(
+            lookupAddresses([
+              '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7',
+              '0x0C67A201b93cf58D4a5e8D4E970093f0FB4bb0D1'
+            ])
+          ).resolves.toEqual({
+            '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7': 'less'
+          });
+          expect(failures).toEqual([]);
+        }),
+        10e3
+      );
 
       it('keeps the original input case formatting', () => {
         return expect(
@@ -141,12 +145,16 @@ describe('address resolvers', () => {
         });
       }, 10e3);
 
-      it('return null when the handle does not exist', async () => {
-        await expect(resolveNames(['test-snapshot.eth'])).resolves.toEqual({
-          'test-snapshot.eth': undefined
-        });
-        expect(failures()).toEqual([]);
-      }, 10e3);
+      it(
+        'return null when the handle does not exist',
+        withFailures(async failures => {
+          await expect(resolveNames(['test-snapshot.eth'])).resolves.toEqual({
+            'test-snapshot.eth': undefined
+          });
+          expect(failures).toEqual([]);
+        }),
+        10e3
+      );
 
       it('keeps the original case formatting', () => {
         return expect(
