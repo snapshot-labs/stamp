@@ -26,8 +26,19 @@ jobs:
       - name: Yarn install
         run: yarn install --frozen-lockfile
 
+      - name: Restore Jest cache
+        uses: actions/cache@v6
+        with:
+          path: .jest-cache
+          key: jest-${{ runner.os }}-${{ hashFiles('yarn.lock', 'jest.config.ts') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: jest-${{ runner.os }}-${{ hashFiles('yarn.lock', 'jest.config.ts') }}-
+
       - name: Test
-        run: yarn test:coverage
+        run: yarn test:coverage --cacheDirectory .jest-cache --json --outputFile /tmp/jest.json
+
+      - name: Measure (temporary)
+        if: always()
+        run: node -e 'const r=require("/tmp/jest.json");const t0=Math.min(...r.testResults.map(x=>x.startTime));r.testResults.map(x=>[x.startTime-t0,x.endTime-t0,x.name.replace(process.cwd()+"/","")]).sort((a,b)=>a[0]-b[0]).forEach((x,i)=>console.log("MEAS",i,(x[0]/1e3).toFixed(1),(x[1]/1e3).toFixed(1),((x[1]-x[0])/1e3).toFixed(1),x[2]))'
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v7
