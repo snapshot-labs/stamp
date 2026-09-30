@@ -21,7 +21,15 @@ if (
 }
 
 // No client unless a file opts in with jest.unmock(), so only files that use redis connect to it.
-jest.mock('../src/helpers/redis', () => ({ __esModule: true, default: undefined }));
+jest.mock('../src/helpers/redis', () => ({ __esModule: true, default: undefined, mocked: true }));
+
+beforeAll(async () => {
+  if (process.env.REDIS_URL) return;
+  if ('mocked' in (await import('../src/helpers/redis'))) return;
+  throw new Error(
+    `Jest worker ${process.env.JEST_WORKER_ID} has no redis DB left (1-15); lower --maxWorkers`
+  );
+});
 
 afterAll(async () => {
   // Imported here, not at the top: resolves to the module this file got, real or no client.
