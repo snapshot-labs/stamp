@@ -10,7 +10,6 @@ type ResolverArgs = unknown[];
 const failures = recordResolverFailures();
 
 const TIMEOUT = 30e3;
-const RETRY_TIMES = 3;
 
 // A single test input. The common case is a bare address/name string. Resolvers
 // that take extra positional arguments (chainId, network, ...) pass `{ args }`.
@@ -49,8 +48,6 @@ export default function testResolverImageSnapshots({
   todoCases = [],
   snapshotOptions
 }: Config) {
-  jest.retryTimes(RETRY_TIMES);
-
   const missingEnv = requireEnv.find(key => !process.env[key]);
   if (missingEnv) {
     describe('resolvers', () => it.todo(`is missing ${missingEnv}`));

@@ -1,3 +1,4 @@
+import { once } from 'events';
 import { configureToMatchImageSnapshot } from 'jest-image-snapshot';
 
 const toMatchImageSnapshot = configureToMatchImageSnapshot({
@@ -10,20 +11,30 @@ expect.extend({ toMatchImageSnapshot });
 
 jest.spyOn(console, 'log').mockImplementation(() => {});
 
-jest.retryTimes(3);
+// Only tests that reach live third-party upstreams retry; the loopback-only ones are deterministic.
+const { testPath = '' } = expect.getState();
+if (
+  /\/test\/(e2e|integration\/resolvers)\//.test(testPath) &&
+  !/\/(address\/cache|image\/deadline)\.test\.ts$/.test(testPath)
+) {
+  jest.retryTimes(3, { logErrorsBeforeRetry: true });
+}
 
-// Lazy so only files that load redis connect; importing it here would connect in every file.
-let mockRedis: { default?: { flushDb(): Promise<unknown>; close(): Promise<unknown> } } | undefined;
-jest.mock('../src/helpers/redis', () => (mockRedis = jest.requireActual('../src/helpers/redis')));
+// No client unless a file opts in with jest.unmock(), so only files that use redis connect to it.
+jest.mock('../src/helpers/redis', () => ({ __esModule: true, default: undefined }));
 
 afterAll(async () => {
-  const client = mockRedis?.default;
-  if (client) {
-    try {
-      await client.flushDb();
-      await client.close();
-    } catch {
-      // Ignore errors during cleanup
-    }
+  // Imported here, not at the top: resolves to the module this file got, real or no client.
+  const { default: client } = await import('../src/helpers/redis');
+  if (!client?.isOpen) return;
+
+  // destroy() during a connection attempt misses the socket being opened, which then
+  // connects anyway and keeps Jest alive; let the attempt succeed or fail first.
+  if (!client.isReady) await once(client, 'ready').catch(() => {});
+
+  try {
+    if (client.isReady) await client.flushDb();
+  } finally {
+    client.destroy();
   }
 });
