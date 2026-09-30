@@ -27,7 +27,7 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Test
-        run: yarn test:coverage
+        run: yarn test:coverage --maxWorkers=8
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v7
