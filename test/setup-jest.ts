@@ -11,7 +11,14 @@ expect.extend({ toMatchImageSnapshot });
 
 jest.spyOn(console, 'log').mockImplementation(() => {});
 
-jest.retryTimes(3);
+// Only tests that reach live third-party upstreams retry; the loopback-only ones are deterministic.
+const { testPath = '' } = expect.getState();
+if (
+  /\/test\/(e2e|integration\/resolvers)\//.test(testPath) &&
+  !/\/(address\/cache|image\/deadline)\.test\.ts$/.test(testPath)
+) {
+  jest.retryTimes(3, { logErrorsBeforeRetry: true });
+}
 
 // No client unless a file opts in with jest.unmock(), so only files that use redis connect to it.
 jest.mock('../src/helpers/redis', () => ({ __esModule: true, default: undefined }));
