@@ -1,4 +1,4 @@
-import { EventEmitter, once } from 'events';
+import { once } from 'events';
 import { configureToMatchImageSnapshot } from 'jest-image-snapshot';
 
 const toMatchImageSnapshot = configureToMatchImageSnapshot({
@@ -20,21 +20,12 @@ if (
   jest.retryTimes(3, { logErrorsBeforeRetry: true });
 }
 
-// Lazy so only files that load redis connect; importing it here would connect in every file.
-let mockRedis:
-  | {
-      default?: EventEmitter & {
-        isOpen: boolean;
-        isReady: boolean;
-        flushDb(): Promise<unknown>;
-        destroy(): void;
-      };
-    }
-  | undefined;
-jest.mock('../src/helpers/redis', () => (mockRedis = jest.requireActual('../src/helpers/redis')));
+// No client unless a file opts in with jest.unmock(), so only files that use redis connect to it.
+jest.mock('../src/helpers/redis', () => ({ __esModule: true, default: undefined }));
 
 afterAll(async () => {
-  const client = mockRedis?.default;
+  // Imported here, not at the top: resolves to the module this file got, real or no client.
+  const { default: client } = await import('../src/helpers/redis');
   if (!client?.isOpen) return;
 
   // destroy() during a connection attempt misses the socket being opened, which then

@@ -1,3 +1,5 @@
+jest.unmock('../../src/helpers/redis');
+
 import { Server } from 'http';
 import request from 'supertest';
 import redis from '../../src/helpers/redis';

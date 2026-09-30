@@ -1,3 +1,5 @@
+jest.unmock('../../../../src/helpers/redis');
+
 import redis from '../../../../src/helpers/redis';
 import { setCache } from '../../../../src/resolvers/address/cache';
 
