@@ -265,6 +265,42 @@ describe('POST /', () => {
     });
   });
 
+  describe('when params are malformed', () => {
+    const validHandle = 'snapshot.eth';
+
+    it.each([
+      ['lookup_addresses', [[ADDRESS]]],
+      ['lookup_addresses', [123]],
+      ['lookup_addresses', []],
+      ['lookup_addresses', Array(51).fill(ADDRESS)],
+      ['lookup_addresses', 'a simple string'],
+      ['lookup_addresses', { a: 'b' }],
+      ['lookup_addresses', 123],
+      ['lookup_addresses', null],
+      ['lookup_addresses', undefined],
+      ['lookup_addresses', true],
+      ['resolve_names', [[validHandle]]],
+      ['resolve_names', [123]],
+      ['resolve_names', []],
+      ['resolve_names', Array(6).fill(validHandle)],
+      ['lookup_domains', [ADDRESS]],
+      ['lookup_domains', 123],
+      ['lookup_domains', []],
+      ['lookup_domains', Array(51).fill(ADDRESS)],
+      ['get_owner', [validHandle]],
+      ['get_owner', 123],
+      ['get_owner', []],
+      ['get_owner', Array(6).fill(validHandle)]
+    ])('returns invalid params for %s with %p', async (method, params) => {
+      const response = await request(app).post('/').send({ method, params });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe(-32602);
+      expect(typeof response.body.error.data).toBe('string');
+      expect(response.body.error.data.length).toBeGreaterThan(0);
+    });
+  });
+
   describe('on lookup_domains', () => {
     describe('when a resolver fails', () => {
       it('captures the resolver error only once', async () => {
