@@ -11,17 +11,23 @@ jobs:
       D3_API_KEY_MAINNET: ${{ secrets.D3_API_KEY_MAINNET }}
       UNSTOPPABLE_DOMAINS_API_KEY: ${{ secrets.UNSTOPPABLE_DOMAINS_API_KEY }}
 
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 15
+
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: 'yarn'
-
-      - name: Setup Redis
-        uses: supercharge/redis-github-action@1.8.1
-        with:
-          redis-version: '7'
 
       - name: Yarn install
         run: yarn install --frozen-lockfile
