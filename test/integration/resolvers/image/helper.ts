@@ -26,8 +26,6 @@ type Config = {
   withAvatar?: Input[];
   // Valid addresses with NO avatar set: one false-assertion test per input.
   withoutAvatar?: Input[];
-  skip?: boolean;
-  requireEnv?: string[];
   todoCases?: string[];
   snapshotOptions?: MatchImageSnapshotOptions;
 };
@@ -43,21 +41,12 @@ export default function testResolverImageSnapshots({
   subId,
   withAvatar = [],
   withoutAvatar = [],
-  skip = false,
-  requireEnv = [],
   todoCases = [],
   snapshotOptions
 }: Config) {
-  const missingEnv = requireEnv.find(key => !process.env[key]);
-  if (missingEnv) {
-    describe('resolvers', () => it.todo(`is missing ${missingEnv}`));
-    return;
-  }
-
   const base = subId ?? id;
-  const describeResolver = skip ? describe.skip : describe;
 
-  describeResolver('resolvers', () => {
+  describe('resolvers', () => {
     describe(base, () => {
       withAvatar.forEach(input => {
         // Single input: the base name is identifier enough. Multiple inputs

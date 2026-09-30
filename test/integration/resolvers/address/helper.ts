@@ -44,9 +44,7 @@ export default function testAddressResolver({
       10e3
     );
 
-    if (!resolveNames) {
-      it.todo('resolveNames() missing tests for resolveNames()');
-    } else {
+    if (resolveNames) {
       it.concurrent(
         'resolveNames() when the domain is associated to an address returns an address',
         () => {

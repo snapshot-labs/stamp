@@ -44,9 +44,7 @@ export const remoteSnapshotInputs = {
   // trustwallet on Gnosis Chain: COW, under the repo's xdai directory.
   trustwalletCow: { address: '0x177127622c4A00F3d409B75571e12cB3c8973d3c', chainId: '100' },
   // defillama: token icon (keyless).
-  defillama: { address: '0xc18360217d8f7ab5e7c516566761ea12ce7f9d72', chainId: '1' },
-  // farcaster: address with a Farcaster pfp (needs NEYNAR_API_KEY).
-  farcaster: '0xd1a8Dd23e356B9fAE27dF5DeF9ea025A602EC81e'
+  defillama: { address: '0xc18360217d8f7ab5e7c516566761ea12ce7f9d72', chainId: '1' }
 } as const;
 
 // The canonical "no avatar set" input used to exercise each resolver's real
@@ -113,9 +111,6 @@ export const noAvatarInputs = {
   // space-sx
   spaceSxMissing: '0x06ba9855965EeEc09B5D43B113944c27F45aD3Ce',
   spaceSxInvalidAddress: '0x00006ba9855965EeEc09B5D43B113944c27F45aD3Ce',
-  // farcaster
-  farcasterInvalidAddress: '0x556B14CbdA79A36dC33FcD461a04A5BCb5dC2A70!',
-  farcasterNoAccount: '0x2963fD170E12d748d0A80430DdC090e059f6013F',
   // starknet
   starknetMissing: 'test-not-existing.stark',
   // starknet.id serves a DEFAULT identicon for this address; the resolver
