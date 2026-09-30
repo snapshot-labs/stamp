@@ -15,6 +15,10 @@ function purge() {
 describe('address resolvers', () => {
   const withFailures = recordResolverFailures();
 
+  beforeEach(async () => {
+    await purge();
+  });
+
   describe('lookupAddresses()', () => {
     describe('when passing more than 50 addresses', () => {
       it('rejects with an error', async () => {
@@ -34,10 +38,6 @@ describe('address resolvers', () => {
     });
 
     describe('when not cached', () => {
-      beforeEach(async () => {
-        await purge();
-      });
-
       it('should return the ENS handle first if associated to multiple resolvers', () => {
         return expect(
           lookupAddresses(['0xeF8305E140ac520225DAf050e2f71d5fBcC543e7'])
@@ -78,10 +78,6 @@ describe('address resolvers', () => {
     });
 
     describe('when cached', () => {
-      beforeEach(async () => {
-        await purge();
-      });
-
       it('should cache the results', async () => {
         await expect(
           lookupAddresses([
@@ -135,10 +131,6 @@ describe('address resolvers', () => {
     });
 
     describe('when not cached', () => {
-      beforeEach(async () => {
-        await purge();
-      });
-
       it('should return the address associated to the handle', () => {
         return expect(resolveNames(['snapshot.crypto'])).resolves.toEqual({
           'snapshot.crypto': '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7'
@@ -168,10 +160,6 @@ describe('address resolvers', () => {
     });
 
     describe('when cached', () => {
-      beforeEach(async () => {
-        await purge();
-      });
-
       it('should cache the results', async () => {
         await expect(resolveNames(['snapshot.crypto'])).resolves.toEqual({
           'snapshot.crypto': '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7'
