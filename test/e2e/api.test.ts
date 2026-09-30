@@ -115,6 +115,7 @@ describe('E2E api', () => {
     it.concurrent(
       'lookup_addresses returns only EVM and Starknet addresses with a domain',
       async () => {
+        await purge();
         const response = await rpc('lookup_addresses', [
           '0x07FF6B17F07C4D83236E3FC5F94259A19D1ED41BBCF1822397EA17882E9B038D',
           '0x07ff6b17f07c4d83236e3fc5f94259a19d1ed41bbcf1822397ea17882e9b038d',
@@ -138,6 +139,7 @@ describe('E2E api', () => {
     );
 
     it.concurrent('resolve_names returns the address of a name', async () => {
+      await purge();
       const response = await rpc('resolve_names', ['vitalik.eth']);
 
       expect(response.status).toBe(200);
