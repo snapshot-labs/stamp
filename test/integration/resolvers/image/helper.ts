@@ -1,10 +1,13 @@
 import { MatchImageSnapshotOptions } from 'jest-image-snapshot';
 import resolvers from '../../../../src/resolvers/image';
 import { expectResolverImageSnapshot } from '../../../helpers/imageSnapshot';
+import { recordResolverFailures } from '../../../helpers/resolverFailures';
 
 type ResolverName = keyof typeof resolvers;
 
 type ResolverArgs = unknown[];
+
+const failures = recordResolverFailures();
 
 const TIMEOUT = 30e3;
 
@@ -77,6 +80,7 @@ export default function testResolverImageSnapshots({
           'returns false when no avatar is set',
           async () => {
             expect(await call(resolver, input)).toBe(false);
+            expect(failures).toEqual([]);
           },
           TIMEOUT
         );

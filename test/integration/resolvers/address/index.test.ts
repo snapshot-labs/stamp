@@ -4,6 +4,7 @@ import redis from '../../../../src/helpers/redis';
 import { lookupAddresses, resolveNames } from '../../../../src/resolvers/address';
 import { getCache, setCache } from '../../../../src/resolvers/address/cache';
 import randomAddresses from '../../../fixtures/addresses';
+import { recordResolverFailures } from '../../../helpers/resolverFailures';
 
 function purge() {
   if (!redis) return;
@@ -12,6 +13,8 @@ function purge() {
 }
 
 describe('address resolvers', () => {
+  const failures = recordResolverFailures();
+
   describe('lookupAddresses()', () => {
     describe('when passing more than 50 addresses', () => {
       it('rejects with an error', async () => {
@@ -24,7 +27,7 @@ describe('address resolvers', () => {
 
     describe('when the params contains invalid address', () => {
       it('should ignore the invalid address', () => {
-        expect(
+        return expect(
           lookupAddresses(['test', '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7'])
         ).resolves.toEqual({ '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7': 'less' });
       });
@@ -43,8 +46,8 @@ describe('address resolvers', () => {
         });
       }, 10e3);
 
-      it('does not return addresses without domain', () => {
-        return expect(
+      it('does not return addresses without domain', async () => {
+        await expect(
           lookupAddresses([
             '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7',
             '0x0C67A201b93cf58D4a5e8D4E970093f0FB4bb0D1'
@@ -52,6 +55,7 @@ describe('address resolvers', () => {
         ).resolves.toEqual({
           '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7': 'less'
         });
+        expect(failures).toEqual([]);
       }, 10e3);
 
       it('keeps the original input case formatting', () => {
@@ -137,10 +141,11 @@ describe('address resolvers', () => {
         });
       }, 10e3);
 
-      it('return null when the handle does not exist', () => {
-        return expect(resolveNames(['test-snapshot.eth'])).resolves.toEqual({
+      it('return null when the handle does not exist', async () => {
+        await expect(resolveNames(['test-snapshot.eth'])).resolves.toEqual({
           'test-snapshot.eth': undefined
         });
+        expect(failures).toEqual([]);
       }, 10e3);
 
       it('keeps the original case formatting', () => {

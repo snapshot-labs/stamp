@@ -1,6 +1,9 @@
 import lookupDomains from '../../../src/resolvers/lookupDomains';
+import { recordResolverFailures } from '../../helpers/resolverFailures';
 
 describe('lookupDomains', () => {
+  const failures = recordResolverFailures();
+
   it('should return an array of addresses on default network', async () => {
     const result = await lookupDomains('0x24F15402C6Bb870554489b2fd2049A85d75B982f');
 
@@ -37,6 +40,7 @@ describe('lookupDomains', () => {
     const result = await lookupDomains('0xf1f09AdC06aAB740AA16004D62Dbd89484d3Be90');
 
     expect(result).toEqual([]);
+    expect(failures).toEqual([]);
   });
 
   it('should return empty array on invalid network', async () => {
@@ -48,7 +52,10 @@ describe('lookupDomains', () => {
   it('should filter out expired domains', async () => {
     const result = await lookupDomains('0x76ece6825602294b87a40d783982d83bb8ebcaf7');
 
-    expect(result).not.toContain(['everaidao.eth', 'everark.eth', 'everaiark.eth']);
+    ['everaidao.eth', 'everark.eth', 'everaiark.eth', 'babyteethnft.eth'].forEach(name =>
+      expect(result).not.toContain(name)
+    );
+    expect(failures).toEqual([]);
   });
 
   it('should return an empty array if the address is not a valid address', async () => {
@@ -62,8 +69,10 @@ describe('lookupDomains', () => {
   });
 
   it('should return an empty array if the address does not own any shibarium domains', async () => {
+    expect(process.env.D3_API_KEY_MAINNET).toBeTruthy();
     const result = await lookupDomains('0x757a20E145435B5bDaf0E274987653aeCD47cf37', '109');
     expect(result).toEqual([]);
+    expect(failures).toEqual([]);
   });
 
   it('should return all the addresses from the given chain', async () => {
@@ -78,7 +87,9 @@ describe('lookupDomains', () => {
   });
 
   it('should return an empty array if the address does not own any unstoppable domains', async () => {
+    expect(process.env.UNSTOPPABLE_DOMAINS_API_KEY).toBeTruthy();
     const result = await lookupDomains('0x76ece6825602294b87a40d783982d83bb8ebcaf7', '146');
     expect(result).toEqual([]);
+    expect(failures).toEqual([]);
   });
 });
