@@ -9,6 +9,7 @@ export const NAME = 'Space ID';
 
 const NETWORK = '56'; // BNB
 const TLD = '.bnb';
+export const EXCLUSIVE_TLDS = [TLD] as const;
 const BNB_REGISTRY_CONTRACT = '0x08CEd32a7f3eeC915Ba84415e9C07a7286977956';
 const REGISTRY_ABI = ['function resolver(bytes32 node) external view returns (address address)'];
 const RESOLVER_ABI = [

@@ -3,6 +3,7 @@ import { graphQlCall } from '../../helpers/graphql';
 import { Address, Handle } from '../../helpers/types';
 
 export const NAME = 'Lens';
+export const EXCLUSIVE_TLDS = ['.lens'] as const;
 const API_URL = 'https://api.lens.xyz/graphql';
 
 async function apiCall(filterName: string, filters: string[]) {

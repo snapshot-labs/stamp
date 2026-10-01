@@ -9,6 +9,7 @@ export const NAME = 'Shibarium';
 const CHAIN_ID = '109';
 const NETWORK = 'BONE';
 const TLD = 'shib';
+export const EXCLUSIVE_TLDS = [`.${TLD}`] as const;
 const MAX_NAME_LENGTH = 253 - '_web3connect.'.length - constants.d3[CHAIN_ID].forwarder.length - 1;
 
 function normalizeAddresses(addresses: Address[]): Address[] {
