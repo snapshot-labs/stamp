@@ -32,7 +32,7 @@ const providerInstanceHeldByEns = (getProvider as jest.Mock).mock.results[0].val
 const HANDLE = 'test.eth';
 const ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
 
-function respondWith(body: any, status = 200) {
+function respondWith(body: unknown, status = 200) {
   mockedFetch.mockResolvedValue(jsonResponse(body, status));
 }
 

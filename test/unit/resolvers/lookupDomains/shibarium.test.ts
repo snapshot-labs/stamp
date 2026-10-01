@@ -1,7 +1,7 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import { timeLookupDomainsResponse } from '../../../../src/helpers/metrics';
 import { Address, Handle } from '../../../../src/helpers/types';
-import { mockGlobalFetch } from '../../../helpers/fetch';
+import { mockGlobalFetch, signalOf } from '../../../helpers/fetch';
 
 jest.mock('@snapshot-labs/snapshot-sentry', () => ({
   capture: jest.fn()
@@ -36,7 +36,7 @@ afterAll(() => {
   }
 });
 
-function httpResponse(status: number, statusText: string, body: any = {}) {
+function httpResponse(status: number, statusText: string, body: unknown = {}) {
   return {
     ok: status >= 200 && status < 300,
     status,
@@ -56,7 +56,8 @@ describe('lookupDomains/shibarium', () => {
     [429, 'Too Many Requests'],
     [504, 'Gateway Timeout'],
     [401, 'Unauthorized'],
-    [500, 'Internal Server Error']
+    [500, 'Internal Server Error'],
+    [525, '']
   ])('throws an error carrying the HTTP status on a %i', async (status, statusText) => {
     mockedFetch.mockResolvedValue(httpResponse(status, statusText));
 
@@ -126,11 +127,11 @@ function abortError() {
 }
 
 async function recordedFor(provider: string) {
-  const metric: any = await timeLookupDomainsResponse.get();
+  const metric = await timeLookupDomainsResponse.get();
 
   return metric.values
-    .filter((v: any) => String(v.metricName).endsWith('_count') && v.labels.provider === provider)
-    .map((v: any) => ({ chainId: v.labels.chainId, status: v.labels.status, count: v.value }));
+    .filter(v => String(v.metricName).endsWith('_count') && v.labels.provider === provider)
+    .map(v => ({ chainId: v.labels.chainId, status: v.labels.status, count: v.value }));
 }
 
 describe('lookupDomains/shibarium deadline', () => {
@@ -138,10 +139,11 @@ describe('lookupDomains/shibarium deadline', () => {
     const timers = jest.spyOn(global, 'setTimeout');
     const signals: AbortSignal[] = [];
     mockedFetch.mockImplementation(
-      (_url: string, options: any) =>
+      (_url: string, options?: RequestInit) =>
         new Promise((_resolve, reject) => {
-          signals.push(options.signal);
-          options.signal.addEventListener('abort', () => reject(abortError()));
+          const signal = signalOf(options);
+          signals.push(signal);
+          signal.addEventListener('abort', () => reject(abortError()));
         })
     );
 
@@ -178,60 +180,5 @@ describe('lookupDomains/shibarium deadline', () => {
 
     await expect(lookupDomainsThroughIndex(ADDRESS, CHAIN_ID)).resolves.toEqual(['boorger.shib']);
     expect(await recordedFor('Shibarium')).toEqual([{ chainId: CHAIN_ID, status: 1, count: 1 }]);
-  });
-});
-
-describe('lookupDomains/shibarium through the shared handler', () => {
-  it('does not report an upstream 500', async () => {
-    mockedFetch.mockResolvedValue(httpResponse(500, 'Internal Server Error'));
-
-    await expect(lookupDomainsThroughIndex(ADDRESS, CHAIN_ID)).resolves.toEqual([]);
-    expect(capture).not.toHaveBeenCalled();
-  });
-
-  it('does not report Cloudflare 525', async () => {
-    mockedFetch.mockResolvedValue(httpResponse(525, ''));
-
-    await expect(lookupDomainsThroughIndex(ADDRESS, CHAIN_ID)).resolves.toEqual([]);
-    expect(capture).not.toHaveBeenCalled();
-  });
-
-  it('does not report a transient JSON body failure', async () => {
-    mockedFetch.mockResolvedValue({
-      ...httpResponse(200, 'OK'),
-      json: jest
-        .fn()
-        .mockRejectedValue(Object.assign(new Error('Premature close'), { code: 'UND_ERR_SOCKET' }))
-    });
-
-    await expect(lookupDomainsThroughIndex(ADDRESS, CHAIN_ID)).resolves.toEqual([]);
-    expect(capture).not.toHaveBeenCalled();
-  });
-
-  it('still silences a rate limit', async () => {
-    mockedFetch.mockResolvedValue(httpResponse(429, 'Too Many Requests'));
-
-    await expect(lookupDomainsThroughIndex(ADDRESS, CHAIN_ID)).resolves.toEqual([]);
-    expect(capture).not.toHaveBeenCalled();
-  });
-
-  it('does not report a host that no longer resolves', async () => {
-    mockedFetch.mockRejectedValue(
-      Object.assign(new Error('getaddrinfo ENOTFOUND api-public.interstellar.xyz'), {
-        code: 'ENOTFOUND'
-      })
-    );
-
-    await expect(lookupDomainsThroughIndex(ADDRESS, CHAIN_ID)).resolves.toEqual([]);
-    expect(capture).not.toHaveBeenCalled();
-  });
-
-  it('drops the pages already collected when a later page fails', async () => {
-    mockedFetch
-      .mockResolvedValueOnce(httpResponse(200, 'OK', page(PAGE_SIZE)))
-      .mockResolvedValueOnce(httpResponse(500, 'Internal Server Error'));
-
-    await expect(lookupDomainsThroughIndex(ADDRESS, CHAIN_ID)).resolves.toEqual([]);
-    expect(capture).not.toHaveBeenCalled();
   });
 });

@@ -1,7 +1,10 @@
 import lookupDomains from '../../../src/resolvers/lookupDomains';
+import { recordResolverFailures } from '../../helpers/resolverFailures';
 
 describe('lookupDomains', () => {
-  it('should return an array of addresses on default network', async () => {
+  const withFailures = recordResolverFailures();
+
+  it.concurrent('should return an array of addresses on default network', async () => {
     const result = await lookupDomains('0x24F15402C6Bb870554489b2fd2049A85d75B982f');
 
     expect(result).toBeInstanceOf(Array);
@@ -9,76 +12,96 @@ describe('lookupDomains', () => {
     expect(result[0]).toContain('.eth');
   });
 
-  it('should decode hashed parent labels on subdomains', async () => {
+  it.concurrent('should decode hashed parent labels on subdomains', async () => {
     const result = await lookupDomains('0x279489452dd8035f82326c8036f81d7bd1c65e6c');
 
     expect(result).toContain('global.aragonid.eth');
   });
 
-  it('should return an array of addresses on sepolia', async () => {
+  it.concurrent('should return an array of addresses on sepolia', async () => {
     const result = await lookupDomains('0x24F15402C6Bb870554489b2fd2049A85d75B982f', '11155111');
 
     expect(result).toContain('chaitu.eth');
   });
 
-  it('should include ENSv2 domains on sepolia', async () => {
+  it.concurrent('should include ENSv2 domains on sepolia', async () => {
     const result = await lookupDomains('0xF7f2639C67b58D978DB1Db166AF0501Da903f3A3', '11155111');
 
     expect(result).toContain('john1.eth');
   });
 
-  it('should return an empty array if the address is not provided', async () => {
+  it.concurrent('should return an empty array if the address is not provided', async () => {
     const result = await lookupDomains('');
 
     expect(result).toEqual([]);
   });
 
-  it('should return an empty array if the address does not own any domains', async () => {
-    const result = await lookupDomains('0xf1f09AdC06aAB740AA16004D62Dbd89484d3Be90');
+  it.concurrent(
+    'should return an empty array if the address does not own any domains',
+    withFailures(async failures => {
+      const result = await lookupDomains('0xf1f09AdC06aAB740AA16004D62Dbd89484d3Be90');
 
-    expect(result).toEqual([]);
-  });
+      expect(result).toEqual([]);
+      expect(failures).toEqual([]);
+    })
+  );
 
-  it('should return empty array on invalid network', async () => {
+  it.concurrent('should return empty array on invalid network', async () => {
     const result = await lookupDomains('0x24F15402C6Bb870554489b2fd2049A85d75B982f', 'test');
 
     expect(result).toEqual([]);
   });
 
-  it('should filter out expired domains', async () => {
-    const result = await lookupDomains('0x76ece6825602294b87a40d783982d83bb8ebcaf7');
+  it.concurrent(
+    'should filter out expired domains',
+    withFailures(async failures => {
+      const result = await lookupDomains('0x76ece6825602294b87a40d783982d83bb8ebcaf7');
 
-    expect(result).not.toContain(['everaidao.eth', 'everark.eth', 'everaiark.eth']);
-  });
+      ['everaidao.eth', 'everark.eth', 'everaiark.eth', 'babyteethnft.eth'].forEach(name =>
+        expect(result).not.toContain(name)
+      );
+      expect(failures).toEqual([]);
+    })
+  );
 
-  it('should return an empty array if the address is not a valid address', async () => {
+  it.concurrent('should return an empty array if the address is not a valid address', async () => {
     const result = await lookupDomains('notAValidAddress');
     expect(result).toEqual([]);
   });
 
-  it('should return an array of addresses for shibarium', async () => {
+  it.concurrent('should return an array of addresses for shibarium', async () => {
     const result = await lookupDomains('0x220bc93D88C0aF11f1159eA89a885d5ADd3A7Cf6', '109');
     expect(result).toContain('boorger.shib');
   });
 
-  it('should return an empty array if the address does not own any shibarium domains', async () => {
-    const result = await lookupDomains('0x757a20E145435B5bDaf0E274987653aeCD47cf37', '109');
-    expect(result).toEqual([]);
-  });
+  it.concurrent(
+    'should return an empty array if the address does not own any shibarium domains',
+    withFailures(async failures => {
+      expect(process.env.D3_API_KEY_MAINNET).toBeTruthy();
+      const result = await lookupDomains('0x757a20E145435B5bDaf0E274987653aeCD47cf37', '109');
+      expect(result).toEqual([]);
+      expect(failures).toEqual([]);
+    })
+  );
 
-  it('should return all the addresses from the given chain', async () => {
+  it.concurrent('should return all the addresses from the given chain', async () => {
     const result = await lookupDomains('0x220bc93D88C0aF11f1159eA89a885d5ADd3A7Cf6', ['1', '109']);
     expect(result).toContain('boorger.eth');
     expect(result).toContain('boorger.shib');
   });
 
-  it('should return an array of addresses for unstoppable domains', async () => {
+  it.concurrent('should return an array of addresses for unstoppable domains', async () => {
     const result = await lookupDomains('0x220bc93D88C0aF11f1159eA89a885d5ADd3A7Cf6', '146');
     expect(result).toContain('boorger.sonic');
   });
 
-  it('should return an empty array if the address does not own any unstoppable domains', async () => {
-    const result = await lookupDomains('0x76ece6825602294b87a40d783982d83bb8ebcaf7', '146');
-    expect(result).toEqual([]);
-  });
+  it.concurrent(
+    'should return an empty array if the address does not own any unstoppable domains',
+    withFailures(async failures => {
+      expect(process.env.UNSTOPPABLE_DOMAINS_API_KEY).toBeTruthy();
+      const result = await lookupDomains('0x76ece6825602294b87a40d783982d83bb8ebcaf7', '146');
+      expect(result).toEqual([]);
+      expect(failures).toEqual([]);
+    })
+  );
 });

@@ -29,10 +29,10 @@ const STARKNET_ADDRESS = '0x07ff6b17f07c4d83236e3fc5f94259a19d1ed41bbcf1822397ea
 const UNPADDED_STARKNET_ADDRESS = `0x${STARKNET_ADDRESS.slice(3)}`;
 const NOT_AN_ADDRESS = '0x00006ba9855965EeEc09B5D43B113944c27F45aD3Ce';
 
-const graphQlResponse = (data: Record<string, any>) => jsonResponse({ data });
+const graphQlResponse = (data: Record<string, unknown>) => jsonResponse({ data });
 
-const entry = (found: any) => graphQlResponse({ entry: found });
-const spaces = (found: any[]) => graphQlResponse({ spaces: found });
+const entry = (found: unknown) => graphQlResponse({ entry: found });
+const spaces = (found: unknown[]) => graphQlResponse({ spaces: found });
 
 const sentVariables = () => JSON.parse(mockedFetch.mock.calls[0][1].body).variables;
 
@@ -103,17 +103,17 @@ describe('resolvers answer false rather than throwing when there is no data', ()
     ])('preserves an offchain space %s', async (_type, id, expected) => {
       mockedFetch.mockResolvedValue(entry({ avatar: null }));
 
-      await expect(resolveSpaceAvatar(id, 1, 's')).resolves.toBe(false);
+      await expect(resolveSpaceAvatar(id, '1', 's')).resolves.toBe(false);
       expect(sentVariables()).toEqual({ id: expected });
     });
 
     it('answers false for a space id that is not an address, without asking', async () => {
-      await expect(resolveSpaceAvatar('ens.eth', 1, 'eth')).resolves.toBe(false);
+      await expect(resolveSpaceAvatar('ens.eth', '1', 'eth')).resolves.toBe(false);
       expect(mockedFetch).not.toHaveBeenCalled();
     });
 
     it('answers false for an onchain logo instead of asking for a field that is not there', async () => {
-      await expect(resolveSpaceLogo(ADDRESS, 1, 'eth')).resolves.toBe(false);
+      await expect(resolveSpaceLogo(ADDRESS, '1', 'eth')).resolves.toBe(false);
       expect(mockedFetch).not.toHaveBeenCalled();
     });
 
@@ -167,6 +167,19 @@ describe('resolvers answer false rather than throwing when there is no data', ()
       await expect(lens('vitalik.lens')).resolves.toBe(false);
       expect(mockedFetchHttpImage).not.toHaveBeenCalled();
     });
+  });
+
+  describe('trustwallet', () => {
+    it.each([
+      '0x0000000000000000000000000000000000000000',
+      '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
+    ])(
+      'answers false for the native asset %s of a chain with no known icon, without asking',
+      async address => {
+        await expect(trustwallet(address, '43114')).resolves.toBe(false);
+        expect(mockedFetchHttpImage).not.toHaveBeenCalled();
+      }
+    );
   });
 
   describe('defillama', () => {

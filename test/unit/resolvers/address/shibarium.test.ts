@@ -27,6 +27,47 @@ function deadlines(timers: jest.SpyInstance) {
   return timers.mock.calls.filter(call => call[1] === TIMEOUT);
 }
 
+describe('resolvers/address/shibarium resolveNames input filtering', () => {
+  const label = (n: number) => 'a'.repeat(n);
+  const nameOfLength = (n: number) =>
+    `${Array(3).fill(label(63)).join('.')}.${label(n - 197)}.shib`;
+
+  it.each([
+    'fo_o.shib',
+    'ü.shib',
+    `${label(64)}.shib`,
+    '.shib',
+    'a..shib',
+    '-a.shib',
+    'a-.shib',
+    nameOfLength(236)
+  ])('never queries DNS for %s, and still resolves the valid names beside it', async bad => {
+    const queried: string[] = [];
+    mockQuery('resolve', async entry => {
+      queried.push(entry);
+      return `${entry}-result`;
+    });
+
+    await expect(resolveNames(['boorger.shib', bad])).resolves.toEqual({
+      'boorger.shib': 'boorger.shib-result'
+    });
+    expect(queried).toEqual(['boorger.shib']);
+  });
+
+  it.each([
+    'a-b.shib',
+    '123.shib',
+    'sub.boorger.shib',
+    'BOORGER.shib',
+    `${label(63)}.shib`,
+    nameOfLength(235)
+  ])('queries DNS for %s', async good => {
+    mockQuery('resolve', async entry => `${entry}-result`);
+
+    await expect(resolveNames([good])).resolves.toEqual({ [good]: `${good}-result` });
+  });
+});
+
 describe.each<Case>([
   ['lookupAddresses', 'reverseResolve', ADDRESSES, lookupAddresses],
   ['resolveNames', 'resolve', HANDLES, resolveNames]

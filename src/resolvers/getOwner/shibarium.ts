@@ -10,23 +10,25 @@ const TESTNET = '157';
 const TLD = 'shib';
 const NETWORK = 'BONE';
 
-const API_KEYS = {
+const D3: Record<string, { apiUrl: string; forwarder: string }> = constants.d3;
+
+const API_KEYS: Record<string, string | undefined> = {
   [MAINNET]: process.env.D3_API_KEY_MAINNET,
   [TESTNET]: process.env.D3_API_KEY_TESTNET
 };
 
 async function getClaimedOwner(handle: Handle, chainId: string): Promise<Address | false> {
-  if (!handle.endsWith(`.${TLD}`) || !constants.d3[chainId]?.apiUrl || !API_KEYS[chainId])
-    return EMPTY_ADDRESS;
+  const apiKey = API_KEYS[chainId];
+  if (!handle.endsWith(`.${TLD}`) || !D3[chainId]?.apiUrl || !apiKey) return EMPTY_ADDRESS;
 
   return withDeadline<Address | false>(async signal => {
     const response = await fetch(
-      `${constants.d3[chainId].apiUrl}/v1/partner/token/${handle.replace(/\.shib$/, '')}/${TLD}`,
+      `${D3[chainId].apiUrl}/v1/partner/token/${handle.replace(/\.shib$/, '')}/${TLD}`,
       {
         method: 'GET',
         headers: {
           accept: 'application/json',
-          'Api-Key': API_KEYS[chainId]
+          'Api-Key': apiKey
         },
         signal
       }
@@ -52,7 +54,7 @@ async function getClaimedOwner(handle: Handle, chainId: string): Promise<Address
 }
 
 async function getResolvedAddress(handle: Handle, chainId: string): Promise<Address> {
-  const client = dnsConnect(constants.d3[chainId].forwarder);
+  const client = dnsConnect(D3[chainId].forwarder);
 
   // dns-connect passes no signal to the DNS-over-HTTPS fetches it makes, so
   // only the wait can be bounded here, not the request.

@@ -74,9 +74,10 @@ describe('resolvers/address/unstoppableDomains - resolveNames', () => {
       resolveNames(['foo.lens', 'foo.crypto', 'api.lens.crypto', 'vitalik.eth', 'foo.xyz'])
     ).resolves.toEqual({
       'foo.crypto': ADDRESS,
-      'api.lens.crypto': ADDRESS
+      'api.lens.crypto': ADDRESS,
+      'foo.xyz': ADDRESS
     });
 
-    expect(mockedCall).toHaveBeenCalledTimes(2);
+    expect(mockedCall).toHaveBeenCalledTimes(3);
   });
 });

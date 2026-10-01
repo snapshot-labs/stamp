@@ -48,7 +48,7 @@ export function starkDomainLabels(domain: Handle): string[] {
   return domain.replace(/\.stark$/, '').split('.');
 }
 
-export function withoutEmptyAddress(obj: Record<string, any>) {
+export function withoutEmptyAddress<T>(obj: Record<string, T>) {
   return Object.fromEntries(Object.entries(obj).filter(([key]) => key !== EMPTY_ADDRESS));
 }
 

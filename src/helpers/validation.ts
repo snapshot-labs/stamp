@@ -10,6 +10,16 @@ export const schemas = {
   resolve_names: z.array(z.string()).nonempty().max(constants.maxResolveNames)
 } as const;
 
+// sx-monorepo sends its numeric ChainId as-is.
+const chainId = z.union([z.string(), z.number()]).transform(String);
+
+export const networkSchemas = {
+  lookup_domains: z.union([chainId, z.array(chainId)]).optional(),
+  get_owner: chainId.optional(),
+  lookup_addresses: z.unknown(),
+  resolve_names: z.unknown()
+} as const;
+
 const DEFAULT_SIZE = 64;
 
 function dimension(max: number) {

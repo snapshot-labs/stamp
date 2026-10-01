@@ -1,7 +1,10 @@
+jest.unmock('../../../../src/helpers/redis');
+
 import redis from '../../../../src/helpers/redis';
 import { lookupAddresses, resolveNames } from '../../../../src/resolvers/address';
 import { getCache, setCache } from '../../../../src/resolvers/address/cache';
 import randomAddresses from '../../../fixtures/addresses';
+import { recordResolverFailures } from '../../../helpers/resolverFailures';
 
 function purge() {
   if (!redis) return;
@@ -10,6 +13,12 @@ function purge() {
 }
 
 describe('address resolvers', () => {
+  const withFailures = recordResolverFailures();
+
+  beforeEach(async () => {
+    await purge();
+  });
+
   describe('lookupAddresses()', () => {
     describe('when passing more than 50 addresses', () => {
       it('rejects with an error', async () => {
@@ -22,17 +31,13 @@ describe('address resolvers', () => {
 
     describe('when the params contains invalid address', () => {
       it('should ignore the invalid address', () => {
-        expect(
+        return expect(
           lookupAddresses(['test', '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7'])
         ).resolves.toEqual({ '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7': 'less' });
       });
     });
 
     describe('when not cached', () => {
-      beforeEach(async () => {
-        await purge();
-      });
-
       it('should return the ENS handle first if associated to multiple resolvers', () => {
         return expect(
           lookupAddresses(['0xeF8305E140ac520225DAf050e2f71d5fBcC543e7'])
@@ -41,16 +46,21 @@ describe('address resolvers', () => {
         });
       }, 10e3);
 
-      it('does not return addresses without domain', () => {
-        return expect(
-          lookupAddresses([
-            '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7',
-            '0x0C67A201b93cf58D4a5e8D4E970093f0FB4bb0D1'
-          ])
-        ).resolves.toEqual({
-          '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7': 'less'
-        });
-      }, 10e3);
+      it(
+        'does not return addresses without domain',
+        withFailures(async failures => {
+          await expect(
+            lookupAddresses([
+              '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7',
+              '0x0C67A201b93cf58D4a5e8D4E970093f0FB4bb0D1'
+            ])
+          ).resolves.toEqual({
+            '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7': 'less'
+          });
+          expect(failures).toEqual([]);
+        }),
+        10e3
+      );
 
       it('keeps the original input case formatting', () => {
         return expect(
@@ -68,10 +78,6 @@ describe('address resolvers', () => {
     });
 
     describe('when cached', () => {
-      beforeEach(async () => {
-        await purge();
-      });
-
       it('should cache the results', async () => {
         await expect(
           lookupAddresses([
@@ -125,21 +131,22 @@ describe('address resolvers', () => {
     });
 
     describe('when not cached', () => {
-      beforeEach(async () => {
-        await purge();
-      });
-
       it('should return the address associated to the handle', () => {
         return expect(resolveNames(['snapshot.crypto'])).resolves.toEqual({
           'snapshot.crypto': '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7'
         });
       }, 10e3);
 
-      it('return null when the handle does not exist', () => {
-        return expect(resolveNames(['test-snapshot.eth'])).resolves.toEqual({
-          'test-snapshot.eth': undefined
-        });
-      }, 10e3);
+      it(
+        'return null when the handle does not exist',
+        withFailures(async failures => {
+          await expect(resolveNames(['test-snapshot.eth'])).resolves.toEqual({
+            'test-snapshot.eth': undefined
+          });
+          expect(failures).toEqual([]);
+        }),
+        10e3
+      );
 
       it('keeps the original case formatting', () => {
         return expect(
@@ -153,10 +160,6 @@ describe('address resolvers', () => {
     });
 
     describe('when cached', () => {
-      beforeEach(async () => {
-        await purge();
-      });
-
       it('should cache the results', async () => {
         await expect(resolveNames(['snapshot.crypto'])).resolves.toEqual({
           'snapshot.crypto': '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7'

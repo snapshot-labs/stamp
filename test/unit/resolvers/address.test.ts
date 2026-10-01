@@ -1,6 +1,7 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import { namehash } from 'viem/ens';
 import { EMPTY_ADDRESS } from '../../../src/helpers/address';
+import * as metrics from '../../../src/helpers/metrics';
 import * as provider from '../../../src/helpers/provider';
 import { lookupAddresses, resolveNames } from '../../../src/resolvers/address';
 import * as basename from '../../../src/resolvers/address/basename';
@@ -20,7 +21,7 @@ jest.mock('@snapshot-labs/snapshot-sentry', () => ({
 // Run the resolver fan-out on every call, without a redis round trip.
 jest.mock('../../../src/resolvers/address/cache', () => ({
   __esModule: true,
-  default: (input: string[], callback: (input: string[]) => any) => callback(input),
+  default: (input: string[], callback: (input: string[]) => unknown) => callback(input),
   clear: jest.fn()
 }));
 
@@ -37,8 +38,6 @@ const RESOLVERS = [
 ];
 
 const ADDRESS = '0xE6D0Dd18C6C3a9Af8C2FaB57d6e6A38E29d513cC';
-const ETHERS_504 =
-  'bad response (status=504, headers={}, body="error code: 504", code=SERVER_ERROR, version=web/5.7.1)';
 
 beforeEach(() => {
   RESOLVERS.forEach(resolver => {
@@ -66,41 +65,6 @@ describe('address resolvers - input normalization', () => {
 });
 
 describe('address resolvers - resolver failures', () => {
-  it('captures a resolver error, with the input as context', async () => {
-    const error = new Error('boom');
-    jest.spyOn(ens, 'lookupAddresses').mockRejectedValue(error);
-
-    await expect(lookupAddresses([ADDRESS])).resolves.toEqual({});
-    expect(capture).toHaveBeenCalledTimes(1);
-    expect(capture).toHaveBeenCalledWith(error, {
-      tags: { provider: 'Ens' },
-      contexts: { input: { lookupAddresses: [ADDRESS] } }
-    });
-  });
-
-  it('does not capture a silenced error', async () => {
-    jest.spyOn(ens, 'lookupAddresses').mockRejectedValue(new Error(ETHERS_504));
-
-    await expect(lookupAddresses([ADDRESS])).resolves.toEqual({});
-    expect(capture).not.toHaveBeenCalled();
-  });
-
-  it.each([
-    [
-      'a host that no longer resolves',
-      Object.assign(new TypeError('fetch failed'), { cause: { code: 'ENOTFOUND' } })
-    ],
-    [
-      'a TLS failure',
-      Object.assign(new TypeError('fetch failed'), { cause: { code: 'CERT_HAS_EXPIRED' } })
-    ]
-  ] as const)('does not capture a transport failure (%s)', async (_label, error) => {
-    jest.spyOn(ens, 'lookupAddresses').mockRejectedValue(error);
-
-    await expect(lookupAddresses([ADDRESS])).resolves.toEqual({});
-    expect(capture).not.toHaveBeenCalled();
-  });
-
   it('still reports a plain upstream 4xx from a fixed endpoint', async () => {
     const error = Object.assign(new Error('not found'), { status: 404 });
     jest.spyOn(ens, 'lookupAddresses').mockRejectedValue(error);
@@ -207,4 +171,30 @@ describe('address resolvers - invalid Space ID labels', () => {
       contexts: { input: { resolveNames: [HANDLE] } }
     });
   });
+});
+
+describe('address resolvers - response metric', () => {
+  it.each([
+    ['lookupAddresses', lookupAddresses, ADDRESS],
+    ['resolveNames', resolveNames, 'boorger.eth']
+  ] as const)(
+    'times each resolver on %s, with status 1 on success and 0 on failure',
+    async (method, call, input) => {
+      const ends = Object.fromEntries(RESOLVERS.map(resolver => [resolver.NAME, jest.fn()]));
+      const startTimer = jest
+        .spyOn(metrics.timeAddressResolverResponse, 'startTimer')
+        .mockImplementation(labels => ends[labels!.provider as string]);
+      RESOLVERS.forEach(resolver => jest.spyOn(resolver, method).mockResolvedValue({}));
+      jest.spyOn(ens, method).mockRejectedValue(new Error('boom'));
+
+      await call([input]);
+
+      expect(startTimer).toHaveBeenCalledTimes(RESOLVERS.length);
+      RESOLVERS.forEach(resolver => {
+        expect(startTimer).toHaveBeenCalledWith({ provider: resolver.NAME, method });
+        expect(ends[resolver.NAME]).toHaveBeenCalledTimes(1);
+        expect(ends[resolver.NAME]).toHaveBeenCalledWith({ status: resolver === ens ? 0 : 1 });
+      });
+    }
+  );
 });

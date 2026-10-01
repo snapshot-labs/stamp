@@ -5,11 +5,15 @@ jest.mock('../../../../src/helpers/provider', () => ({
     callContract: mockCallContract
   })
 }));
+jest.mock('../../../../src/helpers/deadline', () =>
+  jest.requireActual('../../../helpers/deadline')
+);
 
 import { byteArray, CallData, hash } from 'starknet';
 import { isSilencedError } from '../../../../src/helpers/errors';
 import { MAX_IMAGE_BYTES } from '../../../../src/helpers/http';
 import starknet from '../../../../src/resolvers/image/starknet';
+import { shortenNextDeadline } from '../../../helpers/deadline';
 import { answeredFrom, incompleteJsonResponse, jsonResponse } from '../../../helpers/fetch';
 
 const ADDRESS = '0x07ff6b17f07c4d83236e3fc5f94259a19d1ed41bbcf1822397ea17882e9b038d';
@@ -126,18 +130,6 @@ describe('Starknet image resolver', () => {
     await expect(starknet(ADDRESS)).rejects.toMatchObject({
       status: 404,
       message: expect.stringContaining('image too large')
-    });
-  });
-
-  it('aborts an incomplete metadata body at the total deadline', async () => {
-    jest
-      .spyOn(global, 'fetch')
-      .mockImplementation(async (_input, init) =>
-        incompleteJsonResponse('{"image":', (init as RequestInit | undefined)?.signal)
-      );
-
-    await expect(starknet(ADDRESS)).rejects.toMatchObject({
-      name: 'AbortError'
     });
   });
 
@@ -319,16 +311,10 @@ describe('Starknet image resolver', () => {
   });
 
   it('raises the deadline abort on a metadata body that never ends', async () => {
-    fetchSpy.mockImplementation(async (_input, init) => {
-      const signal = init?.signal;
-      const body = new ReadableStream<Uint8Array>({
-        start(controller) {
-          controller.enqueue(Buffer.from('{"'));
-          signal?.addEventListener('abort', () => controller.error(signal.reason), { once: true });
-        }
-      });
-      return new Response(body, { headers: { 'Content-Type': 'application/json' } });
-    });
+    shortenNextDeadline();
+    fetchSpy.mockImplementation(async (_input, init) =>
+      incompleteJsonResponse('{"image":', init?.signal)
+    );
 
     const error = await starknet(ADDRESS).catch(err => err);
 

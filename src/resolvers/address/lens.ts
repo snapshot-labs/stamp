@@ -21,7 +21,9 @@ async function apiCall(filterName: string, filters: string[]) {
 
   const {
     data: { accountsBulk }
-  } = await graphQlCall(API_URL, query, { request: { [filterName]: filterValue } });
+  } = await graphQlCall<{
+    accountsBulk: { username: { localName: string; ownedBy: Address } | null }[];
+  }>(API_URL, query, { request: { [filterName]: filterValue } });
 
   return accountsBulk;
 }
@@ -45,9 +47,9 @@ export async function lookupAddresses(addresses: Address[]): Promise<Record<Addr
 
   return (
     Object.fromEntries(
-      accounts
-        .filter(i => i.username)
-        .map(i => [i.username.ownedBy, `${i.username.localName}.lens`])
+      accounts.flatMap(({ username }) =>
+        username ? [[username.ownedBy, `${username.localName}.lens`]] : []
+      )
     ) || {}
   );
 }
@@ -60,7 +62,10 @@ export async function resolveNames(handles: Handle[]): Promise<Record<Handle, Ad
   const accounts = await apiCall('usernames', normalizedHandles);
 
   return (
-    Object.fromEntries(accounts.map(i => [`${i.username.localName}.lens`, i.username.ownedBy])) ||
-    {}
+    Object.fromEntries(
+      accounts.flatMap(({ username }) =>
+        username ? [[`${username.localName}.lens`, username.ownedBy]] : []
+      )
+    ) || {}
   );
 }

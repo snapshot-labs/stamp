@@ -8,17 +8,6 @@
 // Every resolver integration test is an image test: it calls the resolver for
 // REAL (real network for the remote-fetch resolvers) and asserts the output
 // against a committed baseline with toMatchImageSnapshot. No network mocking.
-//
-// Two flavours of snapshot live here:
-//   - EXACT: deterministic resolvers (blockie, jazzicon) render purely from the
-//     input, so the baseline matches byte-for-byte (within anti-aliasing noise).
-//   - TOLERANT: remote-fetch resolvers (ens, lens, snapshot, space-sx,
-//     basename, trustwallet, ...) download a live upstream avatar then resize/
-//     re-encode it via sharp. The output can drift slightly with CDN re-encodes,
-//     so these use a higher failureThreshold (see remoteSnapshotOptions). Inputs
-//     are chosen to be stable identities whose avatar is unlikely to change.
-
-import { MatchImageSnapshotOptions } from 'jest-image-snapshot';
 
 export const blockieSnapshotAddresses = [
   '0x89ceF96c58A85d9bE6DFa46D667e71f45f9Ad046',
@@ -55,19 +44,8 @@ export const remoteSnapshotInputs = {
   // trustwallet on Gnosis Chain: COW, under the repo's xdai directory.
   trustwalletCow: { address: '0x177127622c4A00F3d409B75571e12cB3c8973d3c', chainId: '100' },
   // defillama: token icon (keyless).
-  defillama: { address: '0xc18360217d8f7ab5e7c516566761ea12ce7f9d72', chainId: '1' },
-  // farcaster: address with a Farcaster pfp (needs NEYNAR_API_KEY).
-  farcaster: '0xd1a8Dd23e356B9fAE27dF5DeF9ea025A602EC81e'
+  defillama: { address: '0xc18360217d8f7ab5e7c516566761ea12ce7f9d72', chainId: '1' }
 } as const;
-
-// Tolerant config for remote-fetch resolvers: allow a small percentage of
-// differing pixels so a benign upstream/CDN re-encode does not fail the test.
-// The default setup-jest threshold (0.01%) is too strict for remotely fetched,
-// re-encoded images.
-export const remoteSnapshotOptions: MatchImageSnapshotOptions = {
-  failureThreshold: 1.5,
-  failureThresholdType: 'percent'
-};
 
 // The canonical "no avatar set" input used to exercise each resolver's real
 // no-avatar path.
@@ -133,9 +111,6 @@ export const noAvatarInputs = {
   // space-sx
   spaceSxMissing: '0x06ba9855965EeEc09B5D43B113944c27F45aD3Ce',
   spaceSxInvalidAddress: '0x00006ba9855965EeEc09B5D43B113944c27F45aD3Ce',
-  // farcaster
-  farcasterInvalidAddress: '0x556B14CbdA79A36dC33FcD461a04A5BCb5dC2A70!',
-  farcasterNoAccount: '0x2963fD170E12d748d0A80430DdC090e059f6013F',
   // starknet
   starknetMissing: 'test-not-existing.stark',
   // starknet.id serves a DEFAULT identicon for this address; the resolver

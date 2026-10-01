@@ -10,11 +10,15 @@ export function isTestnet(chainId: string): boolean {
 }
 
 export function shortNameToChainId(shortName: string): string | null {
-  return shortName in chains.SHORTNAME_TO_CHAIN_ID ? chains.SHORTNAME_TO_CHAIN_ID[shortName] : null;
+  return shortName in chains.SHORTNAME_TO_CHAIN_ID
+    ? (chains.SHORTNAME_TO_CHAIN_ID as Record<string, string>)[shortName]
+    : null;
 }
 
 export function chainIdToShortName(chainId: string): string | null {
-  return chainId in chains.CHAIN_ID_TO_SHORTNAME ? chains.CHAIN_ID_TO_SHORTNAME[chainId] : null;
+  return chainId in chains.CHAIN_ID_TO_SHORTNAME
+    ? (chains.CHAIN_ID_TO_SHORTNAME as Record<string, string>)[chainId]
+    : null;
 }
 
 export function chainIdToName(chainId: string): string | null {
@@ -27,7 +31,38 @@ export function chainIdToName(chainId: string): string | null {
   return null;
 }
 
-export const getBaseAssetIconUrl = (chainId: string) => {
+const ETH_NATIVE_CHAIN_IDS = new Set([
+  '1',
+  '10',
+  '169',
+  '291',
+  '300',
+  '324',
+  '1101',
+  '4663',
+  '7560',
+  '8453',
+  '26514',
+  '42161',
+  '42170',
+  '46630',
+  '57073',
+  '59141',
+  '59144',
+  '81457',
+  '84532',
+  '763373',
+  '810180',
+  '810181',
+  '2651420',
+  '11155111',
+  '11155420',
+  '111557560',
+  '168587773',
+  '1313161554'
+]);
+
+export const getBaseAssetIconUrl = (chainId: string): string | null => {
   // BNB
   if (chainId === '56')
     return 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/info/logo.png';
@@ -44,5 +79,7 @@ export const getBaseAssetIconUrl = (chainId: string) => {
   // Celo
   if (chainId === '42220')
     return 'https://ipfs.snapshot.box/ipfs/bafkreidvcofeczigbjr7ddapgdugwso6v2l4iolfxys7qg6kfvu2uduyva';
-  return 'https://static.cdnlogo.com/logos/e/81/ethereum-eth.svg';
+  if (ETH_NATIVE_CHAIN_IDS.has(chainId))
+    return 'https://static.cdnlogo.com/logos/e/81/ethereum-eth.svg';
+  return null;
 };

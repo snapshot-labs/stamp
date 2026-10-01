@@ -71,7 +71,7 @@ function decodeAddress(rawAddress: unknown): Address | undefined {
   return address === EMPTY_STARKNET_ADDRESS ? undefined : address;
 }
 
-async function callNamingContract(entrypoint: string, calldata: string[][]): Promise<any[]> {
+async function callNamingContract(entrypoint: string, calldata: string[][]): Promise<unknown[][]> {
   return await snapshot.utils.multicall(
     NETWORK,
     provider,

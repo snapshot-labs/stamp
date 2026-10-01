@@ -123,7 +123,9 @@ function rpcResponse(data: string, to: string): string {
     const calls = multicallInterface.decodeFunctionData('aggregate', data).calls;
     return multicallInterface.encodeFunctionResult('aggregate', [
       1,
-      calls.map(call => resolverResponse(call.callData, call.target))
+      calls.map((call: { callData: string; target: string }) =>
+        resolverResponse(call.callData, call.target)
+      )
     ]);
   } catch {
     return resolverResponse(data, to);

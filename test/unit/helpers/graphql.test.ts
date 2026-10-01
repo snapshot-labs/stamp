@@ -1,5 +1,9 @@
-import { isSilencedError } from '../../../src/helpers/errors';
+jest.mock('../../../src/helpers/deadline', () => jest.requireActual('../../helpers/deadline'));
+
+import { withDeadline } from '../../../src/helpers/deadline';
+import { httpError, isSilencedError } from '../../../src/helpers/errors';
 import { graphQlCall } from '../../../src/helpers/graphql';
+import { shortenNextDeadline } from '../../helpers/deadline';
 import { incompleteJsonResponse, jsonResponse, mockGlobalFetch } from '../../helpers/fetch';
 
 const mockedFetch = mockGlobalFetch();
@@ -7,17 +11,17 @@ const mockedFetch = mockGlobalFetch();
 const URL = 'https://hub.snapshot.org/graphql';
 const QUERY = 'query users { users { id } }';
 
-function respondWith(body: any, status = 200) {
+function respondWith(body: unknown, status = 200) {
   mockedFetch.mockResolvedValue(jsonResponse(body, status));
 }
 
-async function errorFrom(body: any, status = 200) {
+async function errorFrom(body: unknown, status = 200) {
   respondWith(body, status);
 
   try {
     await graphQlCall(URL, QUERY);
-  } catch (err: any) {
-    return err;
+  } catch (err) {
+    return err as ReturnType<typeof httpError>;
   }
 
   throw new Error('graphQlCall resolved, expected it to throw');
@@ -28,7 +32,7 @@ describe('graphQlCall', () => {
     it('returns the response', async () => {
       respondWith({ data: { users: [{ id: '0x1' }] } });
 
-      const body = await graphQlCall(URL, QUERY);
+      const body = await graphQlCall<Record<string, unknown>>(URL, QUERY);
 
       expect(body.data.users).toEqual([{ id: '0x1' }]);
     });
@@ -36,7 +40,7 @@ describe('graphQlCall', () => {
     it('returns a response prefixed by a UTF-8 BOM', async () => {
       respondWith(`\uFEFF${JSON.stringify({ data: { users: [{ id: '0x1' }] } })}`);
 
-      const body = await graphQlCall(URL, QUERY);
+      const body = await graphQlCall<Record<string, unknown>>(URL, QUERY);
 
       expect(body.data.users).toEqual([{ id: '0x1' }]);
     });
@@ -53,13 +57,14 @@ describe('graphQlCall', () => {
     it('does not throw on a field that resolved to null', async () => {
       respondWith({ data: { account: null } });
 
-      const body = await graphQlCall(URL, QUERY);
+      const body = await graphQlCall<Record<string, unknown>>(URL, QUERY);
 
       expect(body.data.account).toBeNull();
     });
   });
 
   it('aborts an incomplete response body at the total deadline', async () => {
+    shortenNextDeadline();
     mockedFetch.mockImplementation(async (_url, init) =>
       incompleteJsonResponse('{"data":', (init as RequestInit | undefined)?.signal)
     );
@@ -67,6 +72,7 @@ describe('graphQlCall', () => {
     await expect(graphQlCall(URL, QUERY)).rejects.toMatchObject({
       name: 'AbortError'
     });
+    expect(withDeadline).toHaveBeenCalledWith(expect.any(Function), 5e3);
   });
 
   describe('when the body carries errors', () => {
@@ -93,7 +99,7 @@ describe('graphQlCall', () => {
   });
 
   describe('when the data envelope is absent', () => {
-    it.each<[string, any]>([
+    it.each<[string, unknown]>([
       ['no data key at all', { errors: [{ message: 'boom' }] }],
       ['a null data envelope', { data: null }],
       ['an empty body', {}]

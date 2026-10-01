@@ -1,4 +1,3 @@
-import { capture } from '@snapshot-labs/snapshot-sentry';
 import * as basenameResolver from './basename';
 import cache, { clear } from './cache';
 import * as ensResolver from './ens';
@@ -16,9 +15,9 @@ import {
   normalizeHandles,
   withoutEmptyAddress
 } from '../../helpers/address';
-import { isSilencedError, isTransportFailure } from '../../helpers/errors';
 import { timeAddressResolverResponse as timeResponse } from '../../helpers/metrics';
 import { withoutEmptyValues } from '../../helpers/object';
+import { callResolver } from '../../helpers/resolver';
 import { Address, Handle } from '../../helpers/types';
 
 type Resolver = {
@@ -39,7 +38,11 @@ const RESOLVERS: Resolver[] = [
   gweiResolver
 ];
 
-async function _call(fnName: string, input: string[], maxInputLength: number) {
+async function _call(
+  fnName: 'lookupAddresses' | 'resolveNames',
+  input: string[],
+  maxInputLength: number
+) {
   if (input.length > maxInputLength) {
     return Promise.reject({
       error: `params must contains less than ${maxInputLength} items`,
@@ -53,30 +56,14 @@ async function _call(fnName: string, input: string[], maxInputLength: number) {
     withoutEmptyValues(
       await cache(input, async (_input: string[]) => {
         const results = await Promise.all(
-          RESOLVERS.map(async r => {
-            const end = timeResponse.startTimer({
+          RESOLVERS.map(r =>
+            callResolver(() => r[fnName](_input), {
               provider: r.NAME,
-              method: fnName
-            });
-            let result = {};
-            let status = 0;
-
-            try {
-              result = await r[fnName](_input);
-              status = 1;
-            } catch (err) {
-              if (!isSilencedError(err) && !isTransportFailure(err)) {
-                // A top-level `input` beside `tags` is dropped rather than wrapped.
-                capture(err, {
-                  tags: { provider: r.NAME },
-                  contexts: { input: { [fnName]: _input } }
-                });
-              }
-            }
-            end({ status });
-
-            return result;
-          })
+              input: { [fnName]: _input },
+              empty: {},
+              endTimer: timeResponse.startTimer({ provider: r.NAME, method: fnName })
+            })
+          )
         );
 
         return Object.fromEntries(

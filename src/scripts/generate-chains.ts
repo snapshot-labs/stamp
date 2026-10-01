@@ -31,14 +31,20 @@ async function generateChains() {
   ];
 
   const output = {
-    CHAIN_ID_TO_SHORTNAME: CHAIN_ID_TO_SHORTNAME.reduce((acc, chain) => {
-      acc[chain[0]] = chain[1];
-      return acc;
-    }, {}),
-    SHORTNAME_TO_CHAIN_ID: CHAIN_ID_TO_SHORTNAME.reduce((acc, chain) => {
-      acc[chain[1]] = chain[0];
-      return acc;
-    }, {})
+    CHAIN_ID_TO_SHORTNAME: CHAIN_ID_TO_SHORTNAME.reduce(
+      (acc, chain) => {
+        acc[chain[0]] = chain[1];
+        return acc;
+      },
+      {} as Record<string, string>
+    ),
+    SHORTNAME_TO_CHAIN_ID: CHAIN_ID_TO_SHORTNAME.reduce(
+      (acc, chain) => {
+        acc[chain[1]] = chain[0];
+        return acc;
+      },
+      {} as Record<string, string>
+    )
   };
 
   await fs.writeFile('src/chains.json', JSON.stringify(output, null, 2));

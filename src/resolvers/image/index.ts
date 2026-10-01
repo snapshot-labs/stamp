@@ -20,11 +20,12 @@ import starknet from './starknet';
 import trustwallet from './trustwallet';
 import { max } from '../../constants.json';
 import { parseQuery } from '../../helpers/api';
-import { isSilencedError, isTransportFailure } from '../../helpers/errors';
+import { asErrorLike } from '../../helpers/errors';
 import { isUnsupportedImageError, resize } from '../../helpers/image';
+import { callResolver } from '../../helpers/resolver';
 import { ResolverType } from '../../helpers/types';
 
-type ResolverFn = (...args: any[]) => Promise<Buffer | false>;
+type ResolverFn = (address: string, network: string, networkId?: string) => Promise<Buffer | false>;
 
 type Resolver = {
   name: string;
@@ -40,26 +41,21 @@ type Resolver = {
 // instead of a missing avatar.
 const AUTH_STATUS_CODES = [401, 402, 403];
 
-function isRoutineMiss(error: any): boolean {
-  const status = Number(error?.status ?? error?.response?.status);
+function isRoutineMiss(error: unknown): boolean {
+  const e = asErrorLike(error);
+  const status = Number(e.status ?? asErrorLike(e.response).status);
 
-  return (
-    (status >= 400 && status < 500 && !AUTH_STATUS_CODES.includes(status)) ||
-    isTransportFailure(error)
-  );
+  return status >= 400 && status < 500 && !AUTH_STATUS_CODES.includes(status);
 }
 
 function withFailureContract(name: string, resolve: ResolverFn): ResolverFn {
-  return async (...args) => {
-    try {
-      return await resolve(...args);
-    } catch (err) {
-      if (!isSilencedError(err) && !isRoutineMiss(err)) {
-        capture(err, { tags: { provider: name }, contexts: { input: { args } } });
-      }
-      return false;
-    }
-  };
+  return (...args) =>
+    callResolver(() => resolve(...args), {
+      provider: name,
+      input: { args },
+      empty: false,
+      isRoutineMiss
+    });
 }
 
 function withResize(name: string, resolve: ResolverFn): ResolverFn {
@@ -117,12 +113,15 @@ const resolvers = Object.fromEntries(
   })
 ) as ResolverMap;
 
+const resolverFns: Record<string, ResolverFn> = resolvers;
+const FALLBACKS = { blockie, jazzicon };
+
 export default resolvers;
 
 export async function resolveImage(
   type: ResolverType,
   id: string,
-  rawQuery: any
+  rawQuery: unknown
 ): Promise<{ image: Buffer | Readable; isFallback: boolean }> {
   const query = parseQuery(id, type, rawQuery);
   const {
@@ -142,7 +141,7 @@ export async function resolveImage(
     query,
     async () => {
       const files = await Promise.all(
-        currentResolvers.map(r => resolvers[r](address, network, networkId))
+        currentResolvers.map(r => resolverFns[r](address, network, networkId))
       );
       return files.find(Boolean) || false;
     },
@@ -150,11 +149,11 @@ export async function resolveImage(
   );
   if (image) return { image, isFallback: false };
 
-  const fallbackImage = await resolvers[fallback](address, network, networkId);
+  const fallbackImage = await FALLBACKS[fallback](address);
   return { image: await resize(fallbackImage, w, h, { fit }), isFallback: true };
 }
 
-export function clearCache(type: ResolverType, id: string, rawQuery: any) {
+export function clearCache(type: ResolverType, id: string, rawQuery: Record<string, unknown>) {
   const { fb, cb, fit } = rawQuery;
   return clear(type, parseQuery(id, type, { fb, cb, fit }));
 }

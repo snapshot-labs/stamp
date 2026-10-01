@@ -16,7 +16,7 @@ export default function initMetrics(app: Express) {
       new RegExp(`^/clear/(${TYPE_CONSTRAINTS})/.+$`),
       new RegExp(`^/(${TYPE_CONSTRAINTS})/.+$`)
     ],
-    errorHandler: (e: any) => capture(e)
+    errorHandler: (e: unknown) => capture(e)
   });
 }
 

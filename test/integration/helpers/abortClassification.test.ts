@@ -1,11 +1,12 @@
 import http from 'http';
+import { AddressInfo, Socket } from 'net';
 import { StaticJsonRpcProvider } from '@ethersproject/providers';
 import { createPublicClient, encodeErrorResult, parseAbi, http as viemHttp } from 'viem';
 import { isSilencedError } from '../../../src/helpers/errors';
 
 let server: http.Server;
 let url: string;
-const sockets = new Set<any>();
+const sockets = new Set<Socket>();
 
 const address = '0x1111111111111111111111111111111111111111';
 const callback = '0x12345678';
@@ -49,7 +50,7 @@ beforeAll(async () => {
     socket.on('close', () => sockets.delete(socket));
   });
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', () => resolve()));
-  url = `http://127.0.0.1:${(server.address() as any).port}/`;
+  url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/`;
 });
 
 afterAll(async () => {

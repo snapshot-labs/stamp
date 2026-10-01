@@ -1,13 +1,15 @@
+import { MatchImageSnapshotOptions } from 'jest-image-snapshot';
 import resolvers from '../../../../src/resolvers/image';
-import { remoteSnapshotOptions } from '../../../fixtures/image-snapshot-addresses';
 import { expectResolverImageSnapshot } from '../../../helpers/imageSnapshot';
+import { recordResolverFailures } from '../../../helpers/resolverFailures';
 
 type ResolverName = keyof typeof resolvers;
 
 type ResolverArgs = unknown[];
 
+const withFailures = recordResolverFailures();
+
 const TIMEOUT = 30e3;
-const RETRY_TIMES = 3;
 
 // A single test input. The common case is a bare address/name string. Resolvers
 // that take extra positional arguments (chainId, network, ...) pass `{ args }`.
@@ -24,9 +26,8 @@ type Config = {
   withAvatar?: Input[];
   // Valid addresses with NO avatar set: one false-assertion test per input.
   withoutAvatar?: Input[];
-  skip?: boolean;
-  requireEnv?: string[];
   todoCases?: string[];
+  snapshotOptions?: MatchImageSnapshotOptions;
 };
 
 const toArgs = (input: Input): ResolverArgs => (typeof input === 'string' ? [input] : input.args);
@@ -40,32 +41,22 @@ export default function testResolverImageSnapshots({
   subId,
   withAvatar = [],
   withoutAvatar = [],
-  skip = false,
-  requireEnv = [],
-  todoCases = []
+  todoCases = [],
+  snapshotOptions
 }: Config) {
-  jest.retryTimes(RETRY_TIMES);
-
-  const missingEnv = requireEnv.find(key => !process.env[key]);
-  if (missingEnv) {
-    describe('resolvers', () => it.todo(`is missing ${missingEnv}`));
-    return;
-  }
-
   const base = subId ?? id;
-  const describeResolver = skip ? describe.skip : describe;
 
-  describeResolver('resolvers', () => {
+  describe('resolvers', () => {
     describe(base, () => {
       withAvatar.forEach(input => {
         // Single input: the base name is identifier enough. Multiple inputs
         // disambiguate by their first argument (address/name).
         const identifier = withAvatar.length <= 1 ? base : `${base}-${String(toArgs(input)[0])}`;
-        it(
+        it.concurrent(
           `matches the image snapshot for ${identifier}`,
           async () => {
             await expectResolverImageSnapshot(await call(resolver, input), {
-              ...remoteSnapshotOptions,
+              ...snapshotOptions,
               customSnapshotIdentifier: identifier
             });
           },
@@ -74,11 +65,12 @@ export default function testResolverImageSnapshots({
       });
 
       withoutAvatar.forEach(input => {
-        it(
+        it.concurrent(
           'returns false when no avatar is set',
-          async () => {
+          withFailures(async failures => {
             expect(await call(resolver, input)).toBe(false);
-          },
+            expect(failures).toEqual([]);
+          }),
           TIMEOUT
         );
       });

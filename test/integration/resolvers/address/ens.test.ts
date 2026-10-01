@@ -21,12 +21,16 @@ describe('ENS address resolver: CCIP-Read fallback', () => {
   // jesse.base.eth's primary name is set via an off-chain resolver that the batch
   // getNames contract doesn't follow, so the fallback to provider.lookupAddress
   // is required.
-  it('resolves names that the batch contract misses', async () => {
-    const address = '0x2211d1D0020DAEA8039E46Cf1367962070d77DA9';
-    await expect(lookupAddresses([address])).resolves.toEqual({
-      [address]: 'jesse.base.eth'
-    });
-  }, 15e3);
+  it.concurrent(
+    'resolves names that the batch contract misses',
+    async () => {
+      const address = '0x2211d1D0020DAEA8039E46Cf1367962070d77DA9';
+      await expect(lookupAddresses([address])).resolves.toEqual({
+        [address]: 'jesse.base.eth'
+      });
+    },
+    15e3
+  );
 
   it('resolves a .base.eth name served only through ENS', async () => {
     await expect(resolveNames(['bridge.base.eth'])).resolves.toEqual({
@@ -34,16 +38,21 @@ describe('ENS address resolver: CCIP-Read fallback', () => {
     });
   }, 15e3);
 
-  it('falls back to per-address lookups when the batch reverse call reverts', async () => {
-    const ccipAddress = '0xcD75C3054697FF61fEd14CD6b380e80F2eFD3D85';
-    const goodAddress = '0xE6D0Dd18C6C3a9Af8C2FaB57d6e6A38E29d513cC';
+  it.concurrent(
+    'falls back to per-address lookups when the batch reverse call reverts',
+    async () => {
+      const ccipAddress = '0xcD75C3054697FF61fEd14CD6b380e80F2eFD3D85';
+      const goodAddress = '0xE6D0Dd18C6C3a9Af8C2FaB57d6e6A38E29d513cC';
 
-    await expect(lookupAddresses([ccipAddress])).resolves.toEqual({});
-    await expect(lookupAddresses([ccipAddress, goodAddress])).resolves.toEqual({
-      [goodAddress]: 'sdntestens.eth'
-    });
-  }, 20e3);
+      await expect(lookupAddresses([ccipAddress])).resolves.toEqual({});
+      await expect(lookupAddresses([ccipAddress, goodAddress])).resolves.toEqual({
+        [goodAddress]: 'sdntestens.eth'
+      });
+    },
+    20e3
+  );
 
+  // Sequential: the mocked rejection would be taken by whichever concurrent call reaches it first.
   it('still surfaces non-CALL_EXCEPTION batch errors', async () => {
     const error = Object.assign(new Error('boom'), {
       code: 'SERVER_ERROR'

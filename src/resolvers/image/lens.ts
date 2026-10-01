@@ -7,7 +7,7 @@ const LENS_IPFS_GATEWAY = 'https://gw.ipfs-lens.dev/ipfs/';
 const LENS_EXTENSION = '.lens';
 const LOCAL_NAME_MAX_BYTES = 254;
 
-function normalizeImageUrl(url: string) {
+function normalizeImageUrl(url: string | null | undefined) {
   if (!url) return false;
 
   // Lens IPFS gateway is returning 403 when accessed directly
@@ -22,7 +22,7 @@ function normalizeImageUrl(url: string) {
 }
 
 export default async function resolve(domainOrAddress: string) {
-  let request: Record<string, any>;
+  let request: { address: string } | { username: { localName: string } };
 
   if (isAddress(domainOrAddress)) {
     request = { address: getAddress(domainOrAddress) };
@@ -37,7 +37,7 @@ export default async function resolve(domainOrAddress: string) {
 
   const {
     data: { account }
-  } = await graphQlCall(
+  } = await graphQlCall<{ account: { metadata: { picture: string | null } | null } | null }>(
     `${API_URL}/graphql`,
     `query Account($request: AccountRequest!) {
       account(request: $request) {

@@ -133,6 +133,10 @@ describe('GET /avatar/:id?resolver=', () => {
     expectInvalidResolver(await request(app).get(`/avatar/${ADDRESS}?resolver=${a}&resolver=${b}`));
   });
 
+  it('matches the image type case-insensitively', async () => {
+    expectInvalidResolver(await request(app).get(`/AVATAR/${ADDRESS}?resolver=garbage`));
+  });
+
   it('runs only the requested resolver', async () => {
     const resolver = constants.resolvers.avatar[1];
     const response = await request(app).get(`/avatar/${ADDRESS}?resolver=${resolver}`);
@@ -244,6 +248,57 @@ describe('POST /', () => {
       });
       expect(capture).not.toHaveBeenCalled();
     });
+
+    it.each([
+      ['no body', undefined],
+      ['a non-JSON body', 'text/plain']
+    ])('returns invalid method when there is %s', async (_, contentType) => {
+      const post = request(app).post('/');
+      const response = await (contentType ? post.set('Content-Type', contentType).send('x') : post);
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        jsonrpc: '2.0',
+        error: { code: 400, message: 'unauthorized', data: 'invalid method' },
+        id: null
+      });
+    });
+  });
+
+  describe('when params are malformed', () => {
+    const validHandle = 'snapshot.eth';
+
+    it.each([
+      ['lookup_addresses', [[ADDRESS]]],
+      ['lookup_addresses', [123]],
+      ['lookup_addresses', []],
+      ['lookup_addresses', Array(51).fill(ADDRESS)],
+      ['lookup_addresses', 'a simple string'],
+      ['lookup_addresses', { a: 'b' }],
+      ['lookup_addresses', 123],
+      ['lookup_addresses', null],
+      ['lookup_addresses', undefined],
+      ['lookup_addresses', true],
+      ['resolve_names', [[validHandle]]],
+      ['resolve_names', [123]],
+      ['resolve_names', []],
+      ['resolve_names', Array(6).fill(validHandle)],
+      ['lookup_domains', [ADDRESS]],
+      ['lookup_domains', 123],
+      ['lookup_domains', []],
+      ['lookup_domains', Array(51).fill(ADDRESS)],
+      ['get_owner', [validHandle]],
+      ['get_owner', 123],
+      ['get_owner', []],
+      ['get_owner', Array(6).fill(validHandle)]
+    ])('returns invalid params for %s with %p', async (method, params) => {
+      const response = await request(app).post('/').send({ method, params });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe(-32602);
+      expect(typeof response.body.error.data).toBe('string');
+      expect(response.body.error.data.length).toBeGreaterThan(0);
+    });
   });
 
   describe('on lookup_domains', () => {
@@ -280,6 +335,38 @@ describe('POST /', () => {
         expect(response.status).toBe(200);
         expect(capture).not.toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('network', () => {
+    it.each([
+      ['a numeric chain id', 109, '109'],
+      ['a string chain id', '109', '109'],
+      ['no chain id', undefined, undefined]
+    ])('passes %s to get_owner as a string', async (_, network, expected) => {
+      (getOwner as jest.Mock).mockResolvedValue(ADDRESS);
+
+      const response = await request(app)
+        .post('/')
+        .send({ method: 'get_owner', params: 'test.shib', network });
+
+      expect(response.status).toBe(200);
+      expect(getOwner).toHaveBeenCalledWith('test.shib', expected);
+    });
+
+    it.each([
+      ['get_owner', 'an array', ['109']],
+      ['get_owner', 'an object', { id: 109 }],
+      ['lookup_domains', 'an object', { id: 1 }],
+      ['lookup_domains', 'an array holding an object', [{ id: 1 }]]
+    ])('rejects %s given %s', async (method, _, network) => {
+      const response = await request(app)
+        .post('/')
+        .send({ method, params: method === 'get_owner' ? 'test.shib' : ADDRESS, network });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe(-32602);
+      expect(getOwner).not.toHaveBeenCalled();
     });
   });
 

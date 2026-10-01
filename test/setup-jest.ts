@@ -1,10 +1,9 @@
+import { once } from 'events';
 import { configureToMatchImageSnapshot } from 'jest-image-snapshot';
-import client from '../src/helpers/redis';
 
-// Allow a tiny percentage of differing pixels to absorb anti-aliasing noise
-// across platforms / sharp versions. The matcher fails above this threshold.
 const toMatchImageSnapshot = configureToMatchImageSnapshot({
-  failureThreshold: 0.01,
+  customDiffConfig: { threshold: 0.1 },
+  failureThreshold: 0.001,
   failureThresholdType: 'percent'
 });
 
@@ -12,15 +11,38 @@ expect.extend({ toMatchImageSnapshot });
 
 jest.spyOn(console, 'log').mockImplementation(() => {});
 
-jest.retryTimes(3);
+// Only tests that reach live third-party upstreams retry; the loopback-only ones are deterministic.
+const { testPath = '' } = expect.getState();
+if (
+  /\/test\/(e2e|integration\/resolvers)\//.test(testPath) &&
+  !/\/(address\/cache|image\/deadline)\.test\.ts$/.test(testPath)
+) {
+  jest.retryTimes(3, { logErrorsBeforeRetry: true });
+}
+
+// No client unless a file opts in with jest.unmock(), so only files that use redis connect to it.
+jest.mock('../src/helpers/redis', () => ({ __esModule: true, default: undefined, mocked: true }));
+
+beforeAll(async () => {
+  if (process.env.REDIS_URL) return;
+  if ('mocked' in (await import('../src/helpers/redis'))) return;
+  throw new Error(
+    `Jest worker ${process.env.JEST_WORKER_ID} has no redis DB left (1-15); lower --maxWorkers`
+  );
+});
 
 afterAll(async () => {
-  if (client) {
-    try {
-      await client.flushDb();
-      await client.quit();
-    } catch {
-      // Ignore errors during cleanup
-    }
+  // Imported here, not at the top: resolves to the module this file got, real or no client.
+  const { default: client } = await import('../src/helpers/redis');
+  if (!client?.isOpen) return;
+
+  // destroy() during a connection attempt misses the socket being opened, which then
+  // connects anyway and keeps Jest alive; let the attempt succeed or fail first.
+  if (!client.isReady) await once(client, 'ready').catch(() => {});
+
+  try {
+    if (client.isReady) await client.flushDb();
+  } finally {
+    client.destroy();
   }
 });
