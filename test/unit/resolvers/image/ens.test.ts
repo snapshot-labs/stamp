@@ -8,6 +8,10 @@ jest.mock('../../../../src/helpers/http', () => ({
   fetchHttpImage: jest.fn()
 }));
 jest.mock('../../../../src/resolvers/address', () => ({ lookupAddresses: jest.fn() }));
+jest.mock('../../../../src/resolvers/address/lens', () => ({
+  ...jest.requireActual('../../../../src/resolvers/address/lens'),
+  EXCLUSIVE_TLDS: ['.lens', '.resolver-test']
+}));
 
 const EVM_ADDRESS = '0x0000000000000000000000000000000000000001';
 const STARKNET_ADDRESS = '0x0779ba6e4e227947acbbdfb978a292c401339027eeb3d768f5d12cd2e818265a';
@@ -20,7 +24,8 @@ const INVALID_NAMES = [
   'foo.bnb',
   'foo.stark',
   'foo.gwei',
-  'foo.shib'
+  'foo.shib',
+  'foo.resolver-test'
 ];
 const VALID_NAMES = [
   ['vitalik.eth', 'vitalik.eth'],
@@ -92,7 +97,7 @@ describe('resolvers/image/ens', () => {
     expect(mockedFetchHttpImage).not.toHaveBeenCalled();
   });
 
-  it.each(['foo.BNB', `foo.le${String.fromCodePoint(0x200b)}ns`])(
+  it.each(['foo.BNB', `foo.le${String.fromCodePoint(0x200b)}ns`, 'foo.RESOLVER-TEST'])(
     'skips a sibling-resolver reverse result %s',
     async reverseName => {
       mockedLookupAddresses.mockResolvedValue({ [EVM_ADDRESS]: reverseName });

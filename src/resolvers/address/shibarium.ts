@@ -9,6 +9,7 @@ export const NAME = 'Shibarium';
 const CHAIN_ID = '109';
 const NETWORK = 'BONE';
 const TLD = 'shib';
+export const EXCLUSIVE_TLDS = [`.${TLD}`] as const;
 
 function normalizeAddresses(addresses: Address[]): Address[] {
   return addresses.filter(isEvmAddress);

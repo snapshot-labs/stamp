@@ -7,12 +7,21 @@ jest.mock('@snapshot-labs/snapshot-sentry', () => ({
   capture: jest.fn()
 }));
 
-jest.mock('../../../../src/helpers/provider', () => ({
-  ...jest.requireActual('../../../../src/helpers/provider'),
-  getProvider: jest.fn(() => ({
+jest.mock('../../../../src/helpers/provider', () => {
+  const provider = {
     resolveName: jest.fn().mockResolvedValue(null),
     lookupAddress: jest.fn().mockResolvedValue(null)
-  }))
+  };
+
+  return {
+    ...jest.requireActual('../../../../src/helpers/provider'),
+    getProvider: jest.fn(() => provider)
+  };
+});
+
+jest.mock('../../../../src/resolvers/address/lens', () => ({
+  ...jest.requireActual('../../../../src/resolvers/address/lens'),
+  EXCLUSIVE_TLDS: ['.lens', '.resolver-test']
 }));
 
 const mockedFetch = mockGlobalFetch();
@@ -124,7 +133,7 @@ describe('resolvers/address/ens - resolveNames', () => {
   });
 
   it('skips names owned by sibling resolvers before querying ENS', async () => {
-    const names = ['foo.lens', 'foo.bnb', 'foo.stark', 'foo.gwei', 'foo.shib'];
+    const names = ['foo.lens', 'foo.bnb', 'foo.stark', 'foo.gwei', 'foo.shib', 'foo.resolver-test'];
 
     await expect(resolveNames(names)).resolves.toEqual({});
 

@@ -6,6 +6,11 @@ jest.mock('@snapshot-labs/snapshot-sentry', () => ({
   capture: jest.fn()
 }));
 
+jest.mock('../../../../src/resolvers/address/lens', () => ({
+  ...jest.requireActual('../../../../src/resolvers/address/lens'),
+  EXCLUSIVE_TLDS: ['.lens', '.resolver-test']
+}));
+
 const HANDLE = 'test.crypto';
 const ADDRESS = '0xeF8305E140ac520225DAf050e2f71d5fBcC543e7';
 const mockedCall = jest.spyOn(snapshot.utils, 'call');
@@ -57,7 +62,7 @@ describe('resolvers/address/unstoppableDomains - resolveNames', () => {
   });
 
   it('skips names owned by sibling resolvers before querying UNS', async () => {
-    const names = ['foo.lens', 'foo.bnb', 'foo.stark', 'foo.gwei', 'foo.shib'];
+    const names = ['foo.lens', 'foo.bnb', 'foo.stark', 'foo.gwei', 'foo.shib', 'foo.resolver-test'];
 
     await expect(resolveNames(names)).resolves.toEqual({});
 

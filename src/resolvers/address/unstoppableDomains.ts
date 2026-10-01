@@ -1,7 +1,8 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import snapshot from '@snapshot-labs/snapshot.js';
 import Resolution, { NamingServiceName } from '@unstoppabledomains/resolution';
-import { hasOwnedTld, isEvmAddress } from '../../helpers/address';
+import { hasOwnedTld } from './exclusiveTlds';
+import { isEvmAddress } from '../../helpers/address';
 import { isSilencedError, isTransportFailure } from '../../helpers/errors';
 import { withoutEmptyValues } from '../../helpers/object';
 import { batchContractCalls, getProvider } from '../../helpers/provider';

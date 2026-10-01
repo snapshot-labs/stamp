@@ -1,10 +1,10 @@
 import { ens_normalize } from '@adraffy/ens-normalize';
 import { isAddress } from '@ethersproject/address';
 import snapshot from '@snapshot-labs/snapshot.js';
-import { hasOwnedTld } from '../../helpers/address';
 import { fetchHttpImage, isHttpUrl } from '../../helpers/http';
 import { getProviderOptions } from '../../helpers/provider';
 import { lookupAddresses } from '../address';
+import { hasOwnedTld } from '../address/exclusiveTlds';
 
 async function castToEnsName(nameOrAddress: string): Promise<string | undefined> {
   const name = isAddress(nameOrAddress)
