@@ -2,12 +2,12 @@ import { ens_normalize } from '@adraffy/ens-normalize';
 import { getAddress } from '@ethersproject/address';
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import snapshot from '@snapshot-labs/snapshot.js';
-import { hasOwnedTld } from './exclusiveTlds';
 import constants from '../../constants.json';
 import { isEvmAddress } from '../../helpers/address';
 import { asErrorLike, isSilencedError, isTransportFailure } from '../../helpers/errors';
 import { graphQlCall } from '../../helpers/graphql';
 import { getProvider } from '../../helpers/provider';
+import { hasOwnedTld } from '../../helpers/resolver';
 import { Address, Handle } from '../../helpers/types';
 
 export const NAME = 'Ens';

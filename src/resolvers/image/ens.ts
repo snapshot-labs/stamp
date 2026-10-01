@@ -3,8 +3,8 @@ import { isAddress } from '@ethersproject/address';
 import snapshot from '@snapshot-labs/snapshot.js';
 import { fetchHttpImage, isHttpUrl } from '../../helpers/http';
 import { getProviderOptions } from '../../helpers/provider';
+import { hasOwnedTld } from '../../helpers/resolver';
 import { lookupAddresses } from '../address';
-import { hasOwnedTld } from '../address/exclusiveTlds';
 
 async function castToEnsName(nameOrAddress: string): Promise<string | undefined> {
   const name = isAddress(nameOrAddress)

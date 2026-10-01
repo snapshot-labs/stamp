@@ -1,11 +1,11 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import snapshot from '@snapshot-labs/snapshot.js';
 import Resolution, { NamingServiceName } from '@unstoppabledomains/resolution';
-import { hasOwnedTld } from './exclusiveTlds';
 import { isEvmAddress } from '../../helpers/address';
 import { isSilencedError, isTransportFailure } from '../../helpers/errors';
 import { withoutEmptyValues } from '../../helpers/object';
 import { batchContractCalls, getProvider } from '../../helpers/provider';
+import { hasOwnedTld } from '../../helpers/resolver';
 import { Address, Handle } from '../../helpers/types';
 
 export const NAME = 'Unstoppable Domains';
