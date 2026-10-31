@@ -4,7 +4,7 @@ const ETH_LOGO = 'https://static.cdnlogo.com/logos/e/81/ethereum-eth.svg';
 
 describe('helpers/chains', () => {
   describe('getBaseAssetIconUrl', () => {
-    it.each(['1', '8453', '59144', '4663', '46630', '11155111'])(
+    it.each(['1', '8453', '59144', '4663', '46630', '11155111', '480', '534352', '1868', '4326'])(
       'gives chain %s, native ETH, the ETH logo',
       chainId => {
         expect(getBaseAssetIconUrl(chainId)).toBe(ETH_LOGO);
