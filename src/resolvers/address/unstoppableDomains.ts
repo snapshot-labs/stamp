@@ -5,6 +5,7 @@ import { isEvmAddress } from '../../helpers/address';
 import { isSilencedError, isTransportFailure } from '../../helpers/errors';
 import { withoutEmptyValues } from '../../helpers/object';
 import { batchContractCalls, getProvider } from '../../helpers/provider';
+import { hasOwnedTld } from '../../helpers/resolver';
 import { Address, Handle } from '../../helpers/types';
 
 export const NAME = 'Unstoppable Domains';
@@ -21,7 +22,7 @@ function normalizeAddresses(addresses: Address[]): Address[] {
 }
 
 function normalizeHandles(handles: Handle[]): Handle[] {
-  return handles.map(h => (/^[.a-z0-9-]+$/.test(h) ? h : '')).filter(h => h);
+  return handles.filter(h => /^[.a-z0-9-]+$/.test(h) && !hasOwnedTld(h));
 }
 
 export async function lookupAddresses(addresses: Address[]): Promise<Record<Address, Handle>> {

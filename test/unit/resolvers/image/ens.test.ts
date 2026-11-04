@@ -8,14 +8,31 @@ jest.mock('../../../../src/helpers/http', () => ({
   fetchHttpImage: jest.fn()
 }));
 jest.mock('../../../../src/resolvers/address', () => ({ lookupAddresses: jest.fn() }));
+jest.mock('../../../../src/resolvers/address/lens', () => ({
+  ...jest.requireActual('../../../../src/resolvers/address/lens'),
+  EXCLUSIVE_TLDS: ['.lens', '.resolver-test']
+}));
 
 const EVM_ADDRESS = '0x0000000000000000000000000000000000000001';
 const STARKNET_ADDRESS = '0x0779ba6e4e227947acbbdfb978a292c401339027eeb3d768f5d12cd2e818265a';
-const INVALID_NAMES = [STARKNET_ADDRESS, 'nodot', 'a..b', '../avatar/vitalik.eth'];
+const INVALID_NAMES = [
+  STARKNET_ADDRESS,
+  'nodot',
+  'a..b',
+  '../avatar/vitalik.eth',
+  'foo.lens',
+  'foo.bnb',
+  'foo.stark',
+  'foo.gwei',
+  'foo.shib',
+  'foo.resolver-test'
+];
 const VALID_NAMES = [
   ['vitalik.eth', 'vitalik.eth'],
   ['foo.xyz', 'foo.xyz'],
-  ['ⓥⓘⓣⓐⓛⓘⓚ.eth', 'vitalik.eth']
+  ['ⓥⓘⓣⓐⓛⓘⓚ.eth', 'vitalik.eth'],
+  ['mint.base.eth', 'mint.base.eth'],
+  ['api.lens.xyz', 'api.lens.xyz']
 ] as const;
 
 const mockTransportRequest = jest.fn();
@@ -79,6 +96,20 @@ describe('resolvers/image/ens', () => {
     expect(mockTransportRequest).not.toHaveBeenCalled();
     expect(mockedFetchHttpImage).not.toHaveBeenCalled();
   });
+
+  it.each(['foo.BNB', `foo.le${String.fromCodePoint(0x200b)}ns`, 'foo.RESOLVER-TEST'])(
+    'skips a sibling-resolver reverse result %s',
+    async reverseName => {
+      mockedLookupAddresses.mockResolvedValue({ [EVM_ADDRESS]: reverseName });
+      const getEnsTextRecord = jest.spyOn(snapshot.utils, 'getEnsTextRecord');
+
+      await expect(resolve(EVM_ADDRESS)).resolves.toBe(false);
+
+      expect(getEnsTextRecord).not.toHaveBeenCalled();
+      expect(mockTransportRequest).not.toHaveBeenCalled();
+      expect(mockedFetchHttpImage).not.toHaveBeenCalled();
+    }
+  );
 
   it('normalizes a valid reverse result before lookup and fallback', async () => {
     mockedLookupAddresses.mockResolvedValue({ [EVM_ADDRESS]: 'VITALIK.eth' });

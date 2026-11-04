@@ -6,6 +6,7 @@ import { getProvider } from '../../helpers/provider';
 import { Address, Handle } from '../../helpers/types';
 
 export const NAME = 'Starknet';
+export const EXCLUSIVE_TLDS = ['.stark'] as const;
 const NETWORK = constants.StarknetChainId.SN_MAIN;
 const EMPTY_STARKNET_ADDRESS = `0x${'0'.repeat(64)}`;
 const NAMING_CONTRACT = starknetId.getStarknetIdContract(NETWORK);

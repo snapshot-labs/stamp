@@ -32,6 +32,12 @@ describe('ENS address resolver: CCIP-Read fallback', () => {
     15e3
   );
 
+  it('resolves a .base.eth name served only through ENS', async () => {
+    await expect(resolveNames(['bridge.base.eth'])).resolves.toEqual({
+      'bridge.base.eth': '0x3154Cf16ccdb4C6d922629664174b904d80F2C35'
+    });
+  }, 15e3);
+
   it.concurrent(
     'falls back to per-address lookups when the batch reverse call reverts',
     async () => {

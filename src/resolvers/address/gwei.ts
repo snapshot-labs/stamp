@@ -11,6 +11,7 @@ export const NAME = 'Gwei Name Service';
 
 const NETWORK = '1';
 const TLD = '.gwei';
+export const EXCLUSIVE_TLDS = [TLD] as const;
 const CONTRACT = '0x9D51D507BC7264d4fE8Ad1cf7Fe191933A0a81d6';
 const ABI = [
   'function resolve(uint256 tokenId) view returns (address)',

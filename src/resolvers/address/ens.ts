@@ -7,6 +7,7 @@ import { isEvmAddress } from '../../helpers/address';
 import { asErrorLike, isSilencedError, isTransportFailure } from '../../helpers/errors';
 import { graphQlCall } from '../../helpers/graphql';
 import { getProvider } from '../../helpers/provider';
+import { hasOwnedTld } from '../../helpers/resolver';
 import { Address, Handle } from '../../helpers/types';
 
 export const NAME = 'Ens';
@@ -28,7 +29,7 @@ function normalizeAddresses(addresses: Address[]): Address[] {
 }
 
 function normalizeHandles(names: Handle[]): Handle[] {
-  return normalizeEns(names).filter(h => h);
+  return normalizeEns(names).filter(h => h && !hasOwnedTld(h));
 }
 
 export async function lookupAddresses(addresses: Address[]): Promise<Record<Address, Handle>> {
